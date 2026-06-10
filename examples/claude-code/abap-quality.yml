@@ -1,0 +1,15 @@
+# CI for abapGit repos: parse gate + cloud-readiness ratchet. No SAP system needed.
+name: ABAP quality
+on: [pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Hard gate — everything must parse
+        run: npx -y abap-mcp lint src/ --preset syntax-only
+      - name: Readiness ratchet — raise the floor as you remediate
+        run: npx -y abap-mcp readiness src/ --fail-below 75

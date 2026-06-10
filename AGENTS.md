@@ -9,7 +9,7 @@ no filesystem — text in, structured JSON out. Lumivara product line: **SAP**.
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (80 tests) + build, in order = **the CI gate**
+- `npm run check`     — typecheck + vitest (90 tests) + build, in order = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `node dist/cli.js`  — run the stdio MCP server
 - Inspect: `npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list`
@@ -25,8 +25,11 @@ no filesystem — text in, structured JSON out. Lumivara product line: **SAP**.
   (dual-parse diff) · scaffold.ts (RAP templates + self-validation) · rules.ts · formatter.ts ·
   outline.ts
 - `src/tool.ts`, `src/errors.ts` — vendored mcp-kit patterns (attributed; keep in sync by hand)
-- `src/server.ts` + `src/cli.ts` (stdio) + `src/index.ts` (library exports)
-- `docs/DESIGN.md` — decision log; update it when a decision changes
+- `src/server.ts` + `src/cli.ts` (entry: subcommand → CLI, bare → stdio server) +
+  `src/cli-commands.ts` (lint/readiness/scaffold/outline/explain/rules; the CLI may touch fs,
+  the MCP server never does) + `src/index.ts` (library exports)
+- `docs/DESIGN.md` — decision log · `docs/COOKBOOK.md` — user recipes ·
+  `examples/claude-code/` — subagents (reviewer, migrator), .mcp.json, CI workflow
 
 ## Deploy: none hosted — ships as an npm package (`npm publish`, owner-run; needs npm login)
 

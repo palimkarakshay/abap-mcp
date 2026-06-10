@@ -46,6 +46,30 @@ claude mcp add abap-mcp -- node /path/to/abap-mcp/dist/cli.js
 Then ask your agent things like *"lint this class against ABAP Cloud"*, *"is zold_report
 cloud-ready?"*, or *"scaffold a RAP BO for entity Booking on table zbooking, draft enabled"*.
 
+## CLI — same engine, no AI required
+
+Every tool is also a subcommand, so it works in terminals and CI where no MCP client exists:
+
+```bash
+npx abap-mcp lint src/                          # lint files or whole directories
+npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, CI-gateable
+npx abap-mcp scaffold --entity Travel --table ztravel --key travel_id --out ./out
+npx abap-mcp outline src/zcl_monster.clas.abap  # navigate big objects
+npx abap-mcp explain exit_or_check              # rule rationale
+```
+
+Directories are walked recursively (abapGit naming), batched automatically, and `readiness`
+merges batches into one scored, categorized repo report. Exit codes are CI-friendly
+(`1` on error findings / failed threshold).
+
+## Recipes, agents & CI
+
+**[docs/COOKBOOK.md](docs/COOKBOOK.md)** — practical recipes: the fix-until-clean loop,
+PR review without a transport, whole-repo migration triage, CI gates, per-persona use cases.
+**[examples/claude-code/](examples/claude-code/)** — drop-in agentic workflows: an
+`abap-code-reviewer` subagent, an `abap-cloud-migrator` sweep loop (readiness score as the
+loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for abapGit repos.
+
 ## Tools
 
 | Tool | What it does |
