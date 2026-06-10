@@ -56,6 +56,13 @@ export interface ReleasedLookup {
   objectType: string | undefined;
   state: ReleasedState;
   applicationComponent?: string | undefined;
+  /**
+   * true when the name was found in SAP's snapshot (under the requested type,
+   * if one was given). false means absent — "not released as of the snapshot"
+   * by omission, which is weaker evidence than an explicit notToBeReleased
+   * record and must not be reported as a violation on its own.
+   */
+  recorded: boolean;
 }
 
 /** Map SAP's raw state to our three-value state. */
@@ -74,30 +81,36 @@ function toState(rawState: string): ReleasedState {
  * (typical for classic DDIC tables). A `released`/`deprecated` result is taken
  * verbatim from SAP's published data.
  *
- * When `objectType` is given it disambiguates the few hundred names that exist
- * under more than one object type; otherwise the first recorded entry is used,
- * preferring a `released` or `deprecated` record over a `notToBeReleased` one
- * so a genuinely released API is never masked by a same-named internal object.
+ * When `objectType` is given the lookup is strict: only a record of exactly
+ * that type answers the query — a same-named record under a different type is
+ * a miss (`recorded: false`), never a substitute (a released class must not
+ * make a non-released table look released). Untyped lookups use the first
+ * recorded entry, preferring a `released` or `deprecated` record over a
+ * `notToBeReleased` one so a genuinely released API is never masked by a
+ * same-named internal object.
  */
 export function lookupReleased(objectName: string, objectType?: string): ReleasedLookup {
   const key = objectName.trim().toUpperCase();
   const entries = data.objects[key];
+  const wantedType = objectType?.trim().toUpperCase();
   if (entries === undefined || entries.length === 0) {
-    return { name: objectName, objectType, state: "not-released" };
+    return { name: objectName, objectType: wantedType, state: "not-released", recorded: false };
   }
 
-  const wantedType = objectType?.trim().toUpperCase();
   let chosen: RawEntry | undefined;
   if (wantedType !== undefined) {
     chosen = entries.find((e) => e[0].toUpperCase() === wantedType);
-  }
-  if (chosen === undefined) {
+    if (chosen === undefined) {
+      // Typed query, no record of that type: a miss, not a cross-type answer.
+      return { name: objectName, objectType: wantedType, state: "not-released", recorded: false };
+    }
+  } else {
     // Prefer a released/deprecated record over notToBeReleased when ambiguous.
     chosen =
       entries.find((e) => e[1] === "released" || e[1] === "deprecated") ?? entries[0];
   }
   if (chosen === undefined) {
-    return { name: objectName, objectType, state: "not-released" };
+    return { name: objectName, objectType: wantedType, state: "not-released", recorded: false };
   }
 
   return {
@@ -105,6 +118,7 @@ export function lookupReleased(objectName: string, objectType?: string): Release
     objectType: chosen[0],
     state: toState(chosen[1]),
     applicationComponent: chosen[2],
+    recorded: true,
   };
 }
 

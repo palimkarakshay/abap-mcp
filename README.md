@@ -110,7 +110,7 @@ loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for aba
 
 ```bash
 npm install
-npm run check     # typecheck + 115 tests + build — the CI gate
+npm run check     # typecheck + 121 tests + build — the CI gate
 node dist/cli.js  # stdio MCP server
 npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 ```

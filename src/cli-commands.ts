@@ -5,7 +5,7 @@
  * story); the *CLI* is a local developer tool, so reading files from disk here
  * is fine. Both call the identical engine — one definition of "clean".
  */
-import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
 import type { AbapSource, AbapVersion, Finding } from "./abap/engine.js";
@@ -29,10 +29,16 @@ export interface CliIo {
 /** Recursively collect analyzable sources from file/dir paths. */
 export function collectFiles(paths: string[], io: CliIo): AbapSource[] {
   const found: AbapSource[] = [];
+  const visitedDirs = new Set<string>();
   const visit = (p: string): void => {
     const st = statSync(p);
     if (st.isDirectory()) {
       if (basename(p) === ".git" || basename(p) === "node_modules") return;
+      // statSync follows symlinks — track real paths so a symlink cycle
+      // can't recurse forever.
+      const real = realpathSync(p);
+      if (visitedDirs.has(real)) return;
+      visitedDirs.add(real);
       for (const entry of readdirSync(p)) visit(join(p, entry));
       return;
     }
@@ -219,7 +225,13 @@ export function cmdScaffold(argv: string[], io: CliIo): number {
       writeFileSync(target, f.content, "utf8");
       io.out(`wrote ${target}  [${f.validated}]`);
     }
-    writeFileSync(join(outDir, `${sqlTable.toLowerCase()}.tabl.suggestion.txt`), result.suggestedTableDdl, "utf8");
+    const suggestionTarget = join(outDir, `${sqlTable.toLowerCase()}.tabl.suggestion.txt`);
+    if (existsSync(suggestionTarget) && !flags.has("force")) {
+      io.err(`refusing to overwrite ${suggestionTarget} (use --force)`);
+      return 1;
+    }
+    writeFileSync(suggestionTarget, result.suggestedTableDdl, "utf8");
+    io.out(`wrote ${suggestionTarget}`);
   } else {
     for (const f of result.files) {
       io.out(`\n===== ${f.filename}  [validated: ${f.validated}] =====`);
@@ -291,7 +303,8 @@ export function cmdReleased(argv: string[], io: CliIo): number {
   io.out(`Released-API status (SAP Cloudification snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}):`);
   for (const r of results) {
     const tail = r.successor !== undefined ? `  → use ${r.successor}` : "";
-    io.out(`  ${r.name.padEnd(34)} ${r.state.padEnd(13)} ${(r.objectType ?? "").padEnd(9)}${tail}`);
+    const provenance = r.recorded ? "" : " (not in snapshot)";
+    io.out(`  ${r.name.padEnd(34)} ${r.state.padEnd(13)} ${(r.objectType ?? "").padEnd(9)}${provenance}${tail}`);
   }
   return 0;
 }

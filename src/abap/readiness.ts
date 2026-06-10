@@ -140,11 +140,13 @@ export function checkCloudReadiness(
  * Cross-check statically-extracted object references against the bundled SAP
  * Cloudification snapshot. Flags two cases:
  *   - `deprecated` — the referenced object is a deprecated released API.
- *   - `not-released` — direct access to a classic/internal table that is not a
- *     released API (the typical "SELECT … FROM mara" case), with a curated CDS
- *     successor hint when one is known.
+ *   - `not-released` — the reference is explicitly recorded as notToBeReleased
+ *     in SAP's list: direct access to a classic/internal table (the typical
+ *     "SELECT … FROM mara" case, with a curated CDS successor hint when one is
+ *     known) or a CALL FUNCTION to an internal-only function module.
  * Released objects and references the snapshot does not recognise are silent —
- * absence from the list is "not known to be a problem", not proof either way.
+ * absence from the list (every customer Z/Y-object, for a start) is "not known
+ * to be a problem", not proof either way.
  */
 function computeReleasedApiFindings(
   files: AbapSource[],
@@ -152,7 +154,13 @@ function computeReleasedApiFindings(
 ): ReleasedApiFinding[] {
   const out: ReleasedApiFinding[] = [];
   for (const ref of extractObjectReferences(files, baselineVersion)) {
-    const hit = lookupReleased(ref.name, ref.objectType);
+    let hit = lookupReleased(ref.name, ref.objectType);
+    // An ABAP-SQL FROM clause names either a DDIC table or a CDS entity, but
+    // the extractor labels both TABL — fall back to the CDS record so a
+    // deprecated CDS view in a SELECT is still caught.
+    if (!hit.recorded && ref.objectType === "TABL") {
+      hit = lookupReleased(ref.name, "CDS_STOB");
+    }
     if (hit.state === "released") continue;
 
     if (hit.state === "deprecated") {
@@ -170,10 +178,25 @@ function computeReleasedApiFindings(
       continue;
     }
 
-    // not-released. Only flag DB tables (direct table access is the cloud
-    // anti-pattern); a CALL FUNCTION to a module simply absent from the list is
-    // too noisy to report as a finding without a system to confirm against.
-    if (ref.objectType === "TABL") {
+    // not-released. Only flag names SAP's snapshot explicitly records as
+    // notToBeReleased — a name merely absent from the list (every customer
+    // Z/Y-object, for a start) is silent: absence is "not known to be a
+    // problem", not evidence of one.
+    if (!hit.recorded) continue;
+
+    if (ref.objectType === "FUNC") {
+      out.push({
+        object: ref.name,
+        objectType: ref.objectType,
+        state: "not-released",
+        file: ref.file,
+        line: ref.line,
+        note: `Function module ${ref.name} is recorded as not-to-be-released in SAP's Cloudification list — it will not become a public API in ABAP Cloud; use a released successor API instead.`,
+      });
+      continue;
+    }
+
+    if (ref.objectType === "TABL" && hit.objectType === "TABL") {
       const successor = suggestSuccessor(ref.name);
       out.push({
         object: ref.name,

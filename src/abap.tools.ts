@@ -541,6 +541,11 @@ export const checkReleasedApiTool = defineTool({
         state: z
           .enum(["released", "deprecated", "not-released"])
           .describe("'released' = safe public API; 'deprecated' = retiring; 'not-released' = not a public API."),
+        recorded: z
+          .boolean()
+          .describe(
+            "true = explicitly present in SAP's snapshot (under the requested type, if one was given); false = absent — 'not released as of the snapshot' by omission only.",
+          ),
         applicationComponent: z
           .string()
           .optional()
@@ -573,6 +578,7 @@ export const checkReleasedApiTool = defineTool({
         name: hit.name,
         objectType: hit.objectType,
         state: hit.state,
+        recorded: hit.recorded,
         applicationComponent: hit.applicationComponent,
         ...(successor !== undefined ? { successor } : {}),
       };
@@ -580,7 +586,8 @@ export const checkReleasedApiTool = defineTool({
     const text = results
       .map((r) => {
         const tail = r.successor !== undefined ? ` → use ${r.successor}` : "";
-        return `${r.name}: ${r.state}${r.objectType !== undefined ? ` (${r.objectType})` : ""}${tail}`;
+        const provenance = r.recorded ? "" : " (not in snapshot)";
+        return `${r.name}: ${r.state}${r.objectType !== undefined ? ` (${r.objectType})` : ""}${provenance}${tail}`;
       })
       .join("\n");
     return {

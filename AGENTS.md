@@ -10,7 +10,7 @@ structured JSON out (package-bundled data assets excepted; see invariants). Lumi
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (115 tests) + build, in order = **the CI gate**
+- `npm run check`     — typecheck + vitest (121 tests) + build, in order = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `npm run build`     — `tsc && node scripts/copy-data.mjs` (tsc does NOT copy the bundled `.json`)
 - `node scripts/build-released-api-index.mjs` — **dev-only**, refreshes the SAP released-API

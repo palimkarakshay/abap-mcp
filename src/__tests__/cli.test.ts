@@ -86,6 +86,19 @@ describe("cmdScaffold", () => {
     const { io: o } = io();
     expect(cmdScaffold(["--entity", "X"], o)).toBe(2);
   });
+
+  it("refuses to overwrite the table-DDL suggestion file without --force", () => {
+    // Only the suggestion file pre-exists, so the guard under test is the
+    // suggestion-file one, not the per-artifact checks before it.
+    const dir = mkdtempSync(join(tmpdir(), "abapmcp-out-"));
+    writeFileSync(join(dir, "ztrip.tabl.suggestion.txt"), "keep me");
+    const args = ["--entity", "Trip", "--table", "ztrip", "--key", "trip_id", "--out", dir];
+    const first = io();
+    expect(cmdScaffold(args, first.io)).toBe(1);
+    expect(first.err.some((l) => l.includes("ztrip.tabl.suggestion.txt"))).toBe(true);
+    // --force allows the rewrite.
+    expect(cmdScaffold([...args, "--force"], io().io)).toBe(0);
+  });
 });
 
 describe("cmdReleased", () => {

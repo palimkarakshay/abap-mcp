@@ -35,12 +35,28 @@ describe("lookupReleased", () => {
     const r = lookupReleased("ZZ_NO_SUCH_OBJECT_123");
     expect(r.state).toBe("not-released");
     expect(r.objectType).toBeUndefined();
+    expect(r.recorded).toBe(false);
   });
 
   it("disambiguates by objectType when given", () => {
     // A name existing under multiple types resolves to the requested one.
     const cds = lookupReleased("MARA", "TABL");
     expect(cds.objectType).toBe("TABL");
+    expect(cds.recorded).toBe(true);
+  });
+
+  it("marks recorded entries, typed or untyped", () => {
+    expect(lookupReleased("MARA").recorded).toBe(true);
+    expect(lookupReleased("I_Product", "CDS_STOB").recorded).toBe(true);
+  });
+
+  it("does not let a record under another type answer a typed query", () => {
+    // I_Product exists only as CDS_STOB; asking for the TABL of that name is
+    // a miss — a released CDS view must not make a same-named table look released.
+    const r = lookupReleased("I_Product", "TABL");
+    expect(r.state).toBe("not-released");
+    expect(r.recorded).toBe(false);
+    expect(r.objectType).toBe("TABL");
   });
 
   it("exposes a snapshot date and source", () => {

@@ -91,4 +91,44 @@ ENDCLASS.
     const report = checkCloudReadiness([{ source: classWithSelect("i_product") }]);
     expect(report.releasedApiFindings.find((f) => f.object === "I_PRODUCT")).toBeUndefined();
   });
+
+  it("stays silent for customer tables absent from SAP's snapshot", () => {
+    // ZSALES_ORDER is nobody's SAP object — absence from the Cloudification
+    // list must not be reported as a violation (it would flag every Z-table).
+    const report = checkCloudReadiness([{ source: classWithSelect("zsales_order") }]);
+    expect(report.releasedApiFindings).toHaveLength(0);
+  });
+
+  it("flags a CALL FUNCTION to an explicitly not-to-be-released module", () => {
+    const source = `CLASS zcl_fm DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_fm IMPLEMENTATION.
+  METHOD run.
+    CALL FUNCTION 'BAPI_PROCORD_GET_LIST'.
+  ENDMETHOD.
+ENDCLASS.
+`;
+    const report = checkCloudReadiness([{ source }]);
+    const finding = report.releasedApiFindings.find((f) => f.object === "BAPI_PROCORD_GET_LIST");
+    expect(finding).toBeDefined();
+    expect(finding!.state).toBe("not-released");
+    expect(finding!.objectType).toBe("FUNC");
+  });
+
+  it("stays silent for a CALL FUNCTION to a module absent from the snapshot", () => {
+    const source = `CLASS zcl_zfm DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_zfm IMPLEMENTATION.
+  METHOD run.
+    CALL FUNCTION 'Z_CUSTOM_HELPER'.
+  ENDMETHOD.
+ENDCLASS.
+`;
+    const report = checkCloudReadiness([{ source }]);
+    expect(report.releasedApiFindings).toHaveLength(0);
+  });
 });
