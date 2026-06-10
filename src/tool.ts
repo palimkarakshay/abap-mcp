@@ -4,7 +4,7 @@
  * same object that registers the tool is the one a description lint can grade,
  * so model-facing docs can't drift from what's enforced.
  *
- * Pattern adapted from @mcp-kit/core (github.com/lumivarahq/mcp-kit, MIT).
+ * Pattern adapted from @mcp-kit/core (github.com/palimkarakshay/mcp-kit, MIT).
  */
 import type { McpServer, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";

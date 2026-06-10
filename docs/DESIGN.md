@@ -97,7 +97,7 @@ current client; HTTP adds an auth surface for no demonstrated demand).
 
 ## 7. mcp-kit discipline, vendored not depended
 
-The server follows [mcp-kit](https://github.com/lumivarahq/mcp-kit)'s production patterns — a
+The server follows [mcp-kit](https://github.com/palimkarakshay/mcp-kit)'s production patterns — a
 typed `ToolSpec` consumed by both registration and a description lint, structured error results
 instead of crashes, stdout reserved for JSON-RPC (logs to stderr). The two small pattern files
 are vendored with attribution because `@mcp-kit/core` isn't on npm and a public repo can't

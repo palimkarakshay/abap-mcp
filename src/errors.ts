@@ -1,7 +1,7 @@
 /**
  * Structured tool failure — the one way tools in this server fail.
  *
- * Pattern adapted from @mcp-kit/core (github.com/lumivarahq/mcp-kit, MIT):
+ * Pattern adapted from @mcp-kit/core (github.com/palimkarakshay/mcp-kit, MIT):
  * handlers throw `McpToolError` (or anything), the registration wrapper turns
  * it into an MCP error result instead of crashing the request.
  */

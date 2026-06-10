@@ -3,7 +3,7 @@
 MCP server for SAP ABAP: **offline** static analysis (abaplint), ABAP Cloud / Clean Core
 readiness checks, and RAP managed-BO scaffolding. No SAP system, no credentials, no network,
 no filesystem — text in, structured JSON out. Lumivara product line: **SAP**.
-**Public MIT** repo (`github.com/lumivarahq/abap-mcp`); npm package `abap-mcp` (bin + library).
+**Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm package `abap-mcp` (bin + library).
 
 ## Package manager: npm — Node >= 20
 

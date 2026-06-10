@@ -72,7 +72,7 @@ cloud-ready?"*, or *"scaffold a RAP BO for entity Booking on table zbooking, dra
 - **Text-in only, by design.** No filesystem walking, no network — the entire attack surface is
   a parser over strings you explicitly pass. For linting whole directories, use the
   [abaplint CLI](https://abaplint.org) in CI, or the
-  [mcp-kit `wrap-abaplint` recipe](https://github.com/lumivarahq/mcp-kit) this server grew out of.
+  [mcp-kit `wrap-abaplint` recipe](https://github.com/palimkarakshay/mcp-kit) this server grew out of.
 
 ## Develop
 
@@ -85,7 +85,7 @@ npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 
 Tool descriptions are CI-graded (a rubric test enforces verb-first names, when-to-use,
 non-goals, described params, worked examples — the
-[mcp-kit](https://github.com/lumivarahq/mcp-kit) discipline; the full mcp-kit lint scores all
+[mcp-kit](https://github.com/palimkarakshay/mcp-kit) discipline; the full mcp-kit lint scores all
 seven tools 100/100).
 
 ## Design
@@ -98,7 +98,7 @@ scaffolder validates its own output, what was deliberately left out — lives in
 
 - [abaplint](https://github.com/abaplint/abaplint) by Lars Hvam — the parser and rule engine
   underneath every tool here (MIT).
-- [mcp-kit](https://github.com/lumivarahq/mcp-kit) — the production-MCP patterns this server
+- [mcp-kit](https://github.com/palimkarakshay/mcp-kit) — the production-MCP patterns this server
   follows (typed tool specs, transport discipline, description lint).
 
 MIT © Akshay Palimkar. Not affiliated with or endorsed by SAP SE. "SAP", "ABAP" and "RAP" are

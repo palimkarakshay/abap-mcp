@@ -6,7 +6,7 @@
   "author": "Akshay Palimkar",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lumivarahq/abap-mcp.git"
+    "url": "git+https://github.com/palimkarakshay/abap-mcp.git"
   },
   "keywords": [
     "mcp",
