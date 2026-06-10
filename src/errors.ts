@@ -36,9 +36,15 @@ export function errorResult(err: unknown): CallToolResult {
     err instanceof McpToolError
       ? err
       : new McpToolError("internal", err instanceof Error ? err.message : String(err));
+  // IMPORTANT: do NOT attach `structuredContent` here. Every tool declares an `outputSchema`
+  // describing its *success* shape, and the MCP SDK validates `structuredContent` against that
+  // schema even when `isError: true`. An error payload ({ error: … }) cannot satisfy a success
+  // schema, so strict clients (OpenClaw, the MCP inspector, the VSCode/ADT integrations) reject
+  // the whole result with `-32602` and the model never sees the real, actionable message —
+  // it just gives up and answers from memory. The spec permits an absent `structuredContent`
+  // on error results, so the human-readable `code: message` text carries the error instead.
   return {
     isError: true,
     content: [{ type: "text", text: `${e.code}: ${e.message}` }],
-    structuredContent: { error: { code: e.code, message: e.message, details: e.details ?? null } },
   };
 }
