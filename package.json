@@ -1,0 +1,53 @@
+{
+  "name": "abap-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for SAP ABAP: offline static analysis (abaplint), ABAP Cloud / Clean Core readiness checks, and RAP scaffolding — no SAP system or credentials required.",
+  "license": "MIT",
+  "author": "Akshay Palimkar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lumivarahq/abap-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sap",
+    "abap",
+    "rap",
+    "abaplint",
+    "clean-core",
+    "abap-cloud",
+    "static-analysis"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "abap-mcp": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@abaplint/core": "^2.119.25",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
