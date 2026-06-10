@@ -38,6 +38,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm run test && npm run build",
+    "prepublishOnly": "npm run check",
     "start": "node dist/cli.js"
   },
   "dependencies": {
