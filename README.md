@@ -6,8 +6,9 @@ an abapGit export, a code review, CI.
 
 Built on [abaplint](https://abaplint.org) (the open-source ABAP parser/linter) and the
 [Model Context Protocol](https://modelcontextprotocol.io). TypeScript, 100% local — the server
-makes **zero network calls** and touches **no filesystem**: sources go in as text, findings come
-back as structured JSON.
+makes **zero network calls** and reads **no user files**: sources go in as text, findings come
+back as structured JSON. (The released-API list and abaplint's rule data are package-bundled
+assets that ship inside the install — no network, no user filesystem, at runtime.)
 
 ## Why this exists
 
@@ -19,6 +20,7 @@ layer:
 
 - *"Does this ABAP parse? Is it clean?"* → `lint_abap`
 - *"How far is this classic report from ABAP Cloud?"* → `check_cloud_readiness`
+- *"Is MARA a released API? What do I use instead?"* → `check_released_api`
 - *"Start me a correct RAP business object."* → `scaffold_rap_bo`
 - *"What's in this 4,000-line class?"* → `get_abap_outline`
 
@@ -55,6 +57,7 @@ npx abap-mcp lint src/                          # lint files or whole directorie
 npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, CI-gateable
 npx abap-mcp scaffold --entity Travel --table ztravel --key travel_id --out ./out
 npx abap-mcp outline src/zcl_monster.clas.abap  # navigate big objects
+npx abap-mcp released MARA I_Product            # released-API status + CDS successor
 npx abap-mcp explain exit_or_check              # rule rationale
 ```
 
@@ -75,7 +78,8 @@ loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for aba
 | Tool | What it does |
 | --- | --- |
 | `lint_abap` | abaplint static analysis over ABAP/CDS/BDEF sources → structured findings with rule docs links. Presets: `style` (default, snippet-friendly), `full`, `syntax-only`; per-rule overrides. |
-| `check_cloud_readiness` | Dual-parse diff (classic baseline vs `Cloud`): statements that are valid today but illegal in ABAP Cloud become categorized blockers (dynpro, list output, native SQL, …) with a transparent score; code broken at the baseline is reported separately, not counted as migration work. |
+| `check_cloud_readiness` | Dual-parse diff (classic baseline vs `Cloud`): statements that are valid today but illegal in ABAP Cloud become categorized blockers (dynpro, list output, native SQL, …) with a transparent score; code broken at the baseline is reported separately, not counted as migration work. Now also surfaces a **separate, dated released-API cross-check** (`releasedApiFindings`): direct access to non-released classic tables and deprecated-API usage found in the source, with CDS successor hints — informational, not folded into the score. |
+| `check_released_api` | Looks up objects (tables, CDS views, function modules, classes, …) in SAP's bundled Cloudification snapshot → `released` / `deprecated` / `not-released` per object, plus a curated CDS successor for common classic tables. The released-API half of readiness, offline. |
 | `scaffold_rap_bo` | Generates the canonical RAP managed-BO stack (root view, behavior definition `strict(2)` + optional draft, behavior class + handler locals, projection, metadata extension, OData V4 service definition) plus suggested table DDL, activation order and next steps. |
 | `list_abap_rules` | Browse abaplint's ~180 rules (filter by text or tag). |
 | `explain_abap_rule` | One rule in depth — rationale (often Clean ABAP), examples, docs URL. |
@@ -84,25 +88,29 @@ loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for aba
 
 ## Honesty box — what this is *not*
 
-- **Not ATC.** Readiness here is *language-level*: statements ABAP Cloud removed. Whether your
-  code calls **released APIs only** requires a system's released-API list (ATC check
-  `SAP_CP_READINESS`) — out of scope for an offline tool, and the readiness report says so on
-  every call.
+- **Not ATC.** The objective readiness *score* is still language-level: statements ABAP Cloud
+  removed. Released-API coverage is now **partial and offline**: `check_released_api` and the
+  `releasedApiFindings` in readiness reflect SAP's published Cloudification list *as of the
+  bundled snapshot date* — they cover tables and function modules referenced in your source, not
+  every API, and are only as current as the snapshot. A target system's own released-API list
+  (ATC check `API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) remains authoritative; treat an
+  "absent from the list" result as "not released as of the snapshot", not as proof.
 - **Scaffold validation is tiered.** Generated classes and CDS views are round-tripped through
   abaplint at Cloud level before they're returned (the generator and the linter share one
   parser). Behavior/service definitions are outside abaplint's checked surface — they are
   golden-tested canonical templates, and ADT activation is the final arbiter. Each generated
   file is labeled `validated: "abaplint" | "template"`.
-- **Text-in only, by design.** No filesystem walking, no network — the entire attack surface is
-  a parser over strings you explicitly pass. For linting whole directories, use the
-  [abaplint CLI](https://abaplint.org) in CI, or the
+- **Text-in only, by design.** No user-filesystem walking, no network — the entire attack
+  surface is a parser over strings you explicitly pass. (The released-API snapshot and abaplint's
+  rule data are package-bundled assets imported from the install, not fetched or read from your
+  disk.) For linting whole directories, use the [abaplint CLI](https://abaplint.org) in CI, or the
   [mcp-kit `wrap-abaplint` recipe](https://github.com/palimkarakshay/mcp-kit) this server grew out of.
 
 ## Develop
 
 ```bash
 npm install
-npm run check     # typecheck + 80 tests + build — the CI gate
+npm run check     # typecheck + 115 tests + build — the CI gate
 node dist/cli.js  # stdio MCP server
 npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 ```
@@ -110,7 +118,7 @@ npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 Tool descriptions are CI-graded (a rubric test enforces verb-first names, when-to-use,
 non-goals, described params, worked examples — the
 [mcp-kit](https://github.com/palimkarakshay/mcp-kit) discipline; the full mcp-kit lint scores all
-seven tools 100/100).
+eight tools 100/100).
 
 ## Design
 
@@ -122,6 +130,11 @@ scaffolder validates its own output, what was deliberately left out — lives in
 
 - [abaplint](https://github.com/abaplint/abaplint) by Lars Hvam — the parser and rule engine
   underneath every tool here (MIT).
+- [SAP/abap-atc-cr-cv-s4hc](https://github.com/SAP/abap-atc-cr-cv-s4hc) — SAP's official ABAP
+  Cloudification Repository (object release list), **Apache-2.0**. The bundled released-API
+  snapshot (`src/data/released-apis.json`, snapshot **2026-06-10**) is a compact transform of
+  that data, redistributed under Apache-2.0 with attribution; see
+  [docs/DESIGN.md](docs/DESIGN.md) and `scripts/build-released-api-index.mjs` for the pipeline.
 - [mcp-kit](https://github.com/palimkarakshay/mcp-kit) — the production-MCP patterns this server
   follows (typed tool specs, transport discipline, description lint).
 

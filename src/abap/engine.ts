@@ -187,3 +187,93 @@ export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
   });
   return { findings, truncated: issues.length > MAX_FINDINGS, fileCount: bounded.length };
 }
+
+/** A statically-resolved reference to a repository object found in the source. */
+export interface ObjectReference {
+  /** The referenced object name (upper-cased as written; tables are typically lowercased in source). */
+  name: string;
+  /** SAP object type: "TABL" for DB tables, "FUNC" for function modules. */
+  objectType: "TABL" | "FUNC";
+  /** How the reference appears, for the human-facing note. */
+  kind: "db-access" | "call-function";
+  file: string;
+  line: number;
+}
+
+const SQL_STATEMENTS = new Set([
+  "Select",
+  "SelectLoop",
+  "InsertDatabase",
+  "UpdateDatabase",
+  "DeleteDatabase",
+  "ModifyDatabase",
+]);
+
+/**
+ * Walk the parsed AST and collect references to repository objects we can
+ * resolve reliably: DB tables in ABAP-SQL statements (SELECT/INSERT/UPDATE/
+ * DELETE/MODIFY, including the tables in joins and FROM clauses) and function
+ * modules in CALL FUNCTION '<fm>'. Parsing is done at a classic baseline so the
+ * statements resolve even for code ABAP Cloud would reject; abaplint only
+ * parses, never executes. References are de-duplicated by name+type+location.
+ *
+ * Deliberately conservative: we extract only what the parser exposes as a
+ * first-class expression (DatabaseTable, FunctionName), not heuristic regexes,
+ * so a reference we report is a reference that exists.
+ */
+export function extractObjectReferences(
+  files: AbapSource[],
+  baselineVersion: AbapVersion = "v758",
+): ObjectReference[] {
+  const bounded = boundFiles(files);
+  const registry = new abaplint.Registry(buildConfig({ version: baselineVersion, preset: "syntax-only" }));
+  for (const f of bounded) {
+    registry.addFile(new abaplint.MemoryFile(f.filename, f.source));
+  }
+  registry.parse();
+
+  const refs: ObjectReference[] = [];
+  const seen = new Set<string>();
+  const push = (ref: ObjectReference): void => {
+    const dedupeKey = `${ref.objectType}:${ref.name}:${ref.file}:${ref.line}`;
+    if (seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
+    refs.push(ref);
+  };
+
+  for (const obj of registry.getObjects()) {
+    if (!(obj instanceof abaplint.ABAPObject)) continue;
+    for (const file of obj.getABAPFiles()) {
+      const filename = file.getFilename();
+      for (const st of file.getStatements()) {
+        const type = st.get().constructor.name;
+        if (SQL_STATEMENTS.has(type)) {
+          for (const e of st.findAllExpressions(abaplint.Expressions.DatabaseTable)) {
+            const name = e.concatTokens().trim();
+            if (name.length === 0) continue;
+            push({
+              name: name.toUpperCase(),
+              objectType: "TABL",
+              kind: "db-access",
+              file: filename,
+              line: e.getFirstToken().getStart().getRow(),
+            });
+          }
+        } else if (type === "CallFunction") {
+          for (const e of st.findAllExpressions(abaplint.Expressions.FunctionName)) {
+            const name = e.concatTokens().replace(/'/g, "").trim();
+            if (name.length === 0) continue;
+            push({
+              name: name.toUpperCase(),
+              objectType: "FUNC",
+              kind: "call-function",
+              file: filename,
+              line: e.getFirstToken().getStart().getRow(),
+            });
+          }
+        }
+      }
+    }
+  }
+  return refs;
+}

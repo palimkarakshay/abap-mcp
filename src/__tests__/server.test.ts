@@ -21,11 +21,12 @@ async function connectedClient(): Promise<Client> {
 }
 
 describe("MCP server wire", () => {
-  it("lists all seven tools", async () => {
+  it("lists all eight tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "check_cloud_readiness",
+      "check_released_api",
       "explain_abap_rule",
       "format_abap",
       "get_abap_outline",
@@ -54,6 +55,26 @@ describe("MCP server wire", () => {
     expect(result.isError ?? false).toBe(false);
     expect(result.structuredContent!.files.length).toBe(8);
     expect(result.structuredContent!.validationIssues).toEqual([]);
+  });
+
+  it("check_released_api resolves table/CDS/BAPI states over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "check_released_api",
+      arguments: { objects: ["MARA", "I_Product"] },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        snapshotDate: string;
+        results: { name: string; state: string; successor?: string }[];
+      };
+    };
+    expect(result.isError ?? false).toBe(false);
+    expect(result.structuredContent!.snapshotDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const byName = Object.fromEntries(result.structuredContent!.results.map((r) => [r.name, r]));
+    expect(byName["MARA"]!.state).toBe("not-released");
+    expect(byName["MARA"]!.successor).toBe("I_Product");
+    expect(byName["I_Product"]!.state).toBe("released");
   });
 
   it("bad input becomes a structured error result, not a crash", async () => {

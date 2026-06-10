@@ -52,4 +52,43 @@ describe("checkCloudReadiness", () => {
     expect(report.scopeNote).toMatch(/released-API/i);
     expect(report.scopeNote).toMatch(/not.*certification/i);
   });
+
+  // A class wrapper so the SELECT is the only thing under test (no REPORT
+  // statement, which is itself a cloud blocker).
+  const classWithSelect = (table: string): string =>
+    `CLASS zcl_sel DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_sel IMPLEMENTATION.
+  METHOD run.
+    SELECT * FROM ${table} INTO TABLE @DATA(lt).
+  ENDMETHOD.
+ENDCLASS.
+`;
+
+  it("flags direct non-released table access in releasedApiFindings with a successor", () => {
+    const report = checkCloudReadiness([{ source: classWithSelect("mara") }]);
+    const mara = report.releasedApiFindings.find((f) => f.object === "MARA");
+    expect(mara).toBeDefined();
+    expect(mara!.state).toBe("not-released");
+    expect(mara!.objectType).toBe("TABL");
+    expect(mara!.successor).toBe("I_Product");
+    expect(report.releasedApiSnapshotDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("keeps releasedApiFindings separate from the parser-level score", () => {
+    // Selecting from a non-released table is NOT a parser-level cloud blocker
+    // (the SELECT parses fine at Cloud), so the blocker count stays 0 even
+    // though the released-API cross-check raises a finding.
+    const report = checkCloudReadiness([{ source: classWithSelect("mara") }]);
+    expect(report.cloudBlockerCount).toBe(0);
+    expect(report.score).toBe(100);
+    expect(report.releasedApiFindings.length).toBeGreaterThan(0);
+  });
+
+  it("does not flag access to a released CDS view", () => {
+    const report = checkCloudReadiness([{ source: classWithSelect("i_product") }]);
+    expect(report.releasedApiFindings.find((f) => f.object === "I_PRODUCT")).toBeUndefined();
+  });
 });

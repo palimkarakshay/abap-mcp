@@ -12,6 +12,11 @@ import { ABAP_VERSIONS, runAbaplint } from "./abap/engine.js";
 import { formatAbap } from "./abap/formatter.js";
 import { outlineAbap } from "./abap/outline.js";
 import { checkCloudReadiness } from "./abap/readiness.js";
+import {
+  lookupReleased,
+  RELEASED_API_SNAPSHOT,
+  suggestSuccessor,
+} from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
 import { scaffoldRapBo } from "./abap/scaffold.js";
 import { invalidInput } from "./errors.js";
@@ -159,6 +164,14 @@ export const checkCloudReadinessTool = defineTool({
     brokenAtBaseline: z
       .array(z.unknown())
       .describe("Findings that fail even at the baseline version — fix first, they are not migration items."),
+    releasedApiFindings: z
+      .array(z.unknown())
+      .describe(
+        "Released-API observations from the bundled SAP Cloudification snapshot (deprecated-API usage, direct non-released table access with successor hints). Informational — NOT counted in cloudBlockerCount or score.",
+      ),
+    releasedApiSnapshotDate: z
+      .string()
+      .describe("Date of the bundled released-API snapshot the releasedApiFindings reflect."),
     baselineVersion: z.string().describe("The baseline used."),
     scopeNote: z.string().describe("Exactly what this check does and does not cover."),
   },
@@ -179,6 +192,9 @@ export const checkCloudReadinessTool = defineTool({
       (catLine.length > 0 ? ` [${catLine}]` : "") +
       (report.brokenAtBaseline.length > 0
         ? `; ${report.brokenAtBaseline.length} finding(s) broken at ${report.baselineVersion} regardless`
+        : "") +
+      (report.releasedApiFindings.length > 0
+        ? `; ${report.releasedApiFindings.length} released-API note(s) (snapshot ${report.releasedApiSnapshotDate})`
         : "");
     return {
       content: [{ type: "text", text }],
@@ -470,11 +486,120 @@ export const getAbapOutline = defineTool({
   },
 });
 
+/** Accept either a bare name string or a { name, type? } reference. */
+const objectRefField = z
+  .array(
+    z.union([
+      z.string().describe('A bare object name, e.g. "MARA" or "I_Product".'),
+      z.object({
+        name: z.string().describe('Object name, e.g. "MARA", "I_Product", "BAPI_MATERIAL_GET_DETAIL".'),
+        type: z
+          .string()
+          .optional()
+          .describe(
+            'Optional SAP object type to disambiguate same-named objects: "TABL" (table), "CDS_STOB" (CDS view entity), "FUNC" (function module), "CLAS", "INTF", "BDEF". Omit if unsure.',
+          ),
+      }),
+    ]),
+  )
+  .min(1)
+  .max(200)
+  .describe(
+    'Objects to check, 1–200 per call. Each is a bare name string or a { name, type? } object, e.g. ["MARA", { "name": "I_Product", "type": "CDS_STOB" }].',
+  );
+
+export const checkReleasedApiTool = defineTool({
+  name: "check_released_api",
+  title: "Check ABAP released-API status",
+  description:
+    "Look up ABAP repository objects (DB tables, CDS view entities, function modules, classes, interfaces, …) in " +
+    "SAP's published ABAP Cloudification list and report, per object, whether it is a 'released' API (safe to use in " +
+    "ABAP Cloud / Clean Core), 'deprecated' (released but being retired), or 'not-released' (a classic/internal object " +
+    "that is not a public API — e.g. most classic DDIC tables) — with a curated CDS successor hint for common tables. " +
+    `This reflects SAP's official Cloudification list as bundled in this package (snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}); ` +
+    "it ships offline with the server. " +
+    "Use this when you need to know if your code may reference a given object in ABAP Cloud, or which released CDS view " +
+    "to use instead of a classic table — the released-API half of readiness that check_cloud_readiness deliberately " +
+    "leaves to a system's ATC. " +
+    "It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — a " +
+    `system's own released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative; treat ` +
+    "an 'absent from the list' result as 'not-released as of the snapshot', not as proof. " +
+    'Example: check_released_api({ "objects": ["MARA", "I_Product", "BAPI_MATERIAL_GET_DETAIL"] }).',
+  inputSchema: {
+    objects: objectRefField,
+  },
+  outputSchema: {
+    snapshotDate: z.string().describe("Date of the bundled SAP Cloudification snapshot these results reflect."),
+    source: z.string().describe("URL of the SAP Apache-2.0 source the snapshot was built from."),
+    results: z.array(
+      z.object({
+        name: z.string().describe("The object name as queried."),
+        objectType: z
+          .string()
+          .optional()
+          .describe("SAP object type of the matched record (TABL, CDS_STOB, FUNC, …), if found."),
+        state: z
+          .enum(["released", "deprecated", "not-released"])
+          .describe("'released' = safe public API; 'deprecated' = retiring; 'not-released' = not a public API."),
+        applicationComponent: z
+          .string()
+          .optional()
+          .describe("Owning application component of the matched record, if found."),
+        successor: z
+          .string()
+          .optional()
+          .describe("Curated released CDS view-entity successor for a classic table, when one is known."),
+      }),
+    ),
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  examples: [
+    {
+      description: "Check a classic table, a released CDS view, and a BAPI in one call.",
+      arguments: { objects: ["MARA", "I_Product", "BAPI_MATERIAL_GET_DETAIL"] },
+    },
+    {
+      description: "Disambiguate a name that exists under more than one object type.",
+      arguments: { objects: [{ name: "I_ProcurementProjectTP", type: "CDS_STOB" }] },
+    },
+  ],
+  handler: (args) => {
+    const results = args.objects.map((ref) => {
+      const name = typeof ref === "string" ? ref : ref.name;
+      const type = typeof ref === "string" ? undefined : ref.type;
+      const hit = lookupReleased(name, type);
+      const successor = suggestSuccessor(name);
+      return {
+        name: hit.name,
+        objectType: hit.objectType,
+        state: hit.state,
+        applicationComponent: hit.applicationComponent,
+        ...(successor !== undefined ? { successor } : {}),
+      };
+    });
+    const text = results
+      .map((r) => {
+        const tail = r.successor !== undefined ? ` → use ${r.successor}` : "";
+        return `${r.name}: ${r.state}${r.objectType !== undefined ? ` (${r.objectType})` : ""}${tail}`;
+      })
+      .join("\n");
+    return {
+      content: [{ type: "text", text: `Snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}\n${text}` }],
+      structuredContent: {
+        snapshotDate: RELEASED_API_SNAPSHOT.snapshotDate,
+        source: RELEASED_API_SNAPSHOT.source,
+        results,
+      },
+    };
+  },
+});
+
 /** Every tool this server exposes. (`tools` alias = the registry-export shape @mcp-kit/lint discovers.) */
 export const ALL_TOOLS: readonly AnyToolSpec[] = [
   lintAbap,
   checkCloudReadinessTool,
   scaffoldRapBoTool,
+  checkReleasedApiTool,
   listAbapRules,
   explainAbapRule,
   formatAbapTool,

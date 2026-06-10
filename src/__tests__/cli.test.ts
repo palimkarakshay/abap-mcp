@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cmdLint, cmdReadiness, cmdScaffold, mergeReadiness, parseFlags, runCli } from "../cli-commands.js";
+import { cmdLint, cmdReadiness, cmdReleased, cmdScaffold, mergeReadiness, parseFlags, runCli } from "../cli-commands.js";
 import { checkCloudReadiness } from "../abap/readiness.js";
 
 function io(): { out: string[]; err: string[]; io: { out: (s: string) => void; err: (s: string) => void } } {
@@ -85,6 +85,30 @@ describe("cmdScaffold", () => {
   it("usage error without required flags", () => {
     const { io: o } = io();
     expect(cmdScaffold(["--entity", "X"], o)).toBe(2);
+  });
+});
+
+describe("cmdReleased", () => {
+  it("reports states and a successor for known objects", () => {
+    const a = io();
+    expect(cmdReleased(["MARA", "I_Product"], a.io)).toBe(0);
+    const text = a.out.join("\n");
+    expect(text).toMatch(/MARA\s+not-released/);
+    expect(text).toMatch(/I_Product/);
+    expect(text).toMatch(/I_Product/); // successor hint for MARA
+  });
+
+  it("emits JSON with a snapshot date", () => {
+    const a = io();
+    expect(cmdReleased(["MARA", "--json"], a.io)).toBe(0);
+    const parsed = JSON.parse(a.out.join("\n")) as { snapshotDate: string; results: unknown[] };
+    expect(parsed.snapshotDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(parsed.results.length).toBe(1);
+  });
+
+  it("usage error without names", () => {
+    const a = io();
+    expect(cmdReleased([], a.io)).toBe(2);
   });
 });
 

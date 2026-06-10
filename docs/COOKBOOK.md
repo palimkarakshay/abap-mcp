@@ -87,10 +87,39 @@ npx abap-mcp readiness src/ --fail-below 80   # exit 1 below score 80 — a ratc
 The JSON gives blocker counts by category (dynpro, list output, native SQL, report events…)
 with file:line for every finding — enough to size remediation buckets, split work between
 "mechanical" (WRITE→OData) and "redesign" (dynpro flows), and track the score sprint over
-sprint. The report's scope note keeps you honest with clients: released-API usage still needs
-the system's ATC (`SAP_CP_READINESS`); this is the statement-level half, instantly and free.
+sprint. The readiness JSON also carries `releasedApiFindings` — direct access to non-released
+classic tables and deprecated-API usage found in the source, with CDS successor hints — *dated
+and separate from the score* (see §4a). The report's scope note keeps you honest with clients:
+the objective score is the statement-level half; the released-API list is a bundled snapshot, and
+the system's ATC (`API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) is still authoritative.
 
 **Tip:** run it per package directory (`readiness src/zfi/ src/zsd/ …`) to get per-team scores.
+
+## 4a. Released-API check — "is MARA released? what do I use instead?"
+
+The other half of Clean Core: not just *does it parse in Cloud*, but *may I touch this object at
+all*. `check_released_api` (CLI: `released`) looks objects up in SAP's bundled Cloudification
+snapshot and tells you `released` / `deprecated` / `not-released`, with a curated CDS successor
+for common classic tables:
+
+```bash
+npx abap-mcp released MARA I_Product BAPI_MATERIAL_GET_DETAIL
+#   MARA                       not-released  TABL      → use I_Product
+#   I_Product                  released      CDS_STOB
+#   BAPI_MATERIAL_GET_DETAIL   not-released  FUNC
+npx abap-mcp released MARA --json     # same, machine-readable, with snapshotDate + source
+```
+
+With an assistant: *"For each table this report SELECTs from, check_released_api it and, if it's
+not released, swap in the released CDS successor."* The agent gets the successor hint inline
+(`MARA → I_Product`), so it can rewrite `SELECT … FROM mara` to `SELECT … FROM i_product`
+without you naming the view. This is exactly what `readiness`'s `releasedApiFindings` surfaces
+automatically for the tables it finds.
+
+**Honest edges:** the list is SAP's own published data but only as current as the bundled
+**snapshot date** (printed on every call); it covers the objects in the file, not every API; and
+"not-released / absent" means *"not a released API as of the snapshot"*, not proof — the target
+system's ATC stays authoritative.
 
 ## 5. CI gates for abapGit repos
 
@@ -151,8 +180,11 @@ deterministic makes it the perfect referee between two LLMs.
 
 ## 8. Gotchas — honest edges
 
-- **Not ATC.** Released-API usage, authorization checks, performance — system concerns. "ready"
-  means *no language-level blockers*. The report says this on every call; repeat it to clients.
+- **Not ATC.** The readiness *score* is language-level: "ready" means *no language-level
+  blockers*. Released-API coverage (`check_released_api` + `releasedApiFindings`) is real but
+  *partial and dated* — a bundled snapshot of SAP's published list, covering referenced tables and
+  function modules, not every API; authorization checks and performance remain system concerns.
+  The system's ATC is authoritative; the report says this on every call — repeat it to clients.
 - **BDEF/SRVD aren't deep-parsed** by abaplint (probe-verified) — scaffold marks them
   `validated: "template"`; activation in ADT is their real check.
 - **Don't lint generated/SAP-namespace code** — the namespace gate expects Z/Y custom code.

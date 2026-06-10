@@ -7,19 +7,42 @@
  * longer allows). A finding present at the baseline is just *broken code* —
  * reporting it as a migration item would overstate the migration.
  *
- * Honest scope: this is the static, parser-level slice of readiness. The
- * other half — "does this call only RELEASED SAP APIs?" — requires the
- * system's released-API list (ATC check SAP_CP_READINESS) and is out of
- * scope for an offline tool. The report says so.
+ * Released-API check: separately from the parser-level diff, the source is
+ * walked for object references (DB tables, function modules) which are looked
+ * up against the bundled SAP Cloudification snapshot. These land in their own
+ * `releasedApiFindings` field — they are NOT folded into cloudBlockerCount or
+ * score, because those are objective, parser-level numbers and the snapshot is
+ * only as current as its date.
  */
 import type { AbapSource, AbapVersion, Finding } from "./engine.js";
-import { runAbaplint } from "./engine.js";
+import { extractObjectReferences, runAbaplint } from "./engine.js";
+import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./released.js";
 
 export interface ReadinessCategory {
   category: string;
   label: string;
   count: number;
   findings: Finding[];
+}
+
+/**
+ * A released-API observation about a referenced object. Kept SEPARATE from the
+ * parser-level blocker counts/score: it reflects the bundled SAP snapshot
+ * (dated), not abaplint's objective parse, and a system's ATC is authoritative.
+ */
+export interface ReleasedApiFinding {
+  /** Referenced object name (upper-cased). */
+  object: string;
+  /** SAP object type: "TABL" (DB table) or "FUNC" (function module). */
+  objectType: string;
+  /** Released-API state from the bundled snapshot. */
+  state: "deprecated" | "not-released";
+  /** Curated released CDS successor for a classic table, when known. */
+  successor?: string;
+  file: string;
+  line: number;
+  /** Human-facing explanation of why this was flagged. */
+  note: string;
 }
 
 export interface ReadinessReport {
@@ -29,13 +52,25 @@ export interface ReadinessReport {
   categories: ReadinessCategory[];
   /** Findings that fail even at the classic baseline — fix these first; they are not migration items. */
   brokenAtBaseline: Finding[];
+  /**
+   * Released-API observations from the bundled SAP Cloudification snapshot —
+   * deprecated API usage and direct access to non-released (classic) tables,
+   * with successor hints. Separate from cloudBlockerCount/score by design.
+   */
+  releasedApiFindings: ReleasedApiFinding[];
+  /** Date of the bundled released-API snapshot the releasedApiFindings reflect. */
+  releasedApiSnapshotDate: string;
   baselineVersion: AbapVersion;
   scopeNote: string;
 }
 
 export const SCOPE_NOTE =
-  "Static parser-level analysis (abaplint). It detects statements and syntax that ABAP Cloud removes, " +
-  "but NOT usage of unreleased SAP APIs — that requires a system's released-API list (ATC / SAP_CP_READINESS). " +
+  "Static parser-level analysis (abaplint) PLUS a released-API cross-check against SAP's bundled Cloudification " +
+  `snapshot (dated ${RELEASED_API_SNAPSHOT.snapshotDate}). It detects statements ABAP Cloud removes (the objective ` +
+  "cloud-blocker count and score) and, separately, flags deprecated-API usage and direct access to non-released " +
+  "classic tables (releasedApiFindings — informational, NOT counted in the score). The bundled list is only as current " +
+  "as its snapshot date, and covers tables and function modules referenced here, not every API; a target system's own " +
+  "released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative. " +
   "Treat 'ready' as 'no language-level blockers', not as a full Clean Core certification.";
 
 /** Map an offending line to a human category by its leading keyword(s). */
@@ -94,7 +129,64 @@ export function checkCloudReadiness(
     cloudBlockerCount: n,
     categories: [...byCategory.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: baseline.findings,
+    releasedApiFindings: computeReleasedApiFindings(files, baselineVersion),
+    releasedApiSnapshotDate: RELEASED_API_SNAPSHOT.snapshotDate,
     baselineVersion,
     scopeNote: SCOPE_NOTE,
   };
+}
+
+/**
+ * Cross-check statically-extracted object references against the bundled SAP
+ * Cloudification snapshot. Flags two cases:
+ *   - `deprecated` — the referenced object is a deprecated released API.
+ *   - `not-released` — direct access to a classic/internal table that is not a
+ *     released API (the typical "SELECT … FROM mara" case), with a curated CDS
+ *     successor hint when one is known.
+ * Released objects and references the snapshot does not recognise are silent —
+ * absence from the list is "not known to be a problem", not proof either way.
+ */
+function computeReleasedApiFindings(
+  files: AbapSource[],
+  baselineVersion: AbapVersion,
+): ReleasedApiFinding[] {
+  const out: ReleasedApiFinding[] = [];
+  for (const ref of extractObjectReferences(files, baselineVersion)) {
+    const hit = lookupReleased(ref.name, ref.objectType);
+    if (hit.state === "released") continue;
+
+    if (hit.state === "deprecated") {
+      out.push({
+        object: ref.name,
+        objectType: ref.objectType,
+        state: "deprecated",
+        file: ref.file,
+        line: ref.line,
+        note:
+          ref.kind === "db-access"
+            ? `${ref.name} is a deprecated released object as of the snapshot — migrate to its current successor before going to ABAP Cloud.`
+            : `Function module ${ref.name} is deprecated as of the snapshot — replace it with the released successor API.`,
+      });
+      continue;
+    }
+
+    // not-released. Only flag DB tables (direct table access is the cloud
+    // anti-pattern); a CALL FUNCTION to a module simply absent from the list is
+    // too noisy to report as a finding without a system to confirm against.
+    if (ref.objectType === "TABL") {
+      const successor = suggestSuccessor(ref.name);
+      out.push({
+        object: ref.name,
+        objectType: ref.objectType,
+        state: "not-released",
+        ...(successor !== undefined ? { successor } : {}),
+        file: ref.file,
+        line: ref.line,
+        note:
+          `${ref.name} is not a released API — direct access to this classic table is not allowed in ABAP Cloud.` +
+          (successor !== undefined ? ` Use the released CDS view ${successor} instead.` : " Use a released CDS view instead."),
+      });
+    }
+  }
+  return out;
 }

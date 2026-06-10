@@ -64,9 +64,10 @@ with pre-existing bugs. Blockers are then categorized by leading statement (dynp
 report events, native SQL, …) with remediation hints, and scored by a deliberately transparent
 formula (`100 − 5×blockers`, banded verdicts) — a conversation starter, not an oracle.
 
-**Honesty requirement:** every report carries a scope note saying this is the *language-level*
-half of readiness; released-API usage needs a system's ATC (`SAP_CP_READINESS`). A tool that
-overstated its verdict would be worse than no tool.
+**Honesty requirement:** every report carries a scope note. The objective *score* stays
+language-level; the released-API half is covered separately and conservatively (decision 11),
+and a target system's ATC (`API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) remains authoritative.
+A tool that overstated its verdict would be worse than no tool.
 
 ## 5. The scaffolder validates its own output through the analyzer
 
@@ -105,7 +106,7 @@ depend on a workspace path.
 
 Tool-description quality is **CI-enforced**: an in-repo rubric test requires verb-first names, a
 "Use this when…" sentence, explicit non-goals, every parameter described, and a worked example on
-every tool. The full mcp-kit lint scores all seven tools 100/100 — and grading this server
+every tool. The full mcp-kit lint scores all eight tools 100/100 — and grading this server
 surfaced a gap in the kit itself (its imperative-verb whitelist lacked `lint`/`scaffold`/
 `explain`), fixed upstream in the same session: the consumer improved the kit.
 
@@ -128,9 +129,46 @@ is compute even when it isn't I/O.
   false-positive on isolated snippets (the "missing object" noise problem); `full` re-enables
   them for whole-repo calls. Defaults match the common call, flags match the careful one.
 
-## 10. Scope: seven tools, one domain, no padding
+## 10. Scope: eight tools, one domain, no padding
 
 The tool list maps one-to-one to verbs an agent actually issues during ABAP work: lint, check
-readiness, scaffold, browse rules, explain a finding, format, outline. Nothing speculative
-(no "run ABAP" — impossible offline; no docs search — exists elsewhere; no system bridge —
-decision 1). A small surface the model can't mis-select beats a broad one it can.
+readiness, scaffold, check released-API status, browse rules, explain a finding, format, outline.
+Nothing speculative (no "run ABAP" — impossible offline; no docs search — exists elsewhere; no
+system bridge — decision 1). A small surface the model can't mis-select beats a broad one it can.
+
+## 11. Released-API check: SAP's own list, bundled and dated — not a guess
+
+Decision 4 deliberately left released-API coverage to a system's ATC. That gap is now *partially*
+closed offline, honestly, using **SAP's own published data** rather than a hand-maintained
+blocklist that would rot.
+
+**Source.** SAP publishes the [ABAP Cloudification Repository](https://github.com/SAP/abap-atc-cr-cv-s4hc)
+(`SAP/abap-atc-cr-cv-s4hc`, **Apache-2.0**): ~34.7k objects each tagged `released`,
+`deprecated`, or `notToBeReleased`, with successor hints. A dev-only build script
+(`scripts/build-released-api-index.mjs`) fetches it and transforms it into a compact name→state
+index (`src/data/released-apis.json`: uppercased objectKey → `[objectType, state,
+applicationComponent]`, ~2.2 MB), stamped with a `snapshotDate` and `source`. **This is the only
+network access in the project, and it never runs at serve time** — the server imports the bundled
+JSON, a package asset exactly like abaplint's own rule data. Apache-2.0 requires attribution when
+redistributing; it is credited in README, here, and in the data file's `source`/`license` fields.
+
+**Three states, mapped honestly.** SAP's `notToBeReleased` (classic DDIC tables, internal
+objects) and "absent from the list" both surface as our `not-released` — *"not a released API as
+of the snapshot"*, never "proven safe to ignore". `deprecated` and `released` are taken verbatim.
+
+**`check_released_api`** is the direct lookup (names in → states + curated CDS successors out).
+**Readiness integration** is the cautious part: the source is walked via abaplint's AST (not
+regex) for the references the parser exposes as first-class expressions — DB tables in every SQL
+statement kind (`DatabaseTable`, incl. joins/FROM) and function modules in `CALL FUNCTION`
+(`FunctionName`). Matches against the snapshot become `releasedApiFindings` — a **separate, dated,
+informational** field. They are *not* folded into `cloudBlockerCount`/`score`: those are
+objective parser-level numbers, and mixing in a dated heuristic list would corrupt the one number
+the tool can stand behind. Only direct non-released *table* access and *deprecated* usage are
+flagged; a `CALL FUNCTION` simply absent from the list is too noisy to report without a system to
+confirm against. The successor map (`src/data/table-successors.json`) is hand-curated for ~30
+common tables, using SAP's published successors where available (e.g. `MARA → I_Product`).
+
+**Rejected:** counting released-API hits in the score (decision 4's objectivity is the product's
+credibility); a regex sweep for table names (a parser distinguishes a table from an identically
+named variable; greps don't); shipping the full 9 MB upstream file (dropped fields not needed for
+a name→state lookup).

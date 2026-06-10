@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { inferFilename, MAX_FILE_CHARS, runAbaplint } from "../abap/engine.js";
+import { extractObjectReferences, inferFilename, MAX_FILE_CHARS, runAbaplint } from "../abap/engine.js";
 
 describe("inferFilename", () => {
   it("infers a class filename from CLASS … DEFINITION", () => {
@@ -99,5 +99,43 @@ describe("runAbaplint", () => {
     expect(() =>
       runAbaplint([{ source: clas }, { source: clas }], { version: "v758", preset: "syntax-only" }),
     ).toThrow(/Duplicate filename/);
+  });
+});
+
+describe("extractObjectReferences", () => {
+  const SRC = `REPORT zrefs.
+SELECT * FROM mara INTO TABLE @DATA(lt).
+SELECT SINGLE * FROM kna1 AS k INNER JOIN makt AS m ON k~kunnr = m~matnr INTO @DATA(ls).
+INSERT vbak FROM @ls_vbak.
+UPDATE lfa1 SET name1 = 'x'.
+DELETE FROM t001 WHERE bukrs = '1000'.
+MODIFY likp FROM @ls.
+CALL FUNCTION 'BAPI_MATERIAL_GET_DETAIL'.
+`;
+
+  it("extracts DB tables from every SQL statement kind and FROM/join clauses", () => {
+    const refs = extractObjectReferences([{ source: SRC }]);
+    const tables = refs.filter((r) => r.objectType === "TABL").map((r) => r.name).sort();
+    expect(tables).toEqual(["KNA1", "LFA1", "LIKP", "MAKT", "MARA", "T001", "VBAK"]);
+  });
+
+  it("extracts function-module names from CALL FUNCTION", () => {
+    const refs = extractObjectReferences([{ source: SRC }]);
+    const fms = refs.filter((r) => r.objectType === "FUNC").map((r) => r.name);
+    expect(fms).toContain("BAPI_MATERIAL_GET_DETAIL");
+  });
+
+  it("returns no references for code without DB access or function calls", () => {
+    const refs = extractObjectReferences([
+      { source: "CLASS zcl_x DEFINITION PUBLIC.\nENDCLASS.\nCLASS zcl_x IMPLEMENTATION.\nENDCLASS." },
+    ]);
+    expect(refs).toEqual([]);
+  });
+
+  it("carries a source location for each reference", () => {
+    const refs = extractObjectReferences([{ source: SRC }]);
+    const mara = refs.find((r) => r.name === "MARA");
+    expect(mara!.line).toBe(2);
+    expect(mara!.kind).toBe("db-access");
   });
 });

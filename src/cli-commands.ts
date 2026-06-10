@@ -13,6 +13,7 @@ import { ABAP_VERSIONS, MAX_FILES, runAbaplint } from "./abap/engine.js";
 import { outlineAbap } from "./abap/outline.js";
 import type { ReadinessReport } from "./abap/readiness.js";
 import { checkCloudReadiness, SCOPE_NOTE } from "./abap/readiness.js";
+import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
 import type { ScaffoldField } from "./abap/scaffold.js";
 import { scaffoldRapBo } from "./abap/scaffold.js";
@@ -112,9 +113,13 @@ export function mergeReadiness(reports: ReadinessReport[], baseline: AbapVersion
   const categories = new Map<string, ReadinessReport["categories"][number]>();
   let blockers = 0;
   const broken: ReadinessReport["brokenAtBaseline"] = [];
+  const releasedApiFindings: ReadinessReport["releasedApiFindings"] = [];
+  let snapshotDate = "";
   for (const r of reports) {
     blockers += r.cloudBlockerCount;
     broken.push(...r.brokenAtBaseline);
+    releasedApiFindings.push(...r.releasedApiFindings);
+    snapshotDate = r.releasedApiSnapshotDate;
     for (const c of r.categories) {
       const cur = categories.get(c.category);
       if (cur === undefined) categories.set(c.category, { ...c, findings: [...c.findings] });
@@ -139,6 +144,8 @@ export function mergeReadiness(reports: ReadinessReport[], baseline: AbapVersion
     cloudBlockerCount: blockers,
     categories: [...categories.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: broken,
+    releasedApiFindings,
+    releasedApiSnapshotDate: snapshotDate,
     baselineVersion: baseline,
     scopeNote: SCOPE_NOTE,
   };
@@ -162,6 +169,11 @@ export function cmdReadiness(argv: string[], io: CliIo): number {
     for (const c of merged.categories) io.out(`  ${c.category.padEnd(18)} ${String(c.count).padStart(4)}  ${c.label}`);
     if (merged.brokenAtBaseline.length > 0)
       io.out(`${merged.brokenAtBaseline.length} finding(s) broken at ${baseline} regardless (fix first; not migration work)`);
+    if (merged.releasedApiFindings.length > 0) {
+      io.out(`${merged.releasedApiFindings.length} released-API note(s) (snapshot ${merged.releasedApiSnapshotDate}; informational, not scored):`);
+      for (const f of merged.releasedApiFindings)
+        io.out(`  ${f.file}:${f.line} [${f.state}] ${f.object}${f.successor !== undefined ? ` → ${f.successor}` : ""}`);
+    }
     io.out(`Note: ${merged.scopeNote}`);
   }
   const failBelow = flags.get("fail-below");
@@ -260,6 +272,30 @@ export function cmdExplain(argv: string[], io: CliIo): number {
   return 0;
 }
 
+export function cmdReleased(argv: string[], io: CliIo): number {
+  const { flags, rest } = parseFlags(argv);
+  if (rest.length === 0) {
+    io.err("Usage: abap-mcp released <object-name…>   [--type TABL|CDS_STOB|FUNC|…] [--json]");
+    return 2;
+  }
+  const type = typeof flags.get("type") === "string" ? (flags.get("type") as string) : undefined;
+  const results = rest.map((name) => {
+    const hit = lookupReleased(name, type);
+    const successor = suggestSuccessor(name);
+    return { ...hit, successor };
+  });
+  if (flags.has("json")) {
+    io.out(JSON.stringify({ snapshotDate: RELEASED_API_SNAPSHOT.snapshotDate, source: RELEASED_API_SNAPSHOT.source, results }, null, 2));
+    return 0;
+  }
+  io.out(`Released-API status (SAP Cloudification snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}):`);
+  for (const r of results) {
+    const tail = r.successor !== undefined ? `  → use ${r.successor}` : "";
+    io.out(`  ${r.name.padEnd(34)} ${r.state.padEnd(13)} ${(r.objectType ?? "").padEnd(9)}${tail}`);
+  }
+  return 0;
+}
+
 export function cmdRules(argv: string[], io: CliIo): number {
   const { flags } = parseFlags(argv);
   const q = flags.get("query");
@@ -278,6 +314,7 @@ Usage:
   abap-mcp readiness [paths…]    ABAP Cloud readiness diff   [--baseline v758] [--fail-below N] [--json]
   abap-mcp scaffold …            generate a RAP managed BO   (--entity --table --key [--fields n:type,…] [--no-draft] [--provided-key] [--out DIR])
   abap-mcp outline [paths…]      classes/methods/forms structure   [--json]
+  abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--json]
   abap-mcp explain <rule>        explain an abaplint rule
   abap-mcp rules                 list rules   [--query q] [--tag Security]
 
@@ -297,6 +334,8 @@ export function runCli(argv: string[], io: CliIo): number | null {
       return cmdScaffold(rest, io);
     case "outline":
       return cmdOutline(rest, io);
+    case "released":
+      return cmdReleased(rest, io);
     case "explain":
       return cmdExplain(rest, io);
     case "rules":
