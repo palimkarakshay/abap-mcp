@@ -77,4 +77,27 @@ describe("runAbaplint", () => {
   it("rejects an empty file list", () => {
     expect(() => runAbaplint([], { version: "v758", preset: "style" })).toThrow(/at least one/i);
   });
+
+  // Codex review P2: identical inferred names silently overwrote each other.
+  it("keeps multiple unnamed snippets distinct instead of dropping them", () => {
+    const result = runAbaplint(
+      [{ source: "DATA a TYPE i." }, { source: "DATA b TYPE x." }],
+      { version: "v758", preset: "syntax-only" },
+    );
+    expect(result.fileCount).toBe(2);
+    // both files must actually be in the registry: break the second one and
+    // its finding must surface
+    const broken = runAbaplint(
+      [{ source: "DATA a TYPE i." }, { source: "NOT ABAP ???" }],
+      { version: "v758", preset: "syntax-only" },
+    );
+    expect(broken.findings.some((f) => f.file.startsWith("zsnippet2."))).toBe(true);
+  });
+
+  it("rejects two files that declare the same object", () => {
+    const clas = "CLASS zcl_dup DEFINITION PUBLIC.\nENDCLASS.\nCLASS zcl_dup IMPLEMENTATION.\nENDCLASS.";
+    expect(() =>
+      runAbaplint([{ source: clas }, { source: clas }], { version: "v758", preset: "syntax-only" }),
+    ).toThrow(/Duplicate filename/);
+  });
 });

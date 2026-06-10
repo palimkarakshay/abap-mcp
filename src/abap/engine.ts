@@ -84,13 +84,31 @@ export function inferFilename(source: string, given?: string): string {
 function boundFiles(files: AbapSource[]): { filename: string; source: string }[] {
   if (files.length === 0) throw new Error("Provide at least one source file.");
   if (files.length > MAX_FILES) throw new Error(`At most ${MAX_FILES} files per call.`);
+  const used = new Set<string>();
   return files.map((f) => {
     if (f.source.length > MAX_FILE_CHARS) {
       throw new Error(
         `File ${f.filename ?? "(unnamed)"} exceeds ${MAX_FILE_CHARS} characters; split it or lint the relevant part.`,
       );
     }
-    return { filename: inferFilename(f.source, f.filename), source: f.source };
+    let filename = inferFilename(f.source, f.filename);
+    if (used.has(filename)) {
+      // Identical names would silently overwrite each other in the registry.
+      // Generic snippet fallbacks get a unique suffix; names derived from a
+      // declaration (or given explicitly) are a caller error — two files
+      // can't define the same object.
+      if (f.filename === undefined && filename.startsWith("zsnippet.")) {
+        let n = 2;
+        while (used.has(filename.replace("zsnippet.", `zsnippet${n}.`))) n += 1;
+        filename = filename.replace("zsnippet.", `zsnippet${n}.`);
+      } else {
+        throw new Error(
+          `Duplicate filename "${filename}" — each file must define a distinct object; pass unique filenames.`,
+        );
+      }
+    }
+    used.add(filename);
+    return { filename, source: f.source };
   });
 }
 

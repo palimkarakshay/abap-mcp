@@ -16,6 +16,13 @@ describe("formatAbap", () => {
       /ABAP sources only/,
     );
   });
+
+  // Codex review P2: unparseable code must fail, not come back as "formatted".
+  it("refuses source with structure errors instead of laundering them", () => {
+    expect(() => formatAbap("REPORT zbad.\nDATA foo TYPE i.\nIF foo = 1.\nWRITE 'x'.")).toThrow(
+      /does not parse cleanly/,
+    );
+  });
 });
 
 describe("outlineAbap", () => {

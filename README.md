@@ -78,7 +78,7 @@ cloud-ready?"*, or *"scaffold a RAP BO for entity Booking on table zbooking, dra
 
 ```bash
 npm install
-npm run check     # typecheck + 77 tests + build — the CI gate
+npm run check     # typecheck + 80 tests + build — the CI gate
 node dist/cli.js  # stdio MCP server
 npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 ```

@@ -9,7 +9,7 @@ no filesystem — text in, structured JSON out. Lumivara product line: **SAP**.
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (77 tests) + build, in order = **the CI gate**
+- `npm run check`     — typecheck + vitest (80 tests) + build, in order = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `node dist/cli.js`  — run the stdio MCP server
 - Inspect: `npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list`

@@ -29,5 +29,16 @@ export function formatAbap(source: string, filename?: string): string {
   if (file === undefined) {
     throw invalidInput("Could not parse the source as an ABAP object.");
   }
+  // "Fails cleanly on source it cannot parse" is the tool contract — returning
+  // broken code as "formatted" would launder syntax errors. Gate on the
+  // parse/structure issues only (style findings are not format blockers).
+  const SYNTAX_KEYS = new Set(["parser_error", "structure", "cds_parser_error"]);
+  const syntaxIssues = registry.findIssues().filter((i) => SYNTAX_KEYS.has(i.getKey()));
+  const firstIssue = syntaxIssues[0];
+  if (firstIssue !== undefined) {
+    throw invalidInput(
+      `Source does not parse cleanly (${syntaxIssues.length} syntax/structure issue(s)); fix before formatting. First: line ${firstIssue.getStart().getRow()}: ${firstIssue.getMessage()}`,
+    );
+  }
   return new abaplint.PrettyPrinter(file, config).run();
 }
