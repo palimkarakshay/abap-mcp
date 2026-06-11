@@ -1,0 +1,59 @@
+{
+    "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+    "version": "v1.1.0",
+    "entity": {
+        "type": "individual",
+        "role": "maintainer",
+        "name": "Akshay Palimkar",
+        "email": "abapmcp@gmail.com",
+        "phone": "",
+        "description": "I'm a SAP/ABAP consultant with 15+ years of enterprise experience, now building open-source AI tooling for the SAP ecosystem. ABAP is the language behind most of the Fortune 500's core business systems, yet it has been almost entirely skipped by the open-source AI tooling wave. I maintain abap-mcp to close that gap: free, offline, vendor-independent tooling that makes ABAP code AI-tractable for every developer, not just licensed enterprises.",
+        "webpageUrl": {
+            "url": "https://github.com/palimkarakshay",
+            "wellKnown": ""
+        }
+    },
+    "projects": [{
+        "guid": "abap-mcp",
+        "name": "abap-mcp",
+        "description": "abap-mcp (MIT, npm) is the only MCP server that gives any LLM offline static analysis, ABAP Cloud / Clean Core readiness checks, and RAP scaffolding for SAP ABAP — with no SAP system, credentials, or vendor cloud required. It is listed on the official MCP registry (io.github.palimkarakshay/abap-mcp).\n\nWhy it matters: SAP ECC mainstream maintenance ends in 2027, pushing thousands of organisations (including governments and UN agencies still on ECC) through the largest legacy-code modernisation wave in enterprise software, against a shrinking ABAP workforce. SAP's own AI tooling (Joule) is licensed and system-connected; abap-mcp is the open, offline alternative — critical for security-constrained teams (public sector, defence, regulated industries) that cannot send code to vendor clouds.\n\nFunding supports a solo maintainer: tracking abaplint and MCP-spec evolution, expanding the Clean Core readiness rule packs, and hardening the server for enterprise/public-sector use.",
+        "webpageUrl": {
+            "url": "https://github.com/palimkarakshay/abap-mcp",
+            "wellKnown": ""
+        },
+        "repositoryUrl": {
+            "url": "https://github.com/palimkarakshay/abap-mcp",
+            "wellKnown": ""
+        },
+        "licenses": ["spdx:MIT"],
+        "tags": ["developer-tools", "static-analysis", "programming", "ai", "code-quality", "enterprise", "sap", "abap"]
+    }],
+    "funding": {
+        "channels": [{
+            "guid": "bank",
+            "type": "bank",
+            "address": "",
+            "description": "Direct bank transfer (Canada, CAD/USD). Contact by email for details."
+        }],
+        "plans": [{
+            "guid": "maintenance",
+            "status": "active",
+            "name": "Core maintenance",
+            "description": "Keeps abap-mcp current and reliable: tracking abaplint releases and MCP specification changes, dependency and security updates, issue triage, and regular npm + MCP-registry releases.",
+            "amount": 8000,
+            "currency": "USD",
+            "frequency": "yearly",
+            "channels": ["bank"]
+        }, {
+            "guid": "readiness-expansion",
+            "status": "active",
+            "name": "ABAP Cloud readiness expansion",
+            "description": "One-time funded milestone: expand the Clean Core / ABAP Cloud readiness analysis to cover more released-API surface and migration patterns, add machine-readable readiness reports for CI pipelines, and publish a public test corpus so results are reproducible.",
+            "amount": 15000,
+            "currency": "USD",
+            "frequency": "one-time",
+            "channels": ["bank"]
+        }],
+        "history": []
+    }
+}
