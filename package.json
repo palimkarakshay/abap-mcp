@@ -1,6 +1,7 @@
 {
   "name": "abap-mcp",
-  "version": "0.3.1",
+  "version": "0.3.2",
+  "mcpName": "io.github.palimkarakshay/abap-mcp",
   "description": "MCP server for SAP ABAP: offline static analysis (abaplint), ABAP Cloud / Clean Core readiness checks, and RAP scaffolding — no SAP system or credentials required.",
   "license": "MIT",
   "author": "Akshay Palimkar",
