@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cmdLint, cmdReadiness, cmdReleased, cmdScaffold, mergeReadiness, parseFlags, runCli } from "../cli-commands.js";
-import { checkCloudReadiness } from "../abap/readiness.js";
+import { cmdCompare, cmdLint, cmdOutline, cmdReadiness, cmdReleased, cmdScaffold, mergeReadiness, parseFlags, runCli } from "../cli-commands.js";
+import { checkCloudReadiness, gradeReadiness } from "../abap/readiness.js";
 
 function io(): { out: string[]; err: string[]; io: { out: (s: string) => void; err: (s: string) => void } } {
   const out: string[] = [];
@@ -46,6 +46,34 @@ describe("cmdLint", () => {
     const { io: o } = io();
     expect(cmdLint([dir], o)).toBe(2);
   });
+
+  it("honors --focus and labels the run with it", () => {
+    const dir = tmpWith({ "zstyle.prog.abap": "REPORT zstyle.\nDATA foo TYPE i.\nIF foo = 1.\nENDIF." });
+    const focused = io();
+    const plain = io();
+    cmdLint([dir, "--focus", "performance"], focused.io); // case-insensitive
+    cmdLint([dir], plain.io);
+    expect(focused.out.join("\n")).toContain(":Performance @");
+    expect(focused.out.length).toBeLessThan(plain.out.length);
+  });
+
+  it("rejects an unknown --focus", () => {
+    const dir = tmpWith({ "zx.prog.abap": "REPORT zx.\nWRITE 'x'." });
+    expect(() => cmdLint([dir, "--focus", "Speed"], io().io)).toThrow(/Unknown focus/);
+  });
+
+  it("applies --rules-file overrides (bare map or full abaplint.json)", () => {
+    const dir = tmpWith({
+      "zstyle.prog.abap": "REPORT zstyle.\nDATA foo TYPE i.\nIF foo = 1.\nENDIF.",
+      "org-pack.json": JSON.stringify({ rules: { empty_structure: false, implicit_start_of_selection: false } }),
+    });
+    const packed = io();
+    const plain = io();
+    cmdLint([dir, "--rules-file", join(dir, "org-pack.json")], packed.io);
+    cmdLint([dir], plain.io);
+    expect(packed.out.join("\n")).not.toContain("empty_structure");
+    expect(plain.out.join("\n")).toContain("empty_structure");
+  });
 });
 
 describe("cmdReadiness", () => {
@@ -67,6 +95,44 @@ describe("mergeReadiness", () => {
     expect(merged.cloudBlockerCount).toBe(r1.cloudBlockerCount + r2.cloudBlockerCount);
     expect(merged.score).toBe(Math.max(0, 100 - 5 * merged.cloudBlockerCount));
     expect(merged.categories.length).toBeGreaterThan(0);
+    expect(merged.fileCount).toBe(r1.fileCount + r2.fileCount);
+    expect(merged.grade).toBe(gradeReadiness(merged.cloudBlockerCount, merged.fileCount));
+  });
+});
+
+describe("cmdCompare", () => {
+  const OLD = "REPORT zold.\nWRITE: / 'hi'.\nCALL SCREEN 100.";
+  const NEW =
+    "CLASS zcl_new DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS get RETURNING VALUE(rv) TYPE string.\nENDCLASS.\nCLASS zcl_new IMPLEMENTATION.\n METHOD get.\n rv = 'hi'.\n ENDMETHOD.\nENDCLASS.";
+
+  it("exits 0 on an improving rework and prints grade movement", () => {
+    const before = tmpWith({ "zold.prog.abap": OLD });
+    const after = tmpWith({ "zcl_new.clas.abap": NEW });
+    const a = io();
+    expect(cmdCompare([before, after, "--preset", "syntax-only"], a.io)).toBe(0);
+    expect(a.out.join("\n")).toMatch(/grade \w → A/);
+  });
+
+  it("exits 1 when the rework regresses cloud readiness", () => {
+    const before = tmpWith({ "zcl_new.clas.abap": NEW });
+    const after = tmpWith({ "zold.prog.abap": OLD });
+    expect(cmdCompare([before, after, "--preset", "syntax-only"], io().io)).toBe(1);
+  });
+
+  it("usage error without exactly two paths", () => {
+    expect(cmdCompare(["only-one"], io().io)).toBe(2);
+  });
+});
+
+describe("cmdOutline --mermaid", () => {
+  it("emits Mermaid classDiagram source", () => {
+    const dir = tmpWith({ "zcl_m.clas.abap": "CLASS zcl_m DEFINITION PUBLIC.\n PUBLIC SECTION.\n METHODS run.\nENDCLASS.\nCLASS zcl_m IMPLEMENTATION.\n METHOD run.\n ENDMETHOD.\nENDCLASS." });
+    const a = io();
+    expect(cmdOutline([dir, "--mermaid"], a.io)).toBe(0);
+    const text = a.out.join("\n");
+    expect(text).toContain("classDiagram");
+    expect(text).toContain("class zcl_m {");
+    expect(text).toContain("+run()");
   });
 });
 

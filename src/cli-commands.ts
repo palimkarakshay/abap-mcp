@@ -8,11 +8,12 @@
 import { readdirSync, readFileSync, realpathSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
-import type { AbapSource, AbapVersion, Finding } from "./abap/engine.js";
-import { ABAP_VERSIONS, MAX_FILES, runAbaplint } from "./abap/engine.js";
-import { outlineAbap } from "./abap/outline.js";
+import { compareAbap } from "./abap/compare.js";
+import type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
+import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILES, runAbaplint } from "./abap/engine.js";
+import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import type { ReadinessReport } from "./abap/readiness.js";
-import { checkCloudReadiness, SCOPE_NOTE } from "./abap/readiness.js";
+import { checkCloudReadiness, gradeReadiness, SCOPE_NOTE } from "./abap/readiness.js";
 import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
 import type { ScaffoldField } from "./abap/scaffold.js";
@@ -86,6 +87,30 @@ function asVersion(v: string | true | undefined, fallback: AbapVersion): AbapVer
   throw new Error(`Unknown ABAP version "${v}". Valid: ${ABAP_VERSIONS.join(", ")}`);
 }
 
+function asFocus(v: string | true | undefined): FocusTag | undefined {
+  if (typeof v !== "string") return undefined;
+  const match = FOCUS_TAGS.find((t) => t.toLowerCase() === v.toLowerCase());
+  if (match === undefined) throw new Error(`Unknown focus "${v}". Valid: ${FOCUS_TAGS.join(", ")}`);
+  return match;
+}
+
+function asPreset(v: string | true | undefined): "style" | "full" | "syntax-only" {
+  return v === "full" || v === "syntax-only" ? v : "style";
+}
+
+/** Read rule overrides from a JSON file — either a bare rules map or a full abaplint.json with a "rules" key. */
+function rulesFromFile(v: string | true | undefined): Record<string, unknown> | undefined {
+  if (typeof v !== "string") return undefined;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(readFileSync(v, "utf8")) as Record<string, unknown>;
+  } catch (err) {
+    throw new Error(`Cannot read --rules-file ${v}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const inner = parsed["rules"];
+  return typeof inner === "object" && inner !== null ? (inner as Record<string, unknown>) : parsed;
+}
+
 function fmtFinding(f: Finding): string {
   return `${f.file}:${f.line}:${f.column} [${f.severity}] ${f.rule}: ${f.message}`;
 }
@@ -98,18 +123,18 @@ export function cmdLint(argv: string[], io: CliIo): number {
     return 2;
   }
   const version = asVersion(flags.get("abap-version"), "v758");
-  const presetRaw = flags.get("preset");
-  const preset =
-    presetRaw === "full" || presetRaw === "syntax-only" ? presetRaw : ("style" as const);
+  const preset = asPreset(flags.get("preset"));
+  const focus = asFocus(flags.get("focus"));
+  const rules = rulesFromFile(flags.get("rules-file"));
   const all: Finding[] = [];
   for (const batch of chunk(files, MAX_FILES)) {
-    all.push(...runAbaplint(batch, { version, preset }).findings);
+    all.push(...runAbaplint(batch, { version, preset, focus, rules }).findings);
   }
   if (flags.has("json")) {
     io.out(JSON.stringify({ files: files.length, findings: all }, null, 2));
   } else {
     for (const f of all) io.out(fmtFinding(f));
-    io.out(`${all.length} finding(s) in ${files.length} file(s) [${preset} @ ${version}]`);
+    io.out(`${all.length} finding(s) in ${files.length} file(s) [${preset}${focus !== undefined ? `:${focus}` : ""} @ ${version}]`);
   }
   return all.some((f) => f.severity === "Error") ? 1 : 0;
 }
@@ -118,11 +143,13 @@ export function cmdLint(argv: string[], io: CliIo): number {
 export function mergeReadiness(reports: ReadinessReport[], baseline: AbapVersion): ReadinessReport {
   const categories = new Map<string, ReadinessReport["categories"][number]>();
   let blockers = 0;
+  let fileCount = 0;
   const broken: ReadinessReport["brokenAtBaseline"] = [];
   const releasedApiFindings: ReadinessReport["releasedApiFindings"] = [];
   let snapshotDate = "";
   for (const r of reports) {
     blockers += r.cloudBlockerCount;
+    fileCount += r.fileCount;
     broken.push(...r.brokenAtBaseline);
     releasedApiFindings.push(...r.releasedApiFindings);
     snapshotDate = r.releasedApiSnapshotDate;
@@ -147,7 +174,9 @@ export function mergeReadiness(reports: ReadinessReport[], baseline: AbapVersion
   return {
     verdict,
     score,
+    grade: gradeReadiness(blockers, fileCount),
     cloudBlockerCount: blockers,
+    fileCount,
     categories: [...categories.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: broken,
     releasedApiFindings,
@@ -170,7 +199,7 @@ export function cmdReadiness(argv: string[], io: CliIo): number {
   if (flags.has("json")) {
     io.out(JSON.stringify({ files: files.length, ...merged }, null, 2));
   } else {
-    io.out(`ABAP Cloud readiness: ${merged.verdict} (score ${merged.score})`);
+    io.out(`ABAP Cloud readiness: ${merged.verdict} (score ${merged.score}, grade ${merged.grade})`);
     io.out(`${merged.cloudBlockerCount} cloud blocker(s) across ${files.length} file(s)`);
     for (const c of merged.categories) io.out(`  ${c.category.padEnd(18)} ${String(c.count).padStart(4)}  ${c.label}`);
     if (merged.brokenAtBaseline.length > 0)
@@ -256,6 +285,10 @@ export function cmdOutline(argv: string[], io: CliIo): number {
     return 2;
   }
   const outlines = chunk(files, MAX_FILES).flatMap((b) => outlineAbap(b));
+  if (flags.has("mermaid")) {
+    io.out(outlineToMermaid(outlines));
+    return 0;
+  }
   if (flags.has("json")) {
     io.out(JSON.stringify(outlines, null, 2));
     return 0;
@@ -270,6 +303,58 @@ export function cmdOutline(argv: string[], io: CliIo): number {
     for (const f of o.forms) io.out(`${o.file}: form ${f}`);
   }
   return 0;
+}
+
+export function cmdCompare(argv: string[], io: CliIo): number {
+  const { flags, rest } = parseFlags(argv);
+  if (rest.length !== 2) {
+    io.err(
+      "Usage: abap-mcp compare BEFORE_PATH AFTER_PATH   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]",
+    );
+    return 2;
+  }
+  const before = collectFiles([rest[0]!], io);
+  const after = collectFiles([rest[1]!], io);
+  if (before.length === 0 || after.length === 0) {
+    io.err("No ABAP sources found on one side.");
+    return 2;
+  }
+  if (before.length > MAX_FILES || after.length > MAX_FILES) {
+    io.err(`compare is object-level: at most ${MAX_FILES} files per side — narrow each path to the object(s) under review.`);
+    return 2;
+  }
+  const report = compareAbap(before, after, {
+    version: asVersion(flags.get("abap-version"), "v758"),
+    preset: asPreset(flags.get("preset")),
+    focus: asFocus(flags.get("focus")),
+    rules: rulesFromFile(flags.get("rules-file")),
+  });
+  if (flags.has("json")) {
+    io.out(JSON.stringify(report, null, 2));
+  } else {
+    io.out(`lint: ${report.introduced.length} introduced, ${report.resolved.length} resolved, ${report.unchangedCount} unchanged`);
+    for (const f of report.introduced) io.out(`  + ${fmtFinding(f)}`);
+    for (const f of report.resolved) io.out(`  - ${fmtFinding(f)}`);
+    io.out(
+      `readiness: blockers ${report.before.cloudBlockerCount} → ${report.after.cloudBlockerCount}, ` +
+        `score ${report.before.score} → ${report.after.score}, grade ${report.before.grade} → ${report.after.grade}`,
+    );
+    const oc = report.outlineChanges;
+    const structural = [
+      ...oc.classesAdded.map((s) => `+ class ${s}`),
+      ...oc.classesRemoved.map((s) => `- class ${s}`),
+      ...oc.methodsAdded.map((s) => `+ method ${s}`),
+      ...oc.methodsRemoved.map((s) => `- method ${s}`),
+      ...oc.formsAdded.map((s) => `+ form ${s}`),
+      ...oc.formsRemoved.map((s) => `- form ${s}`),
+    ];
+    if (structural.length > 0) {
+      io.out("structure:");
+      for (const s of structural) io.out(`  ${s}`);
+    }
+  }
+  // Regression gate: new findings or more cloud blockers fail the rework.
+  return report.introduced.length > 0 || report.after.cloudBlockerCount > report.before.cloudBlockerCount ? 1 : 0;
 }
 
 export function cmdExplain(argv: string[], io: CliIo): number {
@@ -323,10 +408,11 @@ export const USAGE = `abap-mcp — SAP ABAP analysis for AI agents (MCP server) 
 
 Usage:
   abap-mcp                       start the MCP server on stdio (for AI clients)
-  abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--json]
-  abap-mcp readiness [paths…]    ABAP Cloud readiness diff   [--baseline v758] [--fail-below N] [--json]
+  abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]
+  abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--fail-below N] [--json]
+  abap-mcp compare BEFORE AFTER  what a rework changed: findings resolved/introduced, blocker/score/grade movement, structure   [--preset …] [--focus …] [--json]
   abap-mcp scaffold …            generate a RAP managed BO   (--entity --table --key [--fields n:type,…] [--no-draft] [--provided-key] [--out DIR])
-  abap-mcp outline [paths…]      classes/methods/forms structure   [--json]
+  abap-mcp outline [paths…]      classes/methods/forms structure   [--mermaid] [--json]
   abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--json]
   abap-mcp explain <rule>        explain an abaplint rule
   abap-mcp rules                 list rules   [--query q] [--tag Security]
@@ -343,6 +429,8 @@ export function runCli(argv: string[], io: CliIo): number | null {
       return cmdLint(rest, io);
     case "readiness":
       return cmdReadiness(rest, io);
+    case "compare":
+      return cmdCompare(rest, io);
     case "scaffold":
       return cmdScaffold(rest, io);
     case "outline":

@@ -11,6 +11,8 @@
  */
 import * as abaplint from "@abaplint/core";
 
+import { listRules } from "./rules.js";
+
 export interface AbapSource {
   filename?: string | undefined;
   source: string;
@@ -112,10 +114,23 @@ function boundFiles(files: AbapSource[]): { filename: string; source: string }[]
   });
 }
 
+/**
+ * Curated rule-pack lenses — abaplint's own tags, so the pack is the
+ * analyzer's taxonomy, not a hand-maintained list that can drift.
+ */
+export const FOCUS_TAGS = ["Performance", "Security", "Styleguide"] as const;
+export type FocusTag = (typeof FOCUS_TAGS)[number];
+
 export interface RunOptions {
   version: AbapVersion;
-  /** abaplint rule config; merged over the preset. */
+  /** abaplint rule config; merged over the preset (and over a focus filter). */
   rules?: Record<string, unknown> | undefined;
+  /**
+   * Keep only rules carrying this abaplint tag (parser errors always stay
+   * on — focused findings on unparseable code would be garbage). Ignored
+   * for "syntax-only", which has no opinionated rules to focus.
+   */
+  focus?: FocusTag | undefined;
   /**
    * "style"       — abaplint's default ruleset minus whole-program semantic
    *                 checks, so isolated snippets don't drown in noise about
@@ -147,7 +162,15 @@ function buildConfig(opts: RunOptions): abaplint.Config {
     }
     raw = def as unknown as Record<string, unknown>;
   }
+  if (opts.focus !== undefined && opts.preset !== "syntax-only") {
+    const tagged = new Set(listRules(undefined, opts.focus).map((r) => r.key));
+    const rules = raw["rules"] as Record<string, unknown>;
+    for (const key of Object.keys(rules)) {
+      if (!tagged.has(key) && key !== "parser_error" && key !== "cds_parser_error") rules[key] = false;
+    }
+  }
   if (opts.rules !== undefined) {
+    // Explicit per-rule overrides win over the preset AND over a focus filter.
     const rules = raw["rules"] as Record<string, unknown>;
     for (const [k, v] of Object.entries(opts.rules)) rules[k] = v;
   }

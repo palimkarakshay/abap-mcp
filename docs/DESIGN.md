@@ -172,3 +172,39 @@ common tables, using SAP's published successors where available (e.g. `MARA → 
 credibility); a regex sweep for table names (a parser distinguishes a table from an identically
 named variable; greps don't); shipping the full 9 MB upstream file (dropped fields not needed for
 a name→state lookup).
+
+## Decision 9 — assessment & rework surfaces: grade, focus, compare, Mermaid (2026-06-11)
+
+Four additions, one principle: **new lenses over the same objective numbers, never new
+subjectivity.**
+
+**A–D grade (`check_cloud_readiness.grade`).** Assessments are communicated in letter grades,
+not blocker counts. The grade is a pure banding of blocker *density* (blockers ÷ files: A = 0,
+B ≤ 0.5/file, C ≤ 2/file, D worse) — density, because 30 blockers across 100 files and across
+10 files are different stories, and an absolute band would flip every whole-repo run to D.
+It derives from the same parser-level count as the score; decision 4's objectivity invariant
+is untouched. **Rejected:** folding released-API findings into the grade (dated snapshot data
+corrupting the one number we can stand behind — same reasoning as decision 4).
+
+**Focus packs (`lint_abap.focus`).** Themed review passes (performance / security / Clean ABAP
+style) previously required hand-picked rule lists. `focus` keeps only rules carrying the
+matching **abaplint tag** — the analyzer's own taxonomy, so the pack cannot drift from the
+rules that actually exist. Parser errors always stay on (focused findings on unparseable code
+would be garbage); explicit `rules` overrides still win. Org-specific packs deliberately stay
+**data, not code**: a JSON rules map (`--rules-file`, also accepts full abaplint.json) — this
+server ships no company's conventions. **Rejected:** a curated in-repo rule list per theme
+(drifts), an `org` preset (whose org?).
+
+**`compare_abap`.** "Is the rework better?" needs a referee, not a diff. Findings are matched
+by **content** (rule + message + offending line text), never line numbers — moved code is not
+noise; the multiset match means duplicates pair off one-to-one. Blocker/score/grade movement
+reuses checkCloudReadiness verbatim; structure changes come from the outline. The CLI exits 1
+on introduced findings or a rising blocker count — a regression gate for modernization PRs and
+AI rewrites. **Rejected:** line-based matching (every refactor would "introduce" everything it
+moved), functional-equivalence claims (a parser cannot promise behavior; the matchNote says so
+on every call).
+
+**Mermaid outlines (`get_abap_outline.mermaid`).** Structure visuals for handovers and docs.
+Text out (a Mermaid classDiagram), rendered by whatever already renders Mermaid — no image
+generation, no new dependency, nothing leaves the no-network envelope. Identifiers are
+sanitized (`~`, `/`, `.` → `_`) because Mermaid is stricter than ABAP about names.

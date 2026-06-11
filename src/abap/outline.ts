@@ -96,3 +96,55 @@ export function outlineAbap(files: AbapSource[]): FileOutline[] {
   }
   return out;
 }
+
+const VIS_PREFIX: Record<MethodOutline["visibility"], string> = {
+  public: "+",
+  protected: "#",
+  private: "-",
+};
+
+/** Mermaid identifiers cannot carry ABAP's ~ / namespace slashes / dots. */
+function mermaidName(name: string): string {
+  return name.replace(/[^A-Za-z0-9_]/g, "_");
+}
+
+/**
+ * Render outlines as a Mermaid classDiagram: classes with method visibility
+ * (+/#/-) and attributes, inheritance (<|--), interface realization (<|..),
+ * and legacy FORMs as one pseudo-class per file. Deterministic text out —
+ * paste into any Mermaid renderer (GitHub, docs sites, diagram tools) for
+ * the visual; nothing here draws pixels.
+ */
+export function outlineToMermaid(outlines: FileOutline[]): string {
+  const lines: string[] = ["classDiagram"];
+  const declaredInterfaces = new Set<string>();
+  const declareInterface = (name: string): void => {
+    const id = mermaidName(name);
+    if (declaredInterfaces.has(id)) return;
+    declaredInterfaces.add(id);
+    lines.push(`  class ${id} {`, "    <<interface>>", "  }");
+  };
+  for (const o of outlines) {
+    for (const i of o.interfaces) declareInterface(i);
+    for (const c of o.classes) {
+      const id = mermaidName(c.name);
+      lines.push(`  class ${id} {`);
+      if (c.isAbstract) lines.push("    <<abstract>>");
+      for (const m of c.methods) lines.push(`    ${VIS_PREFIX[m.visibility]}${mermaidName(m.name)}()`);
+      for (const a of c.attributes) lines.push(`    ${mermaidName(a)}`);
+      lines.push("  }");
+      if (c.superClass !== null) lines.push(`  ${mermaidName(c.superClass)} <|-- ${id}`);
+      for (const i of c.interfaces) {
+        declareInterface(i);
+        lines.push(`  ${mermaidName(i)} <|.. ${id}`);
+      }
+    }
+    if (o.forms.length > 0) {
+      const id = `${mermaidName(o.file.replace(/\..*$/, ""))}_forms`;
+      lines.push(`  class ${id} {`);
+      for (const f of o.forms) lines.push(`    +${mermaidName(f)}()`);
+      lines.push("  }");
+    }
+  }
+  return lines.join("\n");
+}

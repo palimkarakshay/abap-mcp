@@ -45,10 +45,32 @@ export interface ReleasedApiFinding {
   note: string;
 }
 
+/** Letter grade for tech-debt assessments — a banding of blocker density. */
+export type ReadinessGrade = "A" | "B" | "C" | "D";
+
+/**
+ * Band the objective blocker count into an A–D Clean Core tech-debt grade,
+ * normalized by file count so a single object and a whole package grade on
+ * the same scale: A = no blockers, B = ≤ 0.5 blockers/file, C = ≤ 2
+ * blockers/file, D = worse. Same number as the score, different lens —
+ * nothing subjective is mixed in.
+ */
+export function gradeReadiness(cloudBlockerCount: number, fileCount: number): ReadinessGrade {
+  if (cloudBlockerCount === 0) return "A";
+  const perFile = cloudBlockerCount / Math.max(1, fileCount);
+  if (perFile <= 0.5) return "B";
+  if (perFile <= 2) return "C";
+  return "D";
+}
+
 export interface ReadinessReport {
   verdict: "ready" | "minor-rework" | "moderate-rework" | "significant-rework";
   score: number;
+  /** A–D banding of blocker density (blockers / files) — see gradeReadiness. */
+  grade: ReadinessGrade;
   cloudBlockerCount: number;
+  /** Files analyzed — the denominator of the grade's density banding. */
+  fileCount: number;
   categories: ReadinessCategory[];
   /** Findings that fail even at the classic baseline — fix these first; they are not migration items. */
   brokenAtBaseline: Finding[];
@@ -126,7 +148,9 @@ export function checkCloudReadiness(
   return {
     verdict,
     score,
+    grade: gradeReadiness(n, files.length),
     cloudBlockerCount: n,
+    fileCount: files.length,
     categories: [...byCategory.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: baseline.findings,
     releasedApiFindings: computeReleasedApiFindings(files, baselineVersion),

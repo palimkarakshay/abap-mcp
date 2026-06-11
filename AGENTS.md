@@ -10,7 +10,7 @@ structured JSON out (package-bundled data assets excepted; see invariants). Lumi
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (122 tests) + build, in order = **the CI gate**
+- `npm run check`     — typecheck + vitest (149 tests) + build, in order = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `npm run build`     — `tsc && node scripts/copy-data.mjs` (tsc does NOT copy the bundled `.json`)
 - `node scripts/build-released-api-index.mjs` — **dev-only**, refreshes the SAP released-API
@@ -19,24 +19,27 @@ structured JSON out (package-bundled data assets excepted; see invariants). Lumi
 - Inspect: `npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list`
 - Description lint (optional, cross-repo): from `~/projects/mcp-kit`:
   `pnpm --filter @mcp-kit/lint run lint -- --root ~/projects/abap-mcp --threshold 90`
-  (all 8 tools score 100/100; keep it that way)
+  (all 9 tools score 100/100; keep it that way)
 
 ## Layout
-- `src/abap.tools.ts` — the 8 ToolSpecs (lint_abap, check_cloud_readiness, scaffold_rap_bo,
-  check_released_api, list_abap_rules, explain_abap_rule, format_abap, get_abap_outline). The
-  registry export `tools` is what @mcp-kit/lint discovers.
-- `src/abap/` — engine.ts (Registry wrapper, filename inference, caps, AST object-reference
-  extraction) · readiness.ts (dual-parse diff + released-API cross-check) · released.ts
-  (released-API lookup over the bundled snapshot) · scaffold.ts (RAP templates +
-  self-validation) · rules.ts · formatter.ts · outline.ts
+- `src/abap.tools.ts` — the 9 ToolSpecs (lint_abap [+focus rule packs], check_cloud_readiness
+  [+A–D grade], compare_abap, scaffold_rap_bo, check_released_api, list_abap_rules,
+  explain_abap_rule, format_abap, get_abap_outline [+mermaid]). The registry export `tools`
+  is what @mcp-kit/lint discovers.
+- `src/abap/` — engine.ts (Registry wrapper, filename inference, caps, focus tag filter, AST
+  object-reference extraction) · readiness.ts (dual-parse diff + released-API cross-check +
+  density-banded A–D grade) · compare.ts (before/after: content-matched finding diff +
+  grade movement + structure changes) · released.ts (released-API lookup over the bundled
+  snapshot) · scaffold.ts (RAP templates + self-validation) · rules.ts · formatter.ts ·
+  outline.ts (+ outlineToMermaid)
 - `src/data/` — bundled data assets: `released-apis.json` (compact SAP Cloudification snapshot,
   Apache-2.0) + `table-successors.json` (curated classic-table → CDS successor map)
 - `scripts/` — `build-released-api-index.mjs` (dev: fetch+transform SAP data) ·
   `copy-data.mjs` (build: copy `src/data/*.json` → `dist/data/`)
 - `src/tool.ts`, `src/errors.ts` — vendored mcp-kit patterns (attributed; keep in sync by hand)
 - `src/server.ts` + `src/cli.ts` (entry: subcommand → CLI, bare → stdio server) +
-  `src/cli-commands.ts` (lint/readiness/scaffold/outline/explain/rules; the CLI may touch fs,
-  the MCP server never does) + `src/index.ts` (library exports)
+  `src/cli-commands.ts` (lint/readiness/compare/scaffold/outline/explain/rules; the CLI may
+  touch fs, the MCP server never does) + `src/index.ts` (library exports)
 - `docs/DESIGN.md` — decision log · `docs/COOKBOOK.md` — user recipes ·
   `examples/claude-code/` — subagents (reviewer, migrator), .mcp.json, CI workflow
 

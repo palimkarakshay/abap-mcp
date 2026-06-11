@@ -8,9 +8,10 @@
  */
 import { z } from "zod";
 
-import { ABAP_VERSIONS, runAbaplint } from "./abap/engine.js";
+import { compareAbap } from "./abap/compare.js";
+import { ABAP_VERSIONS, FOCUS_TAGS, runAbaplint } from "./abap/engine.js";
 import { formatAbap } from "./abap/formatter.js";
-import { outlineAbap } from "./abap/outline.js";
+import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { checkCloudReadiness } from "./abap/readiness.js";
 import {
   lookupReleased,
@@ -44,6 +45,26 @@ const filesField = z
 const sevenSampleAbap =
   'lint_abap({ "files": [ { "source": "REPORT ztest.\\nDATA foo TYPE i.\\nIF foo = 1.\\nENDIF." } ] })';
 
+const focusField = z
+  .enum(FOCUS_TAGS)
+  .optional()
+  .describe(
+    'Curated rule-pack lens: report only rules carrying this abaplint tag — "Performance" for a tuning pass, ' +
+      '"Security" for a security sweep, "Styleguide" for Clean ABAP adherence. Parser errors always surface. ' +
+      'Ignored with preset "syntax-only". Combine with rules to re-tune individual rules in the pack.',
+  );
+
+const findingShape = z.object({
+  rule: z.string().describe("abaplint rule key."),
+  message: z.string().describe("Human-readable finding."),
+  severity: z.string().describe("Error, Warning or Info."),
+  file: z.string().describe("Filename the finding is in."),
+  line: z.number().describe("1-based line."),
+  column: z.number().describe("1-based column."),
+  excerpt: z.string().describe("The offending line, trimmed."),
+  docsUrl: z.string().describe("Rule documentation at rules.abaplint.org."),
+});
+
 export const lintAbap = defineTool({
   name: "lint_abap",
   title: "Lint ABAP source",
@@ -54,8 +75,9 @@ export const lintAbap = defineTool({
     "anywhere near a system — it runs entirely offline on the provided text. " +
     "It does not connect to any SAP system, does not run ATC, and cannot judge whether referenced objects exist " +
     "unless you provide them in the same call (preset \"style\", the default, skips whole-program checks for that reason; " +
-    "preset \"full\" enables them when you provide every dependency). For an ABAP-Cloud migration verdict use " +
-    "check_cloud_readiness instead. " +
+    "preset \"full\" enables them when you provide every dependency). A focus tag turns a pass into a themed review " +
+    "(performance / security / Clean ABAP style) without hand-picking rules; rule overrides layer a team's own pack " +
+    "on top. For an ABAP-Cloud migration verdict use check_cloud_readiness instead. " +
     `Example: ${sevenSampleAbap}.`,
   inputSchema: {
     files: filesField,
@@ -72,22 +94,12 @@ export const lintAbap = defineTool({
       .record(z.string(), z.unknown())
       .optional()
       .describe(
-        'abaplint rule overrides merged onto the preset, e.g. { "line_length": { "length": 120 }, "7bit_ascii": false }.',
+        'abaplint rule overrides merged onto the preset (and onto a focus filter), e.g. { "line_length": { "length": 120 }, "7bit_ascii": false } — encode an org\'s best-practice pack here.',
       ),
+    focus: focusField,
   },
   outputSchema: {
-    findings: z.array(
-      z.object({
-        rule: z.string().describe("abaplint rule key."),
-        message: z.string().describe("Human-readable finding."),
-        severity: z.string().describe("Error, Warning or Info."),
-        file: z.string().describe("Filename the finding is in."),
-        line: z.number().describe("1-based line."),
-        column: z.number().describe("1-based column."),
-        excerpt: z.string().describe("The offending line, trimmed."),
-        docsUrl: z.string().describe("Rule documentation at rules.abaplint.org."),
-      }),
-    ),
+    findings: z.array(findingShape),
     truncated: z.boolean().describe("True if more than 500 findings existed and the list was cut."),
     fileCount: z.number().describe("Number of files analyzed."),
   },
@@ -107,12 +119,20 @@ export const lintAbap = defineTool({
         rules: { line_length: { length: 120 } },
       },
     },
+    {
+      description: "Performance-focused pass over a report.",
+      arguments: {
+        files: [{ source: "REPORT zperf.\nSELECT * FROM mara INTO TABLE @DATA(lt_mara)." }],
+        focus: "Performance",
+      },
+    },
   ],
   handler: (args) => {
     const result = runAbaplint(args.files, {
       version: args.abapVersion,
       preset: args.preset,
       rules: args.rules,
+      focus: args.focus,
     });
     const text =
       result.findings.length === 0
@@ -134,10 +154,10 @@ export const checkCloudReadinessTool = defineTool({
     "Assess how far ABAP source is from ABAP Cloud (Clean Core tier 1) by parsing it twice — once at a classic " +
     "baseline (default v758) and once at version Cloud — and diffing: findings that appear only at Cloud are genuine " +
     "cloud blockers (statements ABAP Cloud removed), reported in categories (dynpro, list output, native SQL, report " +
-    "events, …) with a transparent score and verdict; findings already present at the baseline are reported separately " +
-    "as broken code, not migration work. " +
-    "Use this when someone asks 'is this code cloud-ready / Clean Core compliant / S/4HANA-cloud safe' or before " +
-    "porting classic ABAP into an ABAP Cloud environment. " +
+    "events, …) with a transparent score, an A–D tech-debt grade and a verdict; findings already present at the " +
+    "baseline are reported separately as broken code, not migration work. " +
+    "Use this when someone asks 'is this code cloud-ready / Clean Core compliant / S/4HANA-cloud safe', before " +
+    "porting classic ABAP into an ABAP Cloud environment, or for a graded tech-debt assessment of an abapGit export. " +
     "It is static and parser-level: it does not check released-API usage (that needs a system's ATC), does not " +
     "connect to any SAP system, and a 'ready' verdict means no language-level blockers — not a certification. " +
     'Example: check_cloud_readiness({ "files": [ { "source": "REPORT zold.\\nWRITE: / \'hi\'." } ] }).',
@@ -152,7 +172,13 @@ export const checkCloudReadinessTool = defineTool({
       .enum(["ready", "minor-rework", "moderate-rework", "significant-rework"])
       .describe("Banded verdict from the blocker count (0 / ≤5 / ≤20 / >20)."),
     score: z.number().describe("100 − 5×blockers, floored at 0. Transparent, not an oracle."),
+    grade: z
+      .enum(["A", "B", "C", "D"])
+      .describe(
+        "Clean Core tech-debt grade banded on blocker density: A = no blockers, B = ≤ 0.5 blockers/file, C = ≤ 2 blockers/file, D = more. The same objective count as the score, sized for assessment reports.",
+      ),
     cloudBlockerCount: z.number().describe("Statements valid at the baseline but not in ABAP Cloud."),
+    fileCount: z.number().describe("Files analyzed — the denominator of the grade's density banding."),
     categories: z.array(
       z.object({
         category: z.string().describe("Stable category id, e.g. dynpro, list-output, native-sql."),
@@ -188,7 +214,7 @@ export const checkCloudReadinessTool = defineTool({
     const report = checkCloudReadiness(args.files, args.baselineVersion);
     const catLine = report.categories.map((c) => `${c.category}=${c.count}`).join(", ");
     const text =
-      `${report.verdict} (score ${report.score}): ${report.cloudBlockerCount} cloud blocker(s)` +
+      `${report.verdict} (score ${report.score}, grade ${report.grade}): ${report.cloudBlockerCount} cloud blocker(s)` +
       (catLine.length > 0 ? ` [${catLine}]` : "") +
       (report.brokenAtBaseline.length > 0
         ? `; ${report.brokenAtBaseline.length} finding(s) broken at ${report.baselineVersion} regardless`
@@ -432,13 +458,25 @@ export const getAbapOutline = defineTool({
     "Return the structural outline of ABAP sources — classes (with methods, visibility, attributes, interfaces, " +
     "inheritance), interfaces, and FORM routines — without you having to read the whole file. " +
     "Use this when navigating a large class or legacy program to decide which part to read or edit next; it is the " +
-    "cheap first call before pulling thousands of lines into context. It does not return method bodies or analyze " +
+    "cheap first call before pulling thousands of lines into context. Set mermaid: true to also get the structure as " +
+    "a Mermaid classDiagram (inheritance, interface realization, method visibility) for documentation visuals. " +
+    "It does not return method bodies or analyze " +
     "code quality (use lint_abap for that), and CDS/behavior-definition files yield an empty outline. " +
     'Example: get_abap_outline({ "files": [ { "filename": "zcl_big.clas.abap", "source": "CLASS zcl_big DEFINITION…" } ] }).',
   inputSchema: {
     files: filesField,
+    mermaid: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Also return the outline as Mermaid classDiagram source — render it anywhere Mermaid renders (GitHub, docs sites) for an instant structure diagram.",
+      ),
   },
   outputSchema: {
+    mermaid: z
+      .string()
+      .optional()
+      .describe("Mermaid classDiagram source for all files; present only when requested."),
     outlines: z.array(
       z.object({
         file: z.string().describe("Filename."),
@@ -479,9 +517,13 @@ export const getAbapOutline = defineTool({
         return `${o.file}: ${parts.join("; ") || "(empty)"}`;
       })
       .join("\n");
+    const mermaid = args.mermaid ? outlineToMermaid(outlines) : undefined;
     return {
-      content: [{ type: "text", text }],
-      structuredContent: { outlines: outlines as unknown as Record<string, unknown>[] },
+      content: [{ type: "text", text: mermaid !== undefined ? `${text}\n\n\`\`\`mermaid\n${mermaid}\n\`\`\`` : text }],
+      structuredContent: {
+        outlines: outlines as unknown as Record<string, unknown>[],
+        ...(mermaid !== undefined ? { mermaid } : {}),
+      },
     };
   },
 });
@@ -601,10 +643,110 @@ export const checkReleasedApiTool = defineTool({
   },
 });
 
+const compareSideShape = z.object({
+  findingCount: z.number().describe("Total lint findings on this side."),
+  cloudBlockerCount: z.number().describe("ABAP Cloud blockers on this side (objective dual-parse diff)."),
+  score: z.number().describe("Readiness score on this side (100 − 5×blockers, floored at 0)."),
+  grade: z.enum(["A", "B", "C", "D"]).describe("Density-banded Clean Core grade on this side."),
+});
+
+export const compareAbapTool = defineTool({
+  name: "compare_abap",
+  title: "Compare two ABAP versions",
+  description:
+    "Compare a BEFORE and an AFTER version of ABAP source and report what a rework actually changed: lint findings " +
+    "resolved and introduced (matched by content, so moved-but-unchanged code is not noise), cloud-blocker / score / " +
+    "A–D grade movement from the same dual-parse diff as check_cloud_readiness, and structural changes — classes, " +
+    "methods and FORMs added or removed. " +
+    "Use this when reviewing a refactor, a modernization step or an AI-generated rewrite of an existing object and " +
+    "you need an objective better-or-worse verdict instead of eyeballing a diff. " +
+    "It is not a textual diff tool (use git diff to see the edits) and it cannot judge functional equivalence — " +
+    "behavior can change while every number improves; it does not connect to any SAP system. " +
+    'Example: compare_abap({ "before": [ { "source": "REPORT zr.\\nWRITE 1." } ], "after": [ { "source": "REPORT zr.\\nWRITE 2." } ] }).',
+  inputSchema: {
+    before: filesField.describe("The BEFORE sources — the current/old version of the object(s). Up to 32 files, 100k chars each."),
+    after: filesField.describe("The AFTER sources — the reworked version being judged. Up to 32 files, 100k chars each."),
+    abapVersion: VERSION_ENUM.default("v758").describe(
+      'ABAP language version both sides are linted against. "v758" (default) is current on-prem; "Cloud" is ABAP Cloud.',
+    ),
+    preset: z
+      .enum(["style", "full", "syntax-only"])
+      .default("style")
+      .describe(
+        'Lint preset applied identically to both sides: "style" (default) for isolated snippets, "full" when every referenced object is provided, "syntax-only" for parser errors only.',
+      ),
+    rules: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe('abaplint rule overrides applied to both sides, e.g. { "line_length": { "length": 120 } }.'),
+    focus: focusField,
+  },
+  outputSchema: {
+    resolved: z.array(findingShape).describe("Findings present before but gone after — improvements."),
+    introduced: z.array(findingShape).describe("Findings present only after — regressions to fix."),
+    unchangedCount: z.number().describe("Findings present on both sides (content-matched)."),
+    before: compareSideShape.describe("Lint and readiness numbers for the BEFORE side."),
+    after: compareSideShape.describe("Lint and readiness numbers for the AFTER side."),
+    outlineChanges: z.object({
+      classesAdded: z.array(z.string()).describe("Class names present only after."),
+      classesRemoved: z.array(z.string()).describe("Class names present only before."),
+      methodsAdded: z.array(z.string()).describe('Methods present only after, as "class.method".'),
+      methodsRemoved: z.array(z.string()).describe('Methods present only before, as "class.method".'),
+      formsAdded: z.array(z.string()).describe("FORM routines present only after."),
+      formsRemoved: z.array(z.string()).describe("FORM routines present only before (removing FORMs is usually progress)."),
+    }),
+    matchNote: z.string().describe("How findings were matched and what the numbers do and do not mean."),
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  examples: [
+    {
+      description: "Judge a WRITE-report rewritten as a class.",
+      arguments: {
+        before: [{ source: "REPORT zold.\nWRITE: / 'hi'." }],
+        after: [
+          {
+            source:
+              "CLASS zcl_new DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS get RETURNING VALUE(rv) TYPE string.\nENDCLASS.\nCLASS zcl_new IMPLEMENTATION.\n METHOD get.\n rv = 'hi'.\n ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+      },
+    },
+    {
+      description: "Performance-focused before/after check of a tuning change.",
+      arguments: {
+        before: [{ source: "REPORT zperf.\nSELECT * FROM mara INTO TABLE @DATA(lt)." }],
+        after: [{ source: "REPORT zperf.\nSELECT matnr FROM mara INTO TABLE @DATA(lt)." }],
+        focus: "Performance",
+      },
+    },
+  ],
+  handler: (args) => {
+    const report = compareAbap(args.before, args.after, {
+      version: args.abapVersion,
+      preset: args.preset,
+      rules: args.rules,
+      focus: args.focus,
+    });
+    const oc = report.outlineChanges;
+    const structural =
+      oc.classesAdded.length + oc.classesRemoved.length + oc.methodsAdded.length + oc.methodsRemoved.length + oc.formsAdded.length + oc.formsRemoved.length;
+    const text =
+      `${report.introduced.length} introduced, ${report.resolved.length} resolved, ${report.unchangedCount} unchanged finding(s); ` +
+      `blockers ${report.before.cloudBlockerCount}→${report.after.cloudBlockerCount}, ` +
+      `score ${report.before.score}→${report.after.score}, grade ${report.before.grade}→${report.after.grade}` +
+      (structural > 0 ? `; ${structural} structural change(s)` : "");
+    return {
+      content: [{ type: "text", text }],
+      structuredContent: report as unknown as Record<string, unknown>,
+    };
+  },
+});
+
 /** Every tool this server exposes. (`tools` alias = the registry-export shape @mcp-kit/lint discovers.) */
 export const ALL_TOOLS: readonly AnyToolSpec[] = [
   lintAbap,
   checkCloudReadinessTool,
+  compareAbapTool,
   scaffoldRapBoTool,
   checkReleasedApiTool,
   listAbapRules,

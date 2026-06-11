@@ -7,6 +7,9 @@ Drop-in pieces for Claude Code (adaptable to any MCP client):
   lints, readiness-checks and explains, with hard verdict rules.
 - **`abap-cloud-migrator.md`** → copy to `.claude/agents/` — an iterative migration loop where
   the readiness score is the loop condition and every edit must re-parse.
+- **`abap-tech-debt-assessor.md`** → copy to `.claude/agents/` — a graded (A–D) Clean Core
+  assessment of an abapGit export: per-package grades, mechanical-vs-redesign sizing,
+  released-API appendix, honest scope statement.
 - **`abap-quality.yml`** → copy to `.github/workflows/` — CI parse gate + readiness ratchet
   for abapGit repos, no SAP connectivity needed.
 

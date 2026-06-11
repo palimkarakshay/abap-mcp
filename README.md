@@ -18,11 +18,12 @@ of their time where the *files* are — editing abapGit repos, reviewing diffs, 
 long before anything reaches a system. This server gives agents the missing feedback loop at that
 layer:
 
-- *"Does this ABAP parse? Is it clean?"* → `lint_abap`
-- *"How far is this classic report from ABAP Cloud?"* → `check_cloud_readiness`
+- *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
+- *"How far is this classic report from ABAP Cloud? Grade it."* → `check_cloud_readiness` (A–D)
+- *"Did this rework make the code better or worse?"* → `compare_abap`
 - *"Is MARA a released API? What do I use instead?"* → `check_released_api`
 - *"Start me a correct RAP business object."* → `scaffold_rap_bo`
-- *"What's in this 4,000-line class?"* → `get_abap_outline`
+- *"What's in this 4,000-line class? Draw it."* → `get_abap_outline` (+ Mermaid)
 
 ## Quickstart
 
@@ -54,9 +55,12 @@ Every tool is also a subcommand, so it works in terminals and CI where no MCP cl
 
 ```bash
 npx abap-mcp lint src/                          # lint files or whole directories
-npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, CI-gateable
+npx abap-mcp lint src/ --focus Performance      # themed pass: Performance | Security | Styleguide
+npx abap-mcp lint src/ --rules-file org.json    # your org's abaplint rule pack, same engine
+npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, scored + graded A–D
+npx abap-mcp compare old/ new/                  # rework verdict: findings resolved/introduced, grade movement
 npx abap-mcp scaffold --entity Travel --table ztravel --key travel_id --out ./out
-npx abap-mcp outline src/zcl_monster.clas.abap  # navigate big objects
+npx abap-mcp outline src/zcl_monster.clas.abap  # navigate big objects (--mermaid for a diagram)
 npx abap-mcp released MARA I_Product            # released-API status + CDS successor
 npx abap-mcp explain exit_or_check              # rule rationale
 ```
@@ -77,14 +81,15 @@ loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for aba
 
 | Tool | What it does |
 | --- | --- |
-| `lint_abap` | abaplint static analysis over ABAP/CDS/BDEF sources → structured findings with rule docs links. Presets: `style` (default, snippet-friendly), `full`, `syntax-only`; per-rule overrides. |
-| `check_cloud_readiness` | Dual-parse diff (classic baseline vs `Cloud`): statements that are valid today but illegal in ABAP Cloud become categorized blockers (dynpro, list output, native SQL, …) with a transparent score; code broken at the baseline is reported separately, not counted as migration work. Now also surfaces a **separate, dated released-API cross-check** (`releasedApiFindings`): direct access to non-released classic tables and deprecated-API usage found in the source, with CDS successor hints — informational, not folded into the score. |
+| `lint_abap` | abaplint static analysis over ABAP/CDS/BDEF sources → structured findings with rule docs links. Presets: `style` (default, snippet-friendly), `full`, `syntax-only`; per-rule overrides for org rule packs; `focus` lens (`Performance` / `Security` / `Styleguide`) for themed reviews. |
+| `check_cloud_readiness` | Dual-parse diff (classic baseline vs `Cloud`): statements that are valid today but illegal in ABAP Cloud become categorized blockers (dynpro, list output, native SQL, …) with a transparent score **and a density-banded A–D tech-debt grade**; code broken at the baseline is reported separately, not counted as migration work. Also surfaces a **separate, dated released-API cross-check** (`releasedApiFindings`): direct access to non-released classic tables and deprecated-API usage found in the source, with CDS successor hints — informational, not folded into the score. |
+| `compare_abap` | Before/after verdict on a rework: lint findings resolved vs introduced (matched by content, so moved code isn't noise), blocker/score/grade movement, and classes/methods/FORMs added or removed. The objective referee for refactors and AI rewrites. |
 | `check_released_api` | Looks up objects (tables, CDS views, function modules, classes, …) in SAP's bundled Cloudification snapshot → `released` / `deprecated` / `not-released` per object, plus a curated CDS successor for common classic tables. The released-API half of readiness, offline. |
 | `scaffold_rap_bo` | Generates the canonical RAP managed-BO stack (root view, behavior definition `strict(2)` + optional draft, behavior class + handler locals, projection, metadata extension, OData V4 service definition) plus suggested table DDL, activation order and next steps. |
 | `list_abap_rules` | Browse abaplint's ~180 rules (filter by text or tag). |
 | `explain_abap_rule` | One rule in depth — rationale (often Clean ABAP), examples, docs URL. |
 | `format_abap` | Offline pretty-printer (keyword case + indentation). |
-| `get_abap_outline` | Classes/methods/visibility/interfaces/FORMs of a source — navigate big objects without reading them whole. |
+| `get_abap_outline` | Classes/methods/visibility/interfaces/FORMs of a source — navigate big objects without reading them whole. Optional Mermaid classDiagram output for instant structure visuals. |
 
 ## Honesty box — what this is *not*
 
@@ -110,7 +115,7 @@ loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for aba
 
 ```bash
 npm install
-npm run check     # typecheck + 122 tests + build — the CI gate
+npm run check     # typecheck + 149 tests + build — the CI gate
 node dist/cli.js  # stdio MCP server
 npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 ```
@@ -118,7 +123,7 @@ npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 Tool descriptions are CI-graded (a rubric test enforces verb-first names, when-to-use,
 non-goals, described params, worked examples — the
 [mcp-kit](https://github.com/palimkarakshay/mcp-kit) discipline; the full mcp-kit lint scores all
-eight tools 100/100).
+nine tools 100/100).
 
 ## Design
 

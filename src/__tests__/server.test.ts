@@ -21,12 +21,13 @@ async function connectedClient(): Promise<Client> {
 }
 
 describe("MCP server wire", () => {
-  it("lists all eight tools", async () => {
+  it("lists all nine tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "check_cloud_readiness",
       "check_released_api",
+      "compare_abap",
       "explain_abap_rule",
       "format_abap",
       "get_abap_outline",
@@ -34,6 +35,29 @@ describe("MCP server wire", () => {
       "list_abap_rules",
       "scaffold_rap_bo",
     ]);
+  });
+
+  it("compare_abap reports grade movement over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "compare_abap",
+      arguments: {
+        before: [{ source: "REPORT zold.\nWRITE: / 'hi'." }],
+        after: [
+          {
+            source:
+              "CLASS zcl_new DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS get RETURNING VALUE(rv) TYPE string.\nENDCLASS.\nCLASS zcl_new IMPLEMENTATION.\n METHOD get.\n rv = 'hi'.\n ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+      },
+    })) as {
+      isError?: boolean;
+      structuredContent?: { before: { grade: string }; after: { grade: string; cloudBlockerCount: number } };
+    };
+    expect(result.isError ?? false).toBe(false);
+    expect(result.structuredContent!.before.grade).not.toBe("A");
+    expect(result.structuredContent!.after.grade).toBe("A");
+    expect(result.structuredContent!.after.cloudBlockerCount).toBe(0);
   });
 
   it("lint_abap round-trips over the wire with structured content", async () => {
@@ -89,7 +113,7 @@ describe("MCP server wire", () => {
 });
 
 describe("tool description rubric (mcp-kit discipline)", () => {
-  const VERBS = ["get", "list", "search", "run", "create", "check", "lint", "scaffold", "explain", "format"];
+  const VERBS = ["get", "list", "search", "run", "create", "check", "compare", "lint", "scaffold", "explain", "format"];
 
   for (const tool of ALL_TOOLS) {
     describe(tool.name, () => {

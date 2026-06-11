@@ -49,6 +49,27 @@ for an LLM. `get_abap_outline` first: the agent sees classes/methods/FORMs, pick
 routines that matter, and reads only those. Outline → targeted read is the difference between
 an agent that times out and one that answers.
 
+**Explaining code to functional people — with a picture.** `get_abap_outline` with
+`mermaid: true` (CLI: `outline --mermaid`) returns a Mermaid classDiagram: classes, method
+visibility, inheritance, interface realization, legacy FORMs. Paste it into anything that
+renders Mermaid (GitHub, docs sites, wikis) and you have the structure slide for the
+walkthrough meeting — generated, not drawn. Pair it with *"now explain what each method does
+in functional terms"* and one tool call covers both the technical and the functional audience.
+
+**Themed review passes.** `lint_abap` with `focus: "Performance"` (or `"Security"`,
+`"Styleguide"`) restricts findings to abaplint's rules carrying that tag — *"do a performance
+pass over this include"* becomes one call instead of a hand-picked rule list. Parser errors
+always surface. Layer your org's own pack on top with `rules` overrides — that's how
+company-specific best practices (naming, thresholds, banned statements) ride along: keep the
+pack as a JSON file in the repo and the CLI (`--rules-file org-pack.json`) and your AI
+assistant apply the identical config.
+
+**Judging a rework.** `compare_abap` (CLI: `compare old/ new/`) is the objective referee for
+*"is the refactored version actually better?"*: findings resolved vs introduced (matched by
+content, so moved code isn't noise), blocker/score/grade movement, methods/FORMs added and
+removed. The CLI exits 1 when the rework introduces findings or raises the blocker count —
+a regression gate for modernization PRs and AI-generated rewrites alike.
+
 **Greenfield RAP without the wizard.** *"Scaffold a draft-enabled RAP BO for entity Booking,
 table zbooking, key booking_id, fields carrier_id:abap.char(3), price:abap.curr(16,2)"* —
 eight artifacts, activation order, suggested table DDL. Paste into ADT, activate in the listed
@@ -63,7 +84,12 @@ definitions are canonical templates (`validated: "template"`) — ADT activation
   you provide *all* referenced objects in one call (e.g. a class plus its interface).
   **`"syntax-only"`** is the objective gate: parser + CDS parser errors, nothing opinionated.
 - **Rule overrides** mirror abaplint.json: `rules: { "line_length": { "length": 120 }, "7bit_ascii": false }`.
-  Match your team's existing ruleset so AI feedback agrees with your CI.
+  Match your team's existing ruleset so AI feedback agrees with your CI. On the CLI,
+  `--rules-file path.json` accepts a bare rules map **or** a full abaplint.json — one org pack,
+  three consumers (CI, terminal, AI assistant).
+- **`focus`** (`Performance` | `Security` | `Styleguide`) keeps only rules tagged accordingly —
+  themed passes without rule-list curation. Explicit `rules` overrides still win, so a focused
+  pass can re-enable or re-tune individual rules.
 - **`abapVersion`** matters: lint at `v758` for on-prem work, at `Cloud` for Steampunk/BTP ABAP.
   The same statement can be fine in one and illegal in the other — that asymmetry IS the
   readiness check.
@@ -94,6 +120,29 @@ the objective score is the statement-level half; the released-API list is a bund
 the system's ATC (`API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) is still authoritative.
 
 **Tip:** run it per package directory (`readiness src/zfi/ src/zsd/ …`) to get per-team scores.
+
+## 4b. Graded tech-debt assessment — the A–D deliverable
+
+Every readiness report now carries a `grade`: **A** = no cloud blockers, **B** = ≤ 0.5
+blockers/file, **C** = ≤ 2 blockers/file, **D** = worse. It is banded on blocker *density*
+(blockers ÷ files), so a single object and a 500-file package grade on the same scale — and it
+is derived from the same objective parser-level count as the score, with nothing subjective
+mixed in.
+
+The consulting workflow on an abapGit export:
+
+```bash
+for pkg in src/*/; do
+  npx abap-mcp readiness "$pkg" --json | jq -r '"\(.grade)\t\(.score)\t\(.cloudBlockerCount) blockers\t'"$pkg"'"'
+done | sort
+```
+
+That's the executive page of a Clean Core assessment: a graded per-package table, generated in
+seconds, each grade backed by file:line findings in categorized buckets (the remediation
+appendix). Track grade movement sprint over sprint, or wire `--fail-below` into CI as the
+ratchet. **Say what it is honestly:** the grade covers the language-level half (statements ABAP
+Cloud removed) plus dated released-API observations — the target system's ATC remains the
+authoritative word, and the report's scope note says so on every call.
 
 ## 4a. Released-API check — "is MARA released? what do I use instead?"
 
@@ -171,11 +220,13 @@ deterministic makes it the perfect referee between two LLMs.
 | --- | --- | --- |
 | ABAP dev with AI assistant | AI writes ABAP that *looks* right | CLAUDE.md mandate (§1) + fix-until-clean (§2) |
 | Reviewer | review queue, no system access from laptop | PR review recipe (§2), reviewer subagent (§6) |
-| Tech lead sizing S/4 move | weeks waiting for ATC access | repo triage (§4), per-package scores |
+| Tech lead sizing S/4 move | weeks waiting for ATC access | repo triage (§4), graded A–D table (§4b) |
+| Reviewer judging a refactor / AI rewrite | "looks better" isn't evidence | compare_abap regression gate (§2) |
 | RAP newcomer | BDEF syntax + activation order maze | scaffold + explain rules (§2), academy: rapdojo.lumivara.tech |
 | Team onboarding juniors | seniors repeating Clean ABAP lore | explain_abap_rule as a teaching tool (§2) |
 | abapGit team | nothing gates a PR before the system | CI gates (§5) |
-| Consultant doing assessments | client security says no system access | offline triage on an export (§4) — zero credentials is the feature |
+| Consultant doing assessments | client security says no system access | graded assessment on an export (§4b) — zero credentials is the feature |
+| Functional/technical handover | code walkthroughs without visuals | outline → Mermaid diagram (§2) |
 | Agent builders | agents need deterministic ABAP feedback | library API (`import { runAbaplint } from "abap-mcp"`), maker-checker (§6) |
 
 ## 8. Gotchas — honest edges

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { extractObjectReferences, inferFilename, MAX_FILE_CHARS, runAbaplint } from "../abap/engine.js";
+import { listRules } from "../abap/rules.js";
 
 describe("inferFilename", () => {
   it("infers a class filename from CLASS … DEFINITION", () => {
@@ -66,6 +67,39 @@ describe("runAbaplint", () => {
       { version: "v758", preset: "style" },
     );
     expect(clean.findings.length).toBeLessThan(dirty.findings.length);
+  });
+
+  it("focus reduces findings to exactly the tag-member subset", () => {
+    const SRC = "REPORT ztest.\nDATA foo TYPE i.\nIF foo = 1.\nENDIF.";
+    const all = runAbaplint([{ source: SRC }], { version: "v758", preset: "style" });
+    const focused = runAbaplint([{ source: SRC }], { version: "v758", preset: "style", focus: "Performance" });
+    const perfKeys = new Set(listRules(undefined, "Performance").map((r) => r.key));
+    // Same code, same preset: the focused run must surface exactly the
+    // Performance-tagged findings of the unfocused run, nothing else.
+    expect(focused.findings.map((f) => f.rule).sort()).toEqual(
+      all.findings.filter((f) => perfKeys.has(f.rule)).map((f) => f.rule).sort(),
+    );
+    expect(focused.findings.length).toBeLessThan(all.findings.length);
+  });
+
+  it("focus keeps parser errors visible — focused findings on broken code would be garbage", () => {
+    const broken = runAbaplint([{ source: "REPORT zb.\nNOT ABAP???" }], {
+      version: "v758",
+      preset: "style",
+      focus: "Performance",
+    });
+    expect(broken.findings.some((f) => f.rule === "parser_error")).toBe(true);
+  });
+
+  it("explicit rule overrides win over a focus filter", () => {
+    const SRC = "REPORT ztest.\nDATA foo TYPE i.\nIF foo = 1.\nENDIF.";
+    const reEnabled = runAbaplint([{ source: SRC }], {
+      version: "v758",
+      preset: "style",
+      focus: "Performance",
+      rules: { empty_structure: true },
+    });
+    expect(reEnabled.findings.some((f) => f.rule === "empty_structure")).toBe(true);
   });
 
   it("rejects oversized files", () => {

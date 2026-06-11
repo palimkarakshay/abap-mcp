@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import { formatAbap } from "../abap/formatter.js";
-import { outlineAbap } from "../abap/outline.js";
+import { outlineAbap, outlineToMermaid } from "../abap/outline.js";
+
+const CLASS_SRC = `CLASS zcl_demo DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    INTERFACES if_oo_adt_classrun.
+    METHODS calc IMPORTING iv_a TYPE i RETURNING VALUE(rv_b) TYPE i.
+  PROTECTED SECTION.
+    METHODS helper.
+  PRIVATE SECTION.
+    METHODS hidden.
+    DATA mv_count TYPE i.
+ENDCLASS.
+CLASS zcl_demo IMPLEMENTATION.
+  METHOD if_oo_adt_classrun~main. ENDMETHOD.
+  METHOD calc. rv_b = iv_a + 1. ENDMETHOD.
+  METHOD helper. ENDMETHOD.
+  METHOD hidden. ENDMETHOD.
+ENDCLASS.`;
 
 describe("formatAbap", () => {
   it("uppercases keywords and indents", () => {
@@ -26,23 +43,6 @@ describe("formatAbap", () => {
 });
 
 describe("outlineAbap", () => {
-  const CLASS_SRC = `CLASS zcl_demo DEFINITION PUBLIC FINAL CREATE PUBLIC.
-  PUBLIC SECTION.
-    INTERFACES if_oo_adt_classrun.
-    METHODS calc IMPORTING iv_a TYPE i RETURNING VALUE(rv_b) TYPE i.
-  PROTECTED SECTION.
-    METHODS helper.
-  PRIVATE SECTION.
-    METHODS hidden.
-    DATA mv_count TYPE i.
-ENDCLASS.
-CLASS zcl_demo IMPLEMENTATION.
-  METHOD if_oo_adt_classrun~main. ENDMETHOD.
-  METHOD calc. rv_b = iv_a + 1. ENDMETHOD.
-  METHOD helper. ENDMETHOD.
-  METHOD hidden. ENDMETHOD.
-ENDCLASS.`;
-
   it("outlines a class with methods, visibility, interfaces and attributes", () => {
     const [outline] = outlineAbap([{ source: CLASS_SRC }]);
     expect(outline!.parseable).toBe(true);
@@ -69,5 +69,38 @@ ENDCLASS.`;
       { source: "define root view entity ZR_X as select from zx { key a as A }" },
     ]);
     expect(outline!.classes).toEqual([]);
+  });
+});
+
+describe("outlineToMermaid", () => {
+  it("renders classes with visibility markers and interface realization", () => {
+    const mermaid = outlineToMermaid(outlineAbap([{ source: CLASS_SRC }]));
+    expect(mermaid).toMatch(/^classDiagram\n/);
+    expect(mermaid).toContain("class zcl_demo {");
+    expect(mermaid).toContain("+calc()");
+    expect(mermaid).toContain("#helper()");
+    expect(mermaid).toContain("-hidden()");
+    expect(mermaid).toContain("mv_count");
+    expect(mermaid).toContain("if_oo_adt_classrun <|.. zcl_demo");
+    expect(mermaid).toContain("<<interface>>");
+  });
+
+  it("renders inheritance from a superclass", () => {
+    const src = `CLASS zcl_child DEFINITION PUBLIC INHERITING FROM zcl_base.
+ENDCLASS.
+CLASS zcl_child IMPLEMENTATION.
+ENDCLASS.`;
+    const mermaid = outlineToMermaid(outlineAbap([{ source: src }]));
+    expect(mermaid).toContain("zcl_base <|-- zcl_child");
+  });
+
+  it("renders legacy FORMs as a pseudo-class and sanitizes identifiers", () => {
+    const mermaid = outlineToMermaid(
+      outlineAbap([{ source: "REPORT zlegacy.\nPERFORM main.\nFORM main.\n  WRITE 'x'.\nENDFORM." }]),
+    );
+    expect(mermaid).toContain("zlegacy_forms");
+    expect(mermaid).toContain("+main()");
+    // No raw dots/tildes may survive into identifiers.
+    expect(mermaid).not.toMatch(/class [^\n{]*[.~]/);
   });
 });

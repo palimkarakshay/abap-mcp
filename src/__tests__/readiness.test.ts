@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkCloudReadiness } from "../abap/readiness.js";
+import { checkCloudReadiness, gradeReadiness } from "../abap/readiness.js";
 
 const CLASSIC_REPORT = `REPORT zclassic.
 DATA gv_matnr TYPE c LENGTH 18.
@@ -34,11 +34,19 @@ describe("checkCloudReadiness", () => {
     expect(report.brokenAtBaseline).toEqual([]);
   });
 
-  it("declares a clean cloud-ready class ready with score 100", () => {
+  it("declares a clean cloud-ready class ready with score 100 and grade A", () => {
     const report = checkCloudReadiness([{ source: CLOUD_CLASS }]);
     expect(report.cloudBlockerCount).toBe(0);
     expect(report.verdict).toBe("ready");
     expect(report.score).toBe(100);
+    expect(report.grade).toBe("A");
+    expect(report.fileCount).toBe(1);
+  });
+
+  it("grades blocker-laden classic code below A", () => {
+    const report = checkCloudReadiness([{ source: CLASSIC_REPORT }]);
+    expect(report.grade).not.toBe("A");
+    expect(report.grade).toBe(gradeReadiness(report.cloudBlockerCount, report.fileCount));
   });
 
   it("separates code broken at the baseline from migration work", () => {
@@ -115,6 +123,17 @@ ENDCLASS.
     expect(finding).toBeDefined();
     expect(finding!.state).toBe("not-released");
     expect(finding!.objectType).toBe("FUNC");
+  });
+
+  it("bands the A–D grade on blocker density, not absolute count", () => {
+    expect(gradeReadiness(0, 5)).toBe("A");
+    expect(gradeReadiness(2, 4)).toBe("B"); // 0.5 / file — boundary
+    expect(gradeReadiness(3, 4)).toBe("C"); // 0.75 / file
+    expect(gradeReadiness(8, 4)).toBe("C"); // 2.0 / file — boundary
+    expect(gradeReadiness(9, 4)).toBe("D"); // 2.25 / file
+    // 30 blockers in 100 files is a B; 30 in 10 files is a D.
+    expect(gradeReadiness(30, 100)).toBe("B");
+    expect(gradeReadiness(30, 10)).toBe("D");
   });
 
   it("stays silent for a CALL FUNCTION to a module absent from the snapshot", () => {
