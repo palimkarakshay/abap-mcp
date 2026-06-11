@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.palimkarakshay/abap-mcp",
-  "description": "MCP server for SAP ABAP: offline static analysis (abaplint), ABAP Cloud / Clean Core readiness checks, and RAP scaffolding — no SAP system or credentials required.",
+  "description": "Offline SAP ABAP static analysis, Clean Core readiness checks, and RAP scaffolding. No SAP system.",
   "repository": {
     "url": "https://github.com/palimkarakshay/abap-mcp",
     "source": "github"
