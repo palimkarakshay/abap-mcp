@@ -1,0 +1,7 @@
+{
+  "clean": { "pass": true, "reason": "Correctly identifies a clean class with no Cloud blockers." },
+  "native-sql": { "pass": true, "reason": "EXEC SQL is indeed native SQL and is correctly flagged with the right remediation." },
+  "list-output": { "pass": true, "reason": "WRITE list output is correctly identified as Cloud-incompatible; fix is sound." },
+  "dynpro": { "pass": true, "reason": "Dynpro and report constructs correctly identified; rebuild-as-RAP guidance is appropriate." },
+  "mixed": { "pass": true, "reason": "Native SQL is correctly flagged and the suggested ABAP SQL fix is correct." }
+}

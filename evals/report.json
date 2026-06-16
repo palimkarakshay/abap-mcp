@@ -1,0 +1,186 @@
+{
+  "mode": "stub",
+  "metrics": {
+    "cases": 5,
+    "cloudReadyAccuracy": 1,
+    "gradeAccuracy": 0.8,
+    "agentObjectiveAccuracy": 0.8,
+    "categoryPrecision": 1,
+    "categoryRecall": 0.857,
+    "judgeRawAgreement": 0.8,
+    "judgeKappaVsOracle": 0,
+    "failureTaxonomy": {
+      "wrong-grade": 1,
+      "missed-category": 1,
+      "judge-false-accept": 1
+    }
+  },
+  "rows": [
+    {
+      "id": "clean",
+      "pattern": "clean OO class (arithmetic only)",
+      "oracle": {
+        "cloudReady": true,
+        "verdict": "ready",
+        "grade": "A",
+        "score": 100,
+        "categories": []
+      },
+      "agent": {
+        "cloudReady": true,
+        "grade": "A",
+        "issues": [],
+        "explanation": "Plain object-oriented class performing arithmetic only; no Cloud-incompatible statements."
+      },
+      "judge": {
+        "pass": true,
+        "reason": "Correctly identifies a clean class with no Cloud blockers."
+      },
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "cloudReadyMatch": true,
+      "gradeMatch": true,
+      "agentCorrect": true,
+      "tags": []
+    },
+    {
+      "id": "native-sql",
+      "pattern": "EXEC SQL native SQL",
+      "oracle": {
+        "cloudReady": false,
+        "verdict": "minor-rework",
+        "grade": "C",
+        "score": 90,
+        "categories": [
+          "native-sql"
+        ]
+      },
+      "agent": {
+        "cloudReady": false,
+        "grade": "C",
+        "issues": [
+          "native-sql"
+        ],
+        "explanation": "Uses EXEC SQL (native SQL), which is not allowed in ABAP Cloud; replace with ABAP SQL or a released AMDP."
+      },
+      "judge": {
+        "pass": true,
+        "reason": "EXEC SQL is indeed native SQL and is correctly flagged with the right remediation."
+      },
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "cloudReadyMatch": true,
+      "gradeMatch": true,
+      "agentCorrect": true,
+      "tags": []
+    },
+    {
+      "id": "list-output",
+      "pattern": "classic WRITE list output",
+      "oracle": {
+        "cloudReady": false,
+        "verdict": "minor-rework",
+        "grade": "D",
+        "score": 85,
+        "categories": [
+          "list-output"
+        ]
+      },
+      "agent": {
+        "cloudReady": false,
+        "grade": "C",
+        "issues": [
+          "list-output"
+        ],
+        "explanation": "Classic WRITE list output is unavailable in ABAP Cloud; expose data via a RAP service / OData instead."
+      },
+      "judge": {
+        "pass": true,
+        "reason": "WRITE list output is correctly identified as Cloud-incompatible; fix is sound."
+      },
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "cloudReadyMatch": true,
+      "gradeMatch": false,
+      "agentCorrect": true,
+      "tags": [
+        "wrong-grade"
+      ]
+    },
+    {
+      "id": "dynpro",
+      "pattern": "executable report + dynpro UI",
+      "oracle": {
+        "cloudReady": false,
+        "verdict": "moderate-rework",
+        "grade": "D",
+        "score": 55,
+        "categories": [
+          "dynpro",
+          "report-program",
+          "report-events"
+        ]
+      },
+      "agent": {
+        "cloudReady": false,
+        "grade": "D",
+        "issues": [
+          "dynpro",
+          "report-program",
+          "report-events"
+        ],
+        "explanation": "Executable report with dynpro (CALL SCREEN / MODULE) and report events; rebuild the UI as a Fiori app on a RAP service and move logic into a class."
+      },
+      "judge": {
+        "pass": true,
+        "reason": "Dynpro and report constructs correctly identified; rebuild-as-RAP guidance is appropriate."
+      },
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "cloudReadyMatch": true,
+      "gradeMatch": true,
+      "agentCorrect": true,
+      "tags": []
+    },
+    {
+      "id": "mixed",
+      "pattern": "native SQL + WRITE + legacy CALL FUNCTION",
+      "oracle": {
+        "cloudReady": false,
+        "verdict": "minor-rework",
+        "grade": "D",
+        "score": 85,
+        "categories": [
+          "native-sql",
+          "list-output"
+        ]
+      },
+      "agent": {
+        "cloudReady": false,
+        "grade": "D",
+        "issues": [
+          "native-sql"
+        ],
+        "explanation": "Native SQL via EXEC SQL must be replaced with ABAP SQL before this can run in ABAP Cloud."
+      },
+      "judge": {
+        "pass": true,
+        "reason": "Native SQL is correctly flagged and the suggested ABAP SQL fix is correct."
+      },
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "cloudReadyMatch": true,
+      "gradeMatch": true,
+      "agentCorrect": false,
+      "tags": [
+        "missed-category",
+        "judge-false-accept"
+      ]
+    }
+  ]
+}
