@@ -1,0 +1,16 @@
+CLASS zcl_eval_mixed DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+
+CLASS zcl_eval_mixed IMPLEMENTATION.
+  METHOD run.
+    DATA lv_x TYPE i.
+    EXEC SQL.
+      SELECT 1 INTO :lv_x FROM dual
+    ENDEXEC.
+    WRITE: / lv_x.
+    CALL FUNCTION 'Z_LEGACY_POST'
+      EXPORTING iv_value = lv_x.
+  ENDMETHOD.
+ENDCLASS.

@@ -1,0 +1,7 @@
+[
+  { "id": "clean",       "file": "zcl_eval_clean.clas.abap",      "pattern": "clean OO class (arithmetic only)" },
+  { "id": "native-sql",  "file": "zcl_eval_native_sql.clas.abap", "pattern": "EXEC SQL native SQL" },
+  { "id": "list-output", "file": "zcl_eval_list_output.clas.abap","pattern": "classic WRITE list output" },
+  { "id": "dynpro",      "file": "zeval_dynpro.prog.abap",        "pattern": "executable report + dynpro UI" },
+  { "id": "mixed",       "file": "zcl_eval_mixed.clas.abap",      "pattern": "native SQL + WRITE + legacy CALL FUNCTION" }
+]

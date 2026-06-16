@@ -1,0 +1,32 @@
+{
+  "clean": {
+    "cloudReady": true,
+    "grade": "A",
+    "issues": [],
+    "explanation": "Plain object-oriented class performing arithmetic only; no Cloud-incompatible statements."
+  },
+  "native-sql": {
+    "cloudReady": false,
+    "grade": "C",
+    "issues": ["native-sql"],
+    "explanation": "Uses EXEC SQL (native SQL), which is not allowed in ABAP Cloud; replace with ABAP SQL or a released AMDP."
+  },
+  "list-output": {
+    "cloudReady": false,
+    "grade": "C",
+    "issues": ["list-output"],
+    "explanation": "Classic WRITE list output is unavailable in ABAP Cloud; expose data via a RAP service / OData instead."
+  },
+  "dynpro": {
+    "cloudReady": false,
+    "grade": "D",
+    "issues": ["dynpro", "report-program", "report-events"],
+    "explanation": "Executable report with dynpro (CALL SCREEN / MODULE) and report events; rebuild the UI as a Fiori app on a RAP service and move logic into a class."
+  },
+  "mixed": {
+    "cloudReady": false,
+    "grade": "D",
+    "issues": ["native-sql"],
+    "explanation": "Native SQL via EXEC SQL must be replaced with ABAP SQL before this can run in ABAP Cloud."
+  }
+}
