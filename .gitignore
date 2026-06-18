@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.log
 .DS_Store
+# generated live-run eval artifacts (evals/report.json is a committed sample)
+evals/report.live.*

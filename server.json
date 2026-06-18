@@ -6,12 +6,12 @@
     "url": "https://github.com/palimkarakshay/abap-mcp",
     "source": "github"
   },
-  "version": "0.3.2",
+  "version": "0.4.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "abap-mcp",
-      "version": "0.3.2",
+      "version": "0.4.2",
       "transport": {
         "type": "stdio"
       }
