@@ -1,6 +1,6 @@
 {
   "name": "abap-mcp",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "mcpName": "io.github.palimkarakshay/abap-mcp",
   "description": "MCP server for SAP ABAP: offline static analysis (abaplint), ABAP Cloud / Clean Core readiness checks, and RAP scaffolding — no SAP system or credentials required.",
   "license": "MIT",
@@ -43,12 +43,12 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@abaplint/core": "^2.119.37",
+    "@abaplint/core": "^2.119.43",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^26.0.0",
+    "@types/node": "^26.0.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }
