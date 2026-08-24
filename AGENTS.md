@@ -53,8 +53,10 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
 - `src/tool.ts`, `src/errors.ts` — vendored mcp-kit patterns (attributed; keep in sync by hand)
 - `src/server.ts` + `src/cli.ts` (entry: subcommand → CLI, bare → stdio server) +
   `src/http.ts` (optional stateless Streamable HTTP entry with auth/body/concurrency/rate limits) +
-  `src/cli-commands.ts` (lint/readiness/plan/compare/scaffold/unittest/deps/outline/explain/rules;
-  the CLI may touch fs, the MCP server never does) + `src/index.ts` (library exports)
+  `src/cli-commands.ts` (setup/lint/readiness/plan/compare/scaffold/unittest/deps/outline/explain/
+  rules; the CLI may touch fs + spawn editor CLIs — `setup` registers the server via `code
+  --add-mcp` / `claude mcp add` and prints guided Eclipse steps; the MCP server never does) +
+  `src/index.ts` (library exports). Newcomer walkthrough: `docs/INSTALL.md`.
 - `docs/DESIGN.md` — decision log · `docs/COOKBOOK.md` — user recipes
 - `plugins/abap-mcp/` + `.agents/plugins/marketplace.json` — Codex plugin, 3 skills, local MCP
 - `evals/routing/` — offline metadata-routing fixtures and reports

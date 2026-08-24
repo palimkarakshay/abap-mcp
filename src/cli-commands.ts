@@ -5,6 +5,7 @@
  * story); the *CLI* is a local developer tool, so reading files from disk here
  * is fine. Both call the identical engine — one definition of "clean".
  */
+import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, realpathSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
@@ -253,6 +254,122 @@ export function cmdPlan(argv: string[], io: CliIo): number {
   }
   io.out(`\nLoop: ${plan.suggestedLoop}`);
   return 0;
+}
+
+/** The one server definition every client gets — keep in lockstep with the README. */
+const SETUP_DEF = { name: "abap-mcp", command: "npx", args: ["-y", "abap-mcp"] };
+const SETUP_JSON_BLOCK = JSON.stringify(
+  { servers: { "abap-mcp": { type: "stdio", command: SETUP_DEF.command, args: SETUP_DEF.args } } },
+  null,
+  2,
+);
+const INSTALL_GUIDE = "https://github.com/palimkarakshay/abap-mcp/blob/main/docs/INSTALL.md";
+const VSCODE_BADGE_URL =
+  "https://vscode.dev/redirect/mcp/install?name=abap-mcp&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22abap-mcp%22%5D%7D";
+
+/** True when `bin` exists on PATH (probed with --version; never throws). */
+function binExists(bin: string): boolean {
+  try {
+    return spawnSync(bin, ["--version"], { stdio: "ignore", timeout: 15_000 }).status === 0;
+  } catch {
+    return false;
+  }
+}
+
+function setupVsCode(bin: string, io: CliIo): boolean {
+  try {
+    const r = spawnSync(bin, ["--add-mcp", JSON.stringify(SETUP_DEF)], { stdio: "ignore", timeout: 30_000 });
+    if (r.status === 0) {
+      io.out(`✓ ${bin}: abap-mcp registered.`);
+      io.out(`  Next: restart ${bin === "code" ? "VS Code" : bin}, open Copilot Chat, switch to Agent mode,`);
+      io.out('  and ask: "list your ABAP tools" — you should see twelve.');
+      return true;
+    }
+  } catch {
+    /* fall through to manual guidance */
+  }
+  io.out(`✗ ${bin}: could not register automatically (is the '${bin}' command on your PATH?).`);
+  io.out(`  Easiest manual path: open ${VSCODE_BADGE_URL}`);
+  io.out("  in a browser — it opens VS Code with abap-mcp pre-filled; click Install.");
+  return false;
+}
+
+function setupClaude(io: CliIo): boolean {
+  try {
+    const r = spawnSync("claude", ["mcp", "add", "abap-mcp", "--", "npx", "-y", "abap-mcp"], {
+      stdio: "ignore",
+      timeout: 30_000,
+    });
+    if (r.status === 0) {
+      io.out("✓ claude: abap-mcp registered (Claude Code).");
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+  io.out("✗ claude: could not register automatically.");
+  io.out("  Manual: claude mcp add abap-mcp -- npx -y abap-mcp");
+  return false;
+}
+
+function printEclipse(io: CliIo): void {
+  io.out("Eclipse / ADT — via the GitHub Copilot plugin (stock ADT has no MCP client):");
+  io.out("  1. In Eclipse: Help → Eclipse Marketplace → search \"GitHub Copilot\" → Install, restart.");
+  io.out("  2. Sign in to Copilot (the Copilot icon in the status bar).");
+  io.out("  3. Copilot icon → Edit preferences → MCP.");
+  io.out("  4. Paste this configuration and apply:");
+  for (const line of SETUP_JSON_BLOCK.split("\n")) io.out(`     ${line}`);
+  io.out('  5. Open Copilot Chat (Agent mode) and ask: "list your ABAP tools".');
+  io.out(`  Full walkthrough with prerequisites: ${INSTALL_GUIDE}`);
+}
+
+export function cmdSetup(argv: string[], io: CliIo): number {
+  const { rest } = parseFlags(argv);
+  const target = (rest[0] ?? "auto").toLowerCase();
+  io.out("abap-mcp setup — registers this server with your editor. Nothing is sent anywhere;");
+  io.out("analysis runs on your machine only.\n");
+  switch (target) {
+    case "vscode":
+      setupVsCode("code", io);
+      return 0;
+    case "vscode-insiders":
+      setupVsCode("code-insiders", io);
+      return 0;
+    case "claude":
+      setupClaude(io);
+      return 0;
+    case "eclipse":
+    case "adt":
+      printEclipse(io);
+      return 0;
+    case "auto": {
+      let found = 0;
+      if (binExists("code")) {
+        found++;
+        setupVsCode("code", io);
+      }
+      if (binExists("code-insiders")) {
+        found++;
+        setupVsCode("code-insiders", io);
+      }
+      if (binExists("claude")) {
+        found++;
+        setupClaude(io);
+      }
+      if (found === 0) {
+        io.out("No supported editor CLI found on PATH (looked for: code, code-insiders, claude).");
+        io.out(`  VS Code one-click: ${VSCODE_BADGE_URL}`);
+        io.out("  Or from a VS Code terminal: npx abap-mcp setup vscode");
+      }
+      io.out("");
+      io.out("Using Eclipse / ADT? Run: npx abap-mcp setup eclipse");
+      io.out(`Newcomer walkthrough (both editors, from zero): ${INSTALL_GUIDE}`);
+      return 0;
+    }
+    default:
+      io.err("Usage: abap-mcp setup [auto|vscode|vscode-insiders|eclipse|claude]");
+      return 2;
+  }
 }
 
 export function cmdUnittest(argv: string[], io: CliIo): number {
@@ -513,6 +630,7 @@ export const USAGE = `abap-mcp — SAP ABAP analysis for AI agents (MCP server) 
 
 Usage:
   abap-mcp                       start the MCP server on stdio (for AI clients)
+  abap-mcp setup [target]        register abap-mcp with your editor (auto-detects; targets: vscode, vscode-insiders, eclipse, claude)
   abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]
   abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--fail-below N] [--json]
   abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--json]
@@ -533,6 +651,8 @@ export function runCli(argv: string[], io: CliIo): number | null {
     case undefined:
     case "serve":
       return null; // caller starts the MCP server
+    case "setup":
+      return cmdSetup(rest, io);
     case "lint":
       return cmdLint(rest, io);
     case "readiness":

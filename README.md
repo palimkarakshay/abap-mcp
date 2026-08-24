@@ -52,7 +52,14 @@ layer:
 ## Install — 60 seconds
 
 The only requirement is [Node.js 20+](https://nodejs.org). No SAP system, no credentials, no
-API keys — pick your client:
+API keys. **New to AI tooling (or ABAP)?** Follow the from-zero walkthrough in
+**[docs/INSTALL.md](docs/INSTALL.md)** — or let the installer do it:
+
+```bash
+npx abap-mcp setup     # detects VS Code / Claude Code and registers the server; guides Eclipse
+```
+
+Otherwise, pick your client:
 
 **Codex CLI · Codex IDE extension · ChatGPT desktop** — one command configures all three on the
 same Codex host:

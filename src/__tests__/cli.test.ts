@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cmdCompare, cmdLint, cmdOutline, cmdReadiness, cmdReleased, cmdScaffold, mergeReadiness, parseFlags, runCli } from "../cli-commands.js";
+import { cmdCompare, cmdLint, cmdOutline, cmdReadiness, cmdReleased, cmdScaffold, cmdSetup, mergeReadiness, parseFlags, runCli, USAGE } from "../cli-commands.js";
 import { checkCloudReadiness, gradeReadiness } from "../abap/readiness.js";
 
 function io(): { out: string[]; err: string[]; io: { out: (s: string) => void; err: (s: string) => void } } {
@@ -25,6 +25,40 @@ describe("parseFlags", () => {
     expect(flags.get("json")).toBe(true);
     expect(flags.get("baseline")).toBe("v757");
     expect(rest).toEqual(["a.abap", "b.abap"]);
+  });
+});
+
+describe("cmdSetup", () => {
+  // Only the print-only targets are tested: the editor-mutating paths (vscode,
+  // claude, auto) shell out to real CLIs and must not run against the dev box.
+  it("eclipse target prints the guided steps and the exact JSON block", () => {
+    const { out, io: o } = io();
+    expect(cmdSetup(["eclipse"], o)).toBe(0);
+    const text = out.join("\n");
+    expect(text).toContain("Eclipse Marketplace");
+    expect(text).toContain("Edit preferences");
+    expect(text).toContain('"abap-mcp"');
+    expect(text).toContain('"npx"');
+    expect(text).toContain("docs/INSTALL.md");
+    expect(text).toContain("Nothing is sent anywhere");
+  });
+
+  it("adt is an alias for eclipse", () => {
+    const a = io();
+    const b = io();
+    cmdSetup(["eclipse"], a.io);
+    cmdSetup(["adt"], b.io);
+    expect(b.out.join("\n")).toBe(a.out.join("\n"));
+  });
+
+  it("rejects unknown targets with usage", () => {
+    const { err, io: o } = io();
+    expect(cmdSetup(["notepad"], o)).toBe(2);
+    expect(err.join("\n")).toContain("Usage: abap-mcp setup");
+  });
+
+  it("is announced in the CLI usage text", () => {
+    expect(USAGE).toContain("abap-mcp setup");
   });
 });
 
