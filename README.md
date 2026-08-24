@@ -1,14 +1,29 @@
 # abap-mcp
 
-**MCP server for SAP ABAP — offline static analysis, ABAP Cloud readiness, and RAP scaffolding.**
-No SAP system. No credentials. Works on ABAP source wherever your AI agent works: a git checkout,
-an abapGit export, a code review, CI.
+**Make your AI coding agent an expert SAP ABAP & RAP consultant — fully offline. No SAP system,
+no credentials, one command to install.**
 
-Built on [abaplint](https://abaplint.org) (the open-source ABAP parser/linter) and the
-[Model Context Protocol](https://modelcontextprotocol.io). TypeScript, 100% local — the server
-makes **zero network calls** and reads **no user files**: sources go in as text, findings come
-back as structured JSON. (The released-API list and abaplint's rule data are package-bundled
-assets that ship inside the install — no network, no user filesystem, at runtime.)
+abap-mcp is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives any AI
+coding agent — Claude Code, GitHub Copilot, Cursor, Codex, Windsurf — real ABAP senses, built on
+[abaplint](https://abaplint.org) (the open-source ABAP parser/linter). The agent brings the
+reasoning; abap-mcp brings ground truth: a deterministic parser, objective scores, and validated
+generators that keep the AI honest. It works on ABAP source wherever your agent works — a git
+checkout, an abapGit export, a code review, CI — long before anything reaches a system.
+
+- **New to ABAP or RAP?** Your agent becomes the senior consultant looking over your shoulder:
+  every snippet linted against Clean ABAP as you write (`lint_abap`), every finding explained with
+  its rationale and examples (`explain_abap_rule`), and `scaffold_rap_bo` starts you from a
+  canonical, self-validated RAP business object instead of a blank editor.
+- **Senior ABAP consultant?** It's your assessment and task engine: point your agent at a repo and
+  get a scored, categorized ABAP Cloud readiness backlog with an A–D tech-debt grade
+  (`check_cloud_readiness`), an objective before/after verdict on every rework (`compare_abap`),
+  released-API replacements (`check_released_api`), and CI gates that hold the line while the
+  migration proceeds.
+
+TypeScript, 100% local — the server makes **zero network calls** and reads **no user files**:
+sources go in as text, findings come back as structured JSON. (The released-API list and
+abaplint's rule data are package-bundled assets that ship inside the install — no network, no
+user filesystem, at runtime.)
 
 ## Why this exists
 
@@ -25,13 +40,21 @@ layer:
 - *"Start me a correct RAP business object."* → `scaffold_rap_bo`
 - *"What's in this 4,000-line class? Draw it."* → `get_abap_outline` (+ Mermaid)
 
-## Quickstart
+## Install — 60 seconds
+
+The only requirement is [Node.js 20+](https://nodejs.org). No SAP system, no credentials, no
+API keys — pick your client:
+
+**Claude Code**
 
 ```bash
-# Claude Code
 claude mcp add abap-mcp -- npx -y abap-mcp
+```
 
-# or any MCP client (.mcp.json / mcp.json):
+**Cursor · Windsurf · VS Code (Copilot agent mode) · any MCP client** — add this to its
+`mcp.json` / `.mcp.json` (project or global):
+
+```json
 {
   "mcpServers": {
     "abap-mcp": { "command": "npx", "args": ["-y", "abap-mcp"] }
@@ -39,15 +62,34 @@ claude mcp add abap-mcp -- npx -y abap-mcp
 }
 ```
 
-From a clone instead:
+**Codex CLI** — add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.abap-mcp]
+command = "npx"
+args = ["-y", "abap-mcp"]
+```
+
+**Claude Desktop** — Settings → Developer → Edit Config, add the same `mcpServers` block to
+`claude_desktop_config.json`, restart.
+
+**From a clone** (contributing / hacking):
 
 ```bash
 npm install && npm run build
 claude mcp add abap-mcp -- node /path/to/abap-mcp/dist/cli.js
 ```
 
-Then ask your agent things like *"lint this class against ABAP Cloud"*, *"is zold_report
-cloud-ready?"*, or *"scaffold a RAP BO for entity Booking on table zbooking, draft enabled"*.
+Connected? Ask your agent *"list your ABAP tools"* — you should see all nine, `lint_abap`
+through `get_abap_outline`.
+
+### First things to ask
+
+- *"Lint this class against ABAP Cloud and explain the worst finding like I'm new to ABAP."*
+- *"How cloud-ready is this repo? Grade it and give me an ordered fix list."*
+- *"Is MARA a released API? What do I use instead?"*
+- *"Scaffold a RAP BO for entity Booking on table zbooking, draft enabled."*
+- *"I reworked zcl_pricing — compare old vs new: did it actually get better?"*
 
 ## CLI — same engine, no AI required
 
@@ -69,13 +111,15 @@ Directories are walked recursively (abapGit naming), batched automatically, and 
 merges batches into one scored, categorized repo report. Exit codes are CI-friendly
 (`1` on error findings / failed threshold).
 
-## Recipes, agents & CI
+## Agentic workflows, recipes & CI
 
 **[docs/COOKBOOK.md](docs/COOKBOOK.md)** — practical recipes: the fix-until-clean loop,
 PR review without a transport, whole-repo migration triage, CI gates, per-persona use cases.
-**[examples/claude-code/](examples/claude-code/)** — drop-in agentic workflows: an
-`abap-code-reviewer` subagent, an `abap-cloud-migrator` sweep loop (readiness score as the
-loop condition), per-repo `.mcp.json`, and a GitHub Actions quality gate for abapGit repos.
+**[examples/claude-code/](examples/claude-code/)** — drop-in agentic workflows that turn the
+tools into that over-the-shoulder consultant: an `abap-code-reviewer` subagent, an
+`abap-cloud-migrator` sweep loop (readiness score as the loop condition), an
+`abap-tech-debt-assessor` (the graded A–D client deliverable), per-repo `.mcp.json`, and a
+GitHub Actions quality gate for abapGit repos.
 
 ## Tools
 

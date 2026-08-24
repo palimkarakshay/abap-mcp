@@ -2,7 +2,7 @@
   "name": "abap-mcp",
   "version": "0.4.9",
   "mcpName": "io.github.palimkarakshay/abap-mcp",
-  "description": "MCP server for SAP ABAP: offline static analysis (abaplint), ABAP Cloud / Clean Core readiness checks, and RAP scaffolding — no SAP system or credentials required.",
+  "description": "Make your AI coding agent an expert SAP ABAP & RAP consultant: offline code review (abaplint), ABAP Cloud / Clean Core readiness grades, released-API checks, rework verdicts, and RAP scaffolding — no SAP system, no credentials, installs with one npx command.",
   "license": "MIT",
   "author": "Akshay Palimkar",
   "repository": {
@@ -18,7 +18,12 @@
     "abaplint",
     "clean-core",
     "abap-cloud",
-    "static-analysis"
+    "static-analysis",
+    "code-review",
+    "ai-agent",
+    "s4hana",
+    "clean-abap",
+    "scaffolding"
   ],
   "type": "module",
   "engines": {
