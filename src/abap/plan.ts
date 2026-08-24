@@ -13,6 +13,7 @@
  */
 import type { Finding } from "./engine.js";
 import type { ReadinessReport } from "./readiness.js";
+import { rewriteRecipeFor } from "./readiness.js";
 
 export type PlanEffort = "S" | "M" | "L";
 
@@ -118,6 +119,8 @@ export interface PlanWorkItem {
   /** Total findings behind this item (locations is a sample). */
   findingCount: number;
   recipe: string;
+  /** Curated before/after skeleton of the canonical Cloud rewrite, when one exists. */
+  example?: { before: string; after: string };
   /** Up to five sample locations; findingCount carries the full total. */
   locations: PlanLocation[];
 }
@@ -184,12 +187,18 @@ function itemsFromFindings(
     list.push({ line: f.line, excerpt: f.excerpt });
     byFile.set(f.file, list);
   }
+  const curated = rewriteRecipeFor(category);
+  const example =
+    curated !== undefined && curated.before.length > 0
+      ? { before: curated.before, after: curated.after }
+      : undefined;
   return [...byFile.entries()].map(([object, locations]) => ({
     object,
     category,
     effort: bump(effort, locations.length),
     findingCount: locations.length,
     recipe,
+    ...(example !== undefined ? { example } : {}),
     locations: locations.slice(0, MAX_LOCATIONS),
   }));
 }
@@ -251,18 +260,26 @@ export function planCloudMigration(report: ReadinessReport): MigrationPlan {
   }
 
   // Released-API work stays separate and snapshot-dated, mirroring readiness.
+  // One item per (file, referenced object) — usages merge into its locations.
   if (report.releasedApiFindings.length > 0) {
+    const grouped = new Map<string, { first: (typeof report.releasedApiFindings)[number]; locations: PlanLocation[] }>();
+    for (const f of report.releasedApiFindings) {
+      const key = `${f.file}|${f.object}`;
+      const entry = grouped.get(key) ?? { first: f, locations: [] };
+      entry.locations.push({ line: f.line, excerpt: f.object });
+      grouped.set(key, entry);
+    }
     const items = sortItems(
-      report.releasedApiFindings.map((f) => ({
-        object: f.file,
+      [...grouped.values()].map(({ first, locations }) => ({
+        object: first.file,
         category: "released-api",
         effort: "M" as PlanEffort,
-        findingCount: 1,
+        findingCount: locations.length,
         recipe:
-          f.successor !== undefined
-            ? `Replace ${f.object} with released CDS view ${f.successor}.`
-            : f.note,
-        locations: [{ line: f.line, excerpt: f.object }],
+          first.successor !== undefined
+            ? `Replace ${first.object} with released CDS view ${first.successor} (${locations.length} usage(s)).`
+            : first.note,
+        locations: locations.slice(0, MAX_LOCATIONS),
       })),
     );
     phases.push({
@@ -274,7 +291,7 @@ export function planCloudMigration(report: ReadinessReport): MigrationPlan {
         "Informational tier: the target system's ATC is authoritative here.",
       effort: maxEffort(items),
       itemCount: items.length,
-      findingCount: items.length,
+      findingCount: report.releasedApiFindings.length,
       items,
       exitCriteria:
         "check_released_api on the listed objects shows only released successors in use; confirm with the target system's ATC (API_RELEASE_STATE_CHECK).",

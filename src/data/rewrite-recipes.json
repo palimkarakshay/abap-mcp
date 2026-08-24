@@ -1,0 +1,60 @@
+{
+  "curatedDate": "2026-08-24",
+  "description": "Canonical ABAP Cloud rewrite per readiness category: the typical classic pattern and its released-equivalent shape. Curated by hand; examples are illustrative skeletons, not drop-in code.",
+  "recipes": {
+    "list-output": {
+      "pattern": "WRITE / ULINE / SKIP classic list output",
+      "before": "WRITE: / ls_flight-carrid, ls_flight-connid.",
+      "after": "APPEND VALUE #( carrid = ls_flight-carrid connid = ls_flight-connid ) TO rt_result. \" expose rt_result via a RAP service",
+      "notes": "Return data instead of printing it: a RAP BO / OData service for UIs, if_oo_adt_classrun's out->write( ) for console runs, the application log (if_bali_log) for diagnostics."
+    },
+    "dynpro": {
+      "pattern": "CALL SCREEN / dynpro modules / PF-STATUS",
+      "before": "CALL SCREEN 100.",
+      "after": "\" no statement-level equivalent: model the entity as a RAP BO (scaffold_rap_bo) and rebuild the screen as a Fiori elements app on its OData service",
+      "notes": "Dynpro work is re-architecture, not substitution — one screen usually maps to one RAP BO with draft handling replacing the old PAI/PBO state."
+    },
+    "report-events": {
+      "pattern": "SELECT-OPTIONS / PARAMETERS / START-OF-SELECTION event blocks",
+      "before": "PARAMETERS p_carrid TYPE s_carr_id.\nSTART-OF-SELECTION.\n  PERFORM main USING p_carrid.",
+      "after": "CLASS zcl_flight_run DEFINITION ... INTERFACES if_oo_adt_classrun.\n  METHOD if_oo_adt_classrun~main. \" importing parameters become method params / filter values\n    run( carrid ).\n  ENDMETHOD.",
+      "notes": "Selection screens become RAP filter parameters (for services) or application-job parameters (for batch); the event block's logic moves into a class method."
+    },
+    "report-program": {
+      "pattern": "REPORT / PROGRAM / SUBMIT executable glue",
+      "before": "REPORT zflight_sync.\n...\nSUBMIT zflight_cleanup AND RETURN.",
+      "after": "CLASS zcl_flight_sync DEFINITION ... INTERFACES if_oo_adt_classrun. \" SUBMIT chain -> application jobs or bgPF units calling the next class",
+      "notes": "Executables become classes (if_oo_adt_classrun for utilities). SUBMIT has no released equivalent — re-orchestrate chains as application jobs or bgPF."
+    },
+    "native-sql": {
+      "pattern": "EXEC SQL native SQL blocks",
+      "before": "EXEC SQL.\n  SELECT carrid INTO :lv_carrid FROM zflight WHERE connid = :lv_connid\nENDEXEC.",
+      "after": "SELECT SINGLE carrid FROM zflight WHERE connid = @lv_connid INTO @lv_carrid.",
+      "notes": "Rewrite as ABAP SQL; keep genuinely database-specific logic (hints, window tricks) inside a released AMDP method instead."
+    },
+    "rfc": {
+      "pattern": "CALL FUNCTION ... DESTINATION / STARTING NEW TASK",
+      "before": "CALL FUNCTION 'Z_RECALC' STARTING NEW TASK lv_task.",
+      "after": "\" async unit of work via background Processing Framework:\nDATA(lo_process) = cl_bgmc_process_factory=>get_default( )->create( ).\nlo_process->set_operation_tx_uncontrolled( NEW zcl_recalc_bgpf( ) )->save_for_execution( ).",
+      "notes": "bgPF replaces fire-and-forget tasks inside one system; cross-system calls go over released HTTP/OData communication arrangements, not raw RFC."
+    },
+    "subroutines": {
+      "pattern": "FORM / PERFORM subroutines",
+      "before": "PERFORM calc_total USING lv_in CHANGING lv_out.\nFORM calc_total USING iv_in TYPE i CHANGING cv_out TYPE i.\n  cv_out = iv_in * 2.\nENDFORM.",
+      "after": "lv_out = calc_total( lv_in ).\nMETHOD calc_total. \" importing iv_in, returning rv_out — in a (local) class\n  rv_out = iv_in * 2.\nENDMETHOD.",
+      "notes": "Purely mechanical: each FORM becomes a method (local class of the same program/class); USING/CHANGING become typed importing/returning parameters."
+    },
+    "transaction-glue": {
+      "pattern": "CALL TRANSACTION / SET-GET PARAMETER glue",
+      "before": "SET PARAMETER ID 'CAR' FIELD lv_carrid.\nCALL TRANSACTION 'ZFLIGHT_DISPLAY'.",
+      "after": "\" navigate via the app, not the transaction: expose the entity through a RAP service and use Fiori intent-based navigation (semantic object + action)",
+      "notes": "Transaction and SPA/GPA memory glue is UI-era coupling; the released pattern is intent-based navigation between Fiori apps over RAP services."
+    },
+    "other": {
+      "pattern": "Other statements ABAP Cloud removed",
+      "before": "",
+      "after": "",
+      "notes": "No single recipe: open each finding's docsUrl and substitute the released equivalent; check_released_api tells you the successor for object references."
+    }
+  }
+}

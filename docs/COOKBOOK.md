@@ -208,6 +208,14 @@ wins, core rework, UI re-architecture, with released-API work separate and snaps
 Every item has an S/M/L effort band and a recipe; every phase has re-checkable exit criteria,
 so an agent (or a team standup) can walk the backlog and prove each step with `compare_abap`.
 
+**Test-first rework and sequencing (0.7.0).** Before touching a class, `scaffold_abap_unit`
+(CLI: `abap-mcp unittest src/ --out tests/`) generates its failing-by-default ABAP Unit harness —
+fill the skeletons, get green, then rework with `compare_abap` as the referee.
+`get_object_dependencies` (CLI: `abap-mcp deps src/ --mermaid`) draws who-reads-what across the
+provided objects with released-API flags on the tables, so the migration order (leaves first)
+falls out of the graph instead of guesswork. Readiness categories and plan items now also carry
+a curated `rewrite` / `example` before-after skeleton for the canonical Cloud substitution.
+
 **The reviewer subagent.** Drop `abap-code-reviewer.md` into `.claude/agents/` — a subagent
 whose system prompt mandates: outline first, lint every changed object, readiness-check
 anything cloud-bound, explain each finding with the rule rationale, never approve with parser

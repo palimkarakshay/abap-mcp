@@ -10,9 +10,11 @@ import { basename, extname, join } from "node:path";
 
 import { compareAbap } from "./abap/compare.js";
 import type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
-import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILES, runAbaplint } from "./abap/engine.js";
+import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILE_CHARS, MAX_FILES, runAbaplint } from "./abap/engine.js";
+import { getObjectDependencies } from "./abap/deps.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { planCloudMigration } from "./abap/plan.js";
+import { scaffoldAbapUnit } from "./abap/unittest.js";
 import type { ReadinessReport } from "./abap/readiness.js";
 import { checkCloudReadiness, gradeReadiness, SCOPE_NOTE } from "./abap/readiness.js";
 import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./abap/released.js";
@@ -46,7 +48,13 @@ export function collectFiles(paths: string[], io: CliIo): AbapSource[] {
     }
     const name = basename(p).toLowerCase();
     if (ABAP_FILE_RE.test(name)) {
-      found.push({ filename: name, source: readFileSync(p, "utf8") });
+      const source = readFileSync(p, "utf8");
+      if (source.length > MAX_FILE_CHARS) {
+        // Sweep-friendly: one oversized file must not kill a whole-repo run.
+        io.err(`skip ${p}: ${source.length} chars exceeds the ${MAX_FILE_CHARS}-char cap (analyze it in parts)`);
+        return;
+      }
+      found.push({ filename: name, source });
     } else if ([".abap", ".asddls", ".asbdef"].includes(extname(name))) {
       io.err(`skip ${p}: not an abapGit-style filename (e.g. zcl_x.clas.abap)`);
     }
@@ -247,6 +255,72 @@ export function cmdPlan(argv: string[], io: CliIo): number {
   return 0;
 }
 
+export function cmdUnittest(argv: string[], io: CliIo): number {
+  const { flags, rest } = parseFlags(argv);
+  const files = collectFiles(rest.length > 0 ? rest : ["."], io);
+  if (files.length === 0) {
+    io.err("No ABAP sources found.");
+    return 2;
+  }
+  const version = asVersion(flags.get("abap-version"), "v758");
+  const result = scaffoldAbapUnit(files.slice(0, MAX_FILES), version);
+  const outDir = typeof flags.get("out") === "string" ? (flags.get("out") as string) : null;
+  if (outDir !== null) {
+    if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+    for (const f of result.files) {
+      const target = join(outDir, f.filename);
+      if (existsSync(target) && !flags.has("force")) {
+        io.err(`refusing to overwrite ${target} (use --force)`);
+        return 1;
+      }
+      writeFileSync(target, f.content, "utf8");
+      io.out(`wrote ${target}  [${f.validated}] for ${f.forClass}`);
+    }
+  } else if (flags.has("json")) {
+    io.out(JSON.stringify(result, null, 2));
+  } else {
+    for (const f of result.files) {
+      io.out(`\n===== ${f.filename}  [validated: ${f.validated}] =====`);
+      io.out(f.content);
+    }
+  }
+  for (const s of result.skipped) io.err(`skip ${s.object}: ${s.reason}`);
+  if (!flags.has("json")) io.out(`\nNext steps:\n${result.nextSteps.map((s) => `  - ${s}`).join("\n")}`);
+  if (result.validationIssues.length > 0) {
+    io.err(`WARNING: ${result.validationIssues.length} abaplint finding(s) on generated code`);
+    return 1;
+  }
+  return 0;
+}
+
+export function cmdDeps(argv: string[], io: CliIo): number {
+  const { flags, rest } = parseFlags(argv);
+  const files = collectFiles(rest.length > 0 ? rest : ["."], io);
+  if (files.length === 0) {
+    io.err("No ABAP sources found.");
+    return 2;
+  }
+  if (files.length > MAX_FILES) {
+    io.err(`deps is object-level: at most ${MAX_FILES} files per call — narrow the path.`);
+    return 2;
+  }
+  const graph = getObjectDependencies(files, asVersion(flags.get("abap-version"), "v758"), flags.has("mermaid"));
+  if (flags.has("mermaid")) {
+    io.out(graph.mermaid ?? "");
+    return 0;
+  }
+  if (flags.has("json")) {
+    io.out(JSON.stringify(graph, null, 2));
+    return 0;
+  }
+  for (const e of graph.edges) io.out(`${e.from}  --${e.kind}-->  ${e.to}`);
+  const flagged = graph.nodes.filter((n) => n.releasedState !== undefined && n.releasedState !== "released");
+  for (const n of flagged)
+    io.out(`⚠ ${n.name}: ${n.releasedState}${n.successor !== undefined ? ` → use ${n.successor}` : ""}`);
+  io.out(`${graph.nodes.length} node(s), ${graph.edges.length} edge(s)  (snapshot ${graph.releasedApiSnapshotDate})`);
+  return 0;
+}
+
 export function cmdScaffold(argv: string[], io: CliIo): number {
   const { flags } = parseFlags(argv);
   const entityName = flags.get("entity");
@@ -444,6 +518,8 @@ Usage:
   abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--json]
   abap-mcp compare BEFORE AFTER  what a rework changed: findings resolved/introduced, blocker/score/grade movement, structure   [--preset …] [--focus …] [--json]
   abap-mcp scaffold …            generate a RAP managed BO   (--entity --table --key [--fields n:type,…] [--no-draft] [--provided-key] [--out DIR])
+  abap-mcp unittest [paths…]     scaffold failing-by-default ABAP Unit test classes for global classes   [--abap-version v758|Cloud] [--out DIR] [--json]
+  abap-mcp deps [paths…]         dependency graph: db/function refs (+released state), inherits/implements, textual   [--mermaid] [--json]
   abap-mcp outline [paths…]      classes/methods/forms structure   [--mermaid] [--json]
   abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--json]
   abap-mcp explain <rule>        explain an abaplint rule
@@ -467,6 +543,10 @@ export function runCli(argv: string[], io: CliIo): number | null {
       return cmdCompare(rest, io);
     case "scaffold":
       return cmdScaffold(rest, io);
+    case "unittest":
+      return cmdUnittest(rest, io);
+    case "deps":
+      return cmdDeps(rest, io);
     case "outline":
       return cmdOutline(rest, io);
     case "released":

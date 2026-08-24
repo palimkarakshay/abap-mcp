@@ -14,15 +14,36 @@
  * score, because those are objective, parser-level numbers and the snapshot is
  * only as current as its date.
  */
+import recipeData from "../data/rewrite-recipes.json" with { type: "json" };
+
 import type { AbapSource, AbapVersion, Finding } from "./engine.js";
 import { extractObjectReferences, runAbaplint } from "./engine.js";
 import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./released.js";
+
+/** Curated canonical rewrite for one blocker category — illustrative, not drop-in. */
+export interface RewriteRecipe {
+  pattern: string;
+  before: string;
+  after: string;
+  notes: string;
+}
+
+const RECIPES = (
+  recipeData as unknown as { recipes: Record<string, RewriteRecipe> }
+).recipes;
+
+/** The curated rewrite recipe for a readiness category, if one exists. */
+export function rewriteRecipeFor(category: string): RewriteRecipe | undefined {
+  return RECIPES[category];
+}
 
 export interface ReadinessCategory {
   category: string;
   label: string;
   count: number;
   findings: Finding[];
+  /** Curated canonical Cloud rewrite for this category (bundled, hand-curated). */
+  rewrite?: RewriteRecipe;
 }
 
 /**
@@ -133,7 +154,10 @@ export function checkCloudReadiness(
   const byCategory = new Map<string, ReadinessCategory>();
   for (const f of blockers) {
     const { category, label } = categorize(f.excerpt);
-    const entry = byCategory.get(category) ?? { category, label, count: 0, findings: [] };
+    const recipe = rewriteRecipeFor(category);
+    const entry =
+      byCategory.get(category) ??
+      ({ category, label, count: 0, findings: [], ...(recipe !== undefined ? { rewrite: recipe } : {}) } as ReadinessCategory);
     entry.count += 1;
     entry.findings.push(f);
     byCategory.set(category, entry);

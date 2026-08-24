@@ -30,7 +30,7 @@ describe("MCP server wire", () => {
     expect(SERVER_INSTRUCTIONS).toContain("do not connect to SAP or run ATC");
   });
 
-  it("lists all ten tools", async () => {
+  it("lists all twelve tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -40,11 +40,73 @@ describe("MCP server wire", () => {
       "explain_abap_rule",
       "format_abap",
       "get_abap_outline",
+      "get_object_dependencies",
       "lint_abap",
       "list_abap_rules",
       "plan_cloud_migration",
+      "scaffold_abap_unit",
       "scaffold_rap_bo",
     ]);
+  });
+
+  it("scaffold_abap_unit returns a validated failing-by-default harness over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "scaffold_abap_unit",
+      arguments: {
+        files: [
+          {
+            filename: "zcl_travel.clas.abap",
+            source:
+              "CLASS zcl_travel DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS get_total RETURNING VALUE(rv) TYPE i.\nENDCLASS.\nCLASS zcl_travel IMPLEMENTATION.\n METHOD get_total.\n rv = 1.\n ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+      },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        files: { filename: string; content: string; validated: string }[];
+        validationIssues: unknown[];
+      };
+    };
+    expect(result.isError ?? false).toBe(false);
+    const sc = result.structuredContent!;
+    expect(sc.files.length).toBe(1);
+    expect(sc.files[0]!.filename).toBe("zcl_travel.clas.testclasses.abap");
+    expect(sc.files[0]!.content).toContain("FOR TESTING");
+    expect(sc.files[0]!.content).toContain("cl_abap_unit_assert=>fail");
+    expect(sc.validationIssues).toEqual([]);
+  });
+
+  it("get_object_dependencies flags non-released targets over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "get_object_dependencies",
+      arguments: {
+        files: [
+          {
+            filename: "zcl_pricing.clas.abap",
+            source:
+              "CLASS zcl_pricing DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS load.\nENDCLASS.\nCLASS zcl_pricing IMPLEMENTATION.\n METHOD load.\n SELECT SINGLE matnr FROM mara INTO @DATA(lv).\n ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+        mermaid: true,
+      },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        nodes: { name: string; releasedState?: string; successor?: string }[];
+        edges: { from: string; to: string; kind: string }[];
+        mermaid?: string;
+      };
+    };
+    expect(result.isError ?? false).toBe(false);
+    const g = result.structuredContent!;
+    const mara = g.nodes.find((n) => n.name === "MARA");
+    expect(mara?.releasedState).toBe("not-released");
+    expect(mara?.successor).toBe("I_Product");
+    expect(g.edges).toContainEqual({ from: "ZCL_PRICING", to: "MARA", kind: "db-access" });
+    expect(g.mermaid).toContain("graph LR");
   });
 
   it("plan_cloud_migration phases blockers into a backlog over the wire", async () => {

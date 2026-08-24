@@ -1,6 +1,6 @@
 {
   "name": "abap-mcp",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "mcpName": "io.github.palimkarakshay/abap-mcp",
   "description": "Make your AI coding agent an expert SAP ABAP & RAP consultant: offline code review (abaplint), ABAP Cloud / Clean Core readiness grades, released-API checks, rework verdicts, and RAP scaffolding — no SAP system, no credentials, installs with one npx command.",
   "license": "MIT",

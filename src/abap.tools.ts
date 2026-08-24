@@ -9,6 +9,7 @@
 import { z } from "zod";
 
 import { compareAbap } from "./abap/compare.js";
+import { getObjectDependencies } from "./abap/deps.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, runAbaplint } from "./abap/engine.js";
 import { formatAbap } from "./abap/formatter.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
@@ -21,6 +22,7 @@ import {
 } from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
 import { scaffoldRapBo } from "./abap/scaffold.js";
+import { scaffoldAbapUnit } from "./abap/unittest.js";
 import { invalidInput } from "./errors.js";
 import type { AnyToolSpec } from "./tool.js";
 import { defineTool } from "./tool.js";
@@ -831,12 +833,161 @@ export const planCloudMigrationTool = defineTool({
 });
 
 /** Every tool this server exposes. (`tools` alias = the registry-export shape @mcp-kit/lint discovers.) */
+export const scaffoldAbapUnitTool = defineTool({
+  name: "scaffold_abap_unit",
+  title: "Scaffold ABAP Unit test classes",
+  description:
+    "Generate the local ABAP Unit test-class include (<class>.clas.testclasses.abap) for each global class in the " +
+    "provided sources: a FOR TESTING class (RISK LEVEL HARMLESS, DURATION SHORT) with a setup method that " +
+    "instantiates the class under test and one skeleton test method per public method. Every skeleton fails loudly " +
+    "with cl_abap_unit_assert=>fail('TODO …') so generated-but-empty tests can never masquerade as coverage; " +
+    "abstract classes and parameterized constructors get TODO guidance instead of a blind NEW #( ). Generated code " +
+    "is round-tripped through abaplint together with the class under test before being returned. " +
+    "Use this when a class has no tests yet and you want a correct, ready-to-fill test harness — the natural first " +
+    "step of test-driven rework and the 'add tests before we migrate this' consulting task. " +
+    "It does not invent assertions or test data (the given/when/then substance is yours or the agent's to write), " +
+    "does not create test doubles, and cannot run the tests — ADT/CI does that. " +
+    'Example: scaffold_abap_unit({ "files": [ { "filename": "zcl_travel.clas.abap", "source": "CLASS zcl_travel DEFINITION PUBLIC.\\n…" } ] }).',
+  inputSchema: {
+    files: filesField,
+    abapVersion: VERSION_ENUM.default("v758").describe(
+      'ABAP language version the generated tests are validated against ("Cloud" for ABAP Cloud classes).',
+    ),
+  },
+  outputSchema: {
+    files: z.array(
+      z.object({
+        filename: z.string().describe("abapGit-style testclasses filename."),
+        content: z.string().describe("The generated local test class source."),
+        forClass: z.string().describe("Global class the tests target."),
+        validated: z.literal("abaplint").describe("Round-tripped through the parser with the class under test."),
+      }),
+    ),
+    skipped: z
+      .array(z.object({ object: z.string(), reason: z.string() }))
+      .describe("Inputs no test class was generated for, with the reason (interfaces, programs, FOR TESTING classes…)."),
+    nextSteps: z.array(z.string()).describe("What to do with the generated skeletons, in order."),
+    validationIssues: z.array(z.unknown()).describe("abaplint findings on generated code — empty on a clean round-trip."),
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  examples: [
+    {
+      description: "Scaffold a failing-by-default test harness for a travel class.",
+      arguments: {
+        files: [
+          {
+            filename: "zcl_travel.clas.abap",
+            source:
+              "CLASS zcl_travel DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS get_total RETURNING VALUE(rv) TYPE i.\nENDCLASS.\nCLASS zcl_travel IMPLEMENTATION.\n METHOD get_total.\n rv = 1.\n ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+      },
+    },
+  ],
+  handler: (args) => {
+    const result = scaffoldAbapUnit(args.files, args.abapVersion);
+    const text =
+      `Generated ${result.files.length} test class(es): ${result.files.map((f) => f.filename).join(", ")}` +
+      (result.skipped.length > 0 ? `; skipped ${result.skipped.length}` : "") +
+      (result.validationIssues.length > 0
+        ? `; WARNING ${result.validationIssues.length} abaplint finding(s) on generated code`
+        : "; round-trip clean");
+    return {
+      content: [{ type: "text", text }],
+      structuredContent: result as unknown as Record<string, unknown>,
+    };
+  },
+});
+
+export const getObjectDependenciesTool = defineTool({
+  name: "get_object_dependencies",
+  title: "Get a dependency graph of ABAP objects",
+  description:
+    "Build a dependency graph over the provided ABAP sources for migration sequencing and impact reading: nodes are " +
+    "the provided objects plus every DB table / function module they reference (annotated with released-API state " +
+    "and CDS successor from the bundled SAP snapshot); edges are tiered by how they were derived — parser-level " +
+    "db-access and call-function references, structural inherits/implements from class definitions, and " +
+    "word-boundary references-textual matches between the provided objects. Optional Mermaid flowchart output. " +
+    "Use this when deciding what to migrate first (leaves before roots), what a rework might break, or which " +
+    "objects pull non-released tables into the picture — the sequencing companion to plan_cloud_migration. " +
+    "It is not a system where-used list: it only sees the text you pass, textual edges cannot see dynamic calls, " +
+    "and an absent edge is not proof of independence — a system's where-used and ATC remain authoritative. " +
+    'Example: get_object_dependencies({ "files": [ { "filename": "zcl_a.clas.abap", "source": "…" }, { "filename": "zcl_b.clas.abap", "source": "…" } ], "mermaid": true }).',
+  inputSchema: {
+    files: filesField,
+    abapVersion: VERSION_ENUM.default("v758").describe(
+      "ABAP language version used for parsing when extracting object references.",
+    ),
+    mermaid: z
+      .boolean()
+      .default(false)
+      .describe("Also return a Mermaid flowchart (graph LR) of the dependency graph for instant visualization."),
+  },
+  outputSchema: {
+    nodes: z.array(
+      z.object({
+        name: z.string().describe("Object name, upper-cased."),
+        type: z.string().describe("class | interface | program | table | function-module | unknown."),
+        provided: z.boolean().describe("True when this object's source was part of the call."),
+        releasedState: z
+          .enum(["released", "deprecated", "not-released"])
+          .optional()
+          .describe("Released-API state from the bundled snapshot, for referenced DDIC/API objects."),
+        successor: z.string().optional().describe("Curated released CDS successor for a classic table."),
+      }),
+    ),
+    edges: z.array(
+      z.object({
+        from: z.string().describe("Referencing object."),
+        to: z.string().describe("Referenced object."),
+        kind: z
+          .string()
+          .describe("db-access | call-function | inherits | implements | references-textual (derivation tier)."),
+      }),
+    ),
+    mermaid: z.string().optional().describe("Mermaid flowchart when requested."),
+    releasedApiSnapshotDate: z.string().describe("Date of the bundled released-API snapshot behind the annotations."),
+    scopeNote: z.string().describe("Exactly what the graph can and cannot claim."),
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  examples: [
+    {
+      description: "Graph two classes and the classic table one of them reads, with a Mermaid diagram.",
+      arguments: {
+        files: [
+          {
+            filename: "zcl_pricing.clas.abap",
+            source:
+              "CLASS zcl_pricing DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS load.\nENDCLASS.\nCLASS zcl_pricing IMPLEMENTATION.\n METHOD load.\n SELECT SINGLE matnr FROM mara INTO @DATA(lv).\n ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+        mermaid: true,
+      },
+    },
+  ],
+  handler: (args) => {
+    const graph = getObjectDependencies(args.files, args.abapVersion, args.mermaid);
+    const flagged = graph.nodes.filter((n) => n.releasedState !== undefined && n.releasedState !== "released");
+    const text =
+      `${graph.nodes.length} node(s), ${graph.edges.length} edge(s)` +
+      (flagged.length > 0
+        ? `; ⚠ non-released targets: ${flagged.map((n) => n.name + (n.successor !== undefined ? `→${n.successor}` : "")).join(", ")}`
+        : "");
+    return {
+      content: [{ type: "text", text }],
+      structuredContent: graph as unknown as Record<string, unknown>,
+    };
+  },
+});
+
 export const ALL_TOOLS: readonly AnyToolSpec[] = [
   lintAbap,
   checkCloudReadinessTool,
   planCloudMigrationTool,
   compareAbapTool,
   scaffoldRapBoTool,
+  scaffoldAbapUnitTool,
+  getObjectDependenciesTool,
   checkReleasedApiTool,
   listAbapRules,
   explainAbapRule,

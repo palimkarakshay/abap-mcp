@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { ALL_TOOLS } from "../abap.tools.js";
 import { startHttpServer, type RunningHttpServer } from "../http.js";
 
 const runningServers: RunningHttpServer[] = [];
@@ -45,7 +46,7 @@ describe("Streamable HTTP server", () => {
     try {
       await client.connect(transport);
       const { tools } = await client.listTools();
-      expect(tools).toHaveLength(10);
+      expect(tools).toHaveLength(ALL_TOOLS.length);
       expect(tools.map((tool) => tool.name)).toContain("check_cloud_readiness");
       expect(transport.sessionId).toBeUndefined();
     } finally {

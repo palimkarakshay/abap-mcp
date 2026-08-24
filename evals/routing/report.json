@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-24T15:22:41.174Z",
+  "generatedAt": "2026-08-24T16:28:13.132Z",
   "mode": "offline-metadata",
   "summary": {
     "passed": true,
-    "cases": 22,
-    "passingCases": 22,
+    "cases": 24,
+    "passingCases": 24,
     "failingCases": 0,
-    "toolCount": 10,
+    "toolCount": 12,
     "promptCount": 3,
     "abstentionCases": 7,
     "correctAbstentions": 7,
@@ -24,7 +24,7 @@
       "kind": "tool",
       "name": "check_cloud_readiness",
       "title": "Check ABAP Cloud readiness",
-      "description": "Assess how far ABAP source is from ABAP Cloud (Clean Core tier 1) by parsing it twice — once at a classic baseline (default v758) and once at version Cloud — and diffing: findings that appear only at Cloud are genuine cloud blockers (statements ABAP Cloud removed), reported in categories (dynpro, list output, native SQL, report events, …) with a transparent score, an A–D tech-debt grade and a verdict; findings already present at the baseline are reported separately as broken code, not migration work. Use this when someone asks 'is this code cloud-ready / Clean Core compliant / S/4HANA-cloud safe', before porting classic ABAP into an ABAP Cloud environment, or for a graded tech-debt assessment of an abapGit export. It is static and parser-level: it does not check released-API usage (that needs a system's ATC), does not connect to any SAP system, and a 'ready' verdict means no language-level blockers — not a certification. Example: check_cloud_readiness({ \"files\": [ { \"source\": \"REPORT zold.\\nWRITE: / 'hi'.\" } ] })."
+      "description": "Assess how far ABAP source is from ABAP Cloud (Clean Core tier 1) by parsing it twice — once at a classic baseline (default v758) and once at version Cloud — and diffing: findings that appear only at Cloud are genuine cloud blockers (statements ABAP Cloud removed), reported in categories (dynpro, list output, native SQL, report events, …) with a transparent score, an A–D tech-debt grade and a verdict; findings already present at the baseline are reported separately as broken code, not migration work. It also reports snapshot-dated released-API observations for direct table and function-module references the parser can extract; those stay separate from the language-level blocker count and score. Use this when someone asks 'is this code cloud-ready / Clean Core compliant / S/4HANA-cloud safe', before porting classic ABAP into an ABAP Cloud environment, or for a graded tech-debt assessment of an abapGit export. It is static and parser-level: its released-API scan is not exhaustive dependency discovery, it does not connect to any SAP system or run ATC, and a 'ready' verdict means no detected language-level blockers — not a certification. A target system's ATC remains authoritative. Example: check_cloud_readiness({ \"files\": [ { \"source\": \"REPORT zold.\\nWRITE: / 'hi'.\" } ] })."
     },
     {
       "kind": "tool",
@@ -46,9 +46,21 @@
     },
     {
       "kind": "tool",
+      "name": "scaffold_abap_unit",
+      "title": "Scaffold ABAP Unit test classes",
+      "description": "Generate the local ABAP Unit test-class include (<class>.clas.testclasses.abap) for each global class in the provided sources: a FOR TESTING class (RISK LEVEL HARMLESS, DURATION SHORT) with a setup method that instantiates the class under test and one skeleton test method per public method. Every skeleton fails loudly with cl_abap_unit_assert=>fail('TODO …') so generated-but-empty tests can never masquerade as coverage; abstract classes and parameterized constructors get TODO guidance instead of a blind NEW #( ). Generated code is round-tripped through abaplint together with the class under test before being returned. Use this when a class has no tests yet and you want a correct, ready-to-fill test harness — the natural first step of test-driven rework and the 'add tests before we migrate this' consulting task. It does not invent assertions or test data (the given/when/then substance is yours or the agent's to write), does not create test doubles, and cannot run the tests — ADT/CI does that. Example: scaffold_abap_unit({ \"files\": [ { \"filename\": \"zcl_travel.clas.abap\", \"source\": \"CLASS zcl_travel DEFINITION PUBLIC.\\n…\" } ] })."
+    },
+    {
+      "kind": "tool",
+      "name": "get_object_dependencies",
+      "title": "Get a dependency graph of ABAP objects",
+      "description": "Build a dependency graph over the provided ABAP sources for migration sequencing and impact reading: nodes are the provided objects plus every DB table / function module they reference (annotated with released-API state and CDS successor from the bundled SAP snapshot); edges are tiered by how they were derived — parser-level db-access and call-function references, structural inherits/implements from class definitions, and word-boundary references-textual matches between the provided objects. Optional Mermaid flowchart output. Use this when deciding what to migrate first (leaves before roots), what a rework might break, or which objects pull non-released tables into the picture — the sequencing companion to plan_cloud_migration. It is not a system where-used list: it only sees the text you pass, textual edges cannot see dynamic calls, and an absent edge is not proof of independence — a system's where-used and ATC remain authoritative. Example: get_object_dependencies({ \"files\": [ { \"filename\": \"zcl_a.clas.abap\", \"source\": \"…\" }, { \"filename\": \"zcl_b.clas.abap\", \"source\": \"…\" } ], \"mermaid\": true })."
+    },
+    {
+      "kind": "tool",
       "name": "check_released_api",
       "title": "Check ABAP released-API status",
-      "description": "Look up ABAP repository objects (DB tables, CDS view entities, function modules, classes, interfaces, …) in SAP's published ABAP Cloudification list and report, per object, whether it is a 'released' API (safe to use in ABAP Cloud / Clean Core), 'deprecated' (released but being retired), or 'not-released' (a classic/internal object that is not a public API — e.g. most classic DDIC tables) — with a curated CDS successor hint for common tables. This reflects SAP's official Cloudification list as bundled in this package (snapshot 2026-06-10); it ships offline with the server. Use this when you need to know if your code may reference a given object in ABAP Cloud, or which released CDS view to use instead of a classic table — the released-API half of readiness that check_cloud_readiness deliberately leaves to a system's ATC. It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — a system's own released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative; treat an 'absent from the list' result as 'not-released as of the snapshot', not as proof. Example: check_released_api({ \"objects\": [\"MARA\", \"I_Product\", \"BAPI_MATERIAL_GET_DETAIL\"] })."
+      "description": "Look up ABAP repository objects (DB tables, CDS view entities, function modules, classes, interfaces, …) in SAP's published ABAP Cloudification list and report, per object, whether it is a 'released' API (safe to use in ABAP Cloud / Clean Core), 'deprecated' (released but being retired), or 'not-released' (a classic/internal object that is not a public API — e.g. most classic DDIC tables) — with a curated CDS successor hint for common tables. This reflects SAP's official Cloudification list as bundled in this package (snapshot 2026-08-24); it ships offline with the server. Use this when you need to know if your code may reference a given object in ABAP Cloud, or which released CDS view to use instead of a classic table. This explicit lookup complements check_cloud_readiness's limited, source-extracted released-API observations and can check objects that do not appear in the supplied source. It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — a system's own released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative; treat an 'absent from the list' result as 'not-released as of the snapshot', not as proof. Example: check_released_api({ \"objects\": [\"MARA\", \"I_Product\", \"BAPI_MATERIAL_GET_DETAIL\"] })."
     },
     {
       "kind": "tool",
@@ -193,12 +205,12 @@
           "kind": "tool",
           "name": "check_cloud_readiness"
         },
-        "reason": "top metadata score 20.224; margin 7.88",
+        "reason": "top metadata score 19.424; margin 7.08",
         "ranking": [
           {
             "kind": "tool",
             "name": "check_cloud_readiness",
-            "score": 20.224,
+            "score": 19.424,
             "matched": [
               "abap",
               "blocker",
@@ -284,7 +296,7 @@
           "kind": "tool",
           "name": "scaffold_rap_bo"
         },
-        "reason": "top metadata score 25.092; margin 18.472",
+        "reason": "top metadata score 25.092; margin 16.492",
         "ranking": [
           {
             "kind": "tool",
@@ -311,6 +323,27 @@
             ]
           },
           {
+            "kind": "tool",
+            "name": "get_object_dependencies",
+            "score": 8.6,
+            "matched": [
+              "cds",
+              "definition",
+              "object"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "scaffold_abap_unit",
+            "score": 6.844,
+            "matched": [
+              "definition",
+              "generate",
+              "scaffold",
+              "travel"
+            ]
+          },
+          {
             "kind": "prompt",
             "name": "abap-mentor",
             "score": 6.62,
@@ -329,24 +362,6 @@
               "behavior",
               "cds",
               "definition"
-            ]
-          },
-          {
-            "kind": "tool",
-            "name": "plan_cloud_migration",
-            "score": 4.1,
-            "matched": [
-              "object",
-              "ui"
-            ]
-          },
-          {
-            "kind": "tool",
-            "name": "check_released_api",
-            "score": 2.5,
-            "matched": [
-              "cds",
-              "object"
             ]
           }
         ]
@@ -370,7 +385,7 @@
           "kind": "tool",
           "name": "list_abap_rules"
         },
-        "reason": "top metadata score 15.52; margin 5.62",
+        "reason": "top metadata score 15.52; margin 5.12",
         "ranking": [
           {
             "kind": "tool",
@@ -386,6 +401,18 @@
           },
           {
             "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 10.4,
+            "matched": [
+              "check",
+              "code",
+              "list",
+              "not",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
             "name": "lint_abap",
             "score": 9.9,
             "matched": [
@@ -394,18 +421,6 @@
               "code",
               "rule",
               "security",
-              "source"
-            ]
-          },
-          {
-            "kind": "tool",
-            "name": "check_cloud_readiness",
-            "score": 9.6,
-            "matched": [
-              "check",
-              "code",
-              "list",
-              "not",
               "source"
             ]
           },
@@ -594,8 +609,8 @@
           },
           {
             "kind": "tool",
-            "name": "check_cloud_readiness",
-            "score": 6.3,
+            "name": "scaffold_abap_unit",
+            "score": 6.5,
             "matched": [
               "abap",
               "source"
@@ -653,27 +668,32 @@
           },
           {
             "kind": "tool",
-            "name": "plan_cloud_migration",
-            "score": 6.3,
+            "name": "get_object_dependencies",
+            "score": 10.8,
             "matched": [
               "abap",
+              "mermaid",
               "object"
             ]
           },
           {
             "kind": "tool",
-            "name": "explain_abap_rule",
-            "score": 6,
+            "name": "scaffold_abap_unit",
+            "score": 10.5,
             "matched": [
-              "abap"
+              "abap",
+              "classe",
+              "include",
+              "method"
             ]
           },
           {
             "kind": "tool",
-            "name": "format_abap",
-            "score": 6,
+            "name": "plan_cloud_migration",
+            "score": 6.3,
             "matched": [
-              "abap"
+              "abap",
+              "object"
             ]
           }
         ]
@@ -697,7 +717,7 @@
           "kind": "tool",
           "name": "check_released_api"
         },
-        "reason": "top metadata score 19.348; margin 5.804",
+        "reason": "top metadata score 19.348; margin 3.104",
         "ranking": [
           {
             "kind": "tool",
@@ -719,6 +739,19 @@
           },
           {
             "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 16.244,
+            "matched": [
+              "abap",
+              "api",
+              "check",
+              "cloud",
+              "releas",
+              "snapshot"
+            ]
+          },
+          {
+            "kind": "tool",
             "name": "plan_cloud_migration",
             "score": 13.544,
             "matched": [
@@ -733,12 +766,16 @@
           },
           {
             "kind": "tool",
-            "name": "check_cloud_readiness",
-            "score": 11.024,
+            "name": "get_object_dependencies",
+            "score": 12.52,
             "matched": [
               "abap",
-              "check",
-              "cloud"
+              "api",
+              "bundl",
+              "cloud",
+              "releas",
+              "snapshot",
+              "successor"
             ]
           },
           {
@@ -750,17 +787,6 @@
               "check",
               "cloud",
               "need"
-            ]
-          },
-          {
-            "kind": "prompt",
-            "name": "abap-migration-plan",
-            "score": 9.82,
-            "matched": [
-              "abap",
-              "api",
-              "cloud",
-              "releas"
             ]
           }
         ]
@@ -844,13 +870,15 @@
             ]
           },
           {
-            "kind": "prompt",
-            "name": "abap-migration-plan",
-            "score": 8.8,
+            "kind": "tool",
+            "name": "get_object_dependencies",
+            "score": 9.92,
             "matched": [
               "abap",
               "cloud",
-              "source"
+              "rework",
+              "source",
+              "were"
             ]
           }
         ]
@@ -931,7 +959,7 @@
           {
             "kind": "tool",
             "name": "check_cloud_readiness",
-            "score": 9.4,
+            "score": 10.2,
             "matched": [
               "abap",
               "file",
@@ -942,12 +970,14 @@
           },
           {
             "kind": "tool",
-            "name": "explain_abap_rule",
-            "score": 8.6,
+            "name": "get_object_dependencies",
+            "score": 9.92,
             "matched": [
               "abap",
-              "exit",
-              "need"
+              "file",
+              "migration",
+              "output",
+              "plan"
             ]
           }
         ]
@@ -1095,7 +1125,7 @@
           {
             "kind": "tool",
             "name": "check_cloud_readiness",
-            "score": 5.7,
+            "score": 6.5,
             "matched": [
               "abap",
               "check"
@@ -1343,15 +1373,16 @@
           "kind": "tool",
           "name": "check_cloud_readiness"
         },
-        "reason": "top metadata score 15.3; margin 4.5",
+        "reason": "top metadata score 16.6; margin 5.8",
         "ranking": [
           {
             "kind": "tool",
             "name": "check_cloud_readiness",
-            "score": 15.3,
+            "score": 16.6,
             "matched": [
               "abap",
               "assess",
+              "atc",
               "clean",
               "cloud",
               "core",
@@ -1490,6 +1521,181 @@
               "finding",
               "lint",
               "not"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "unit-test-harness",
+      "intent": "This class has no tests yet. Scaffold ABAP Unit test classes for it — a failing-by-default harness with one skeleton test method per public method.",
+      "expected": {
+        "kind": "tool",
+        "name": "scaffold_abap_unit"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "testing"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "scaffold_abap_unit"
+        },
+        "reason": "top metadata score 40.6; margin 33.5",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "scaffold_abap_unit",
+            "score": 40.6,
+            "matched": [
+              "abap",
+              "class",
+              "classe",
+              "harness",
+              "has",
+              "method",
+              "no",
+              "one",
+              "per",
+              "public",
+              "scaffold",
+              "skeleton",
+              "test",
+              "unit",
+              "yet"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 7.1,
+            "matched": [
+              "abap",
+              "classe",
+              "method"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 7.1,
+            "matched": [
+              "abap",
+              "one",
+              "per"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "get_abap_outline",
+            "score": 6.8,
+            "matched": [
+              "abap",
+              "class",
+              "classe",
+              "method"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "scaffold_rap_bo",
+            "score": 6.8,
+            "matched": [
+              "abap",
+              "class",
+              "one",
+              "scaffold"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "dependency-sequencing",
+      "intent": "Build a dependency graph over these ABAP objects — which classes read which tables and call which function modules — so we can sequence the migration leaves-first.",
+      "expected": {
+        "kind": "tool",
+        "name": "get_object_dependencies"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "sequencing"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "get_object_dependencies"
+        },
+        "reason": "top metadata score 26.4; margin 14.5",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "get_object_dependencies",
+            "score": 26.4,
+            "matched": [
+              "abap",
+              "build",
+              "call",
+              "dependency",
+              "first",
+              "function",
+              "graph",
+              "leave",
+              "migration",
+              "module",
+              "object",
+              "over",
+              "read",
+              "table"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 11.9,
+            "matched": [
+              "abap",
+              "call",
+              "first",
+              "migration",
+              "object"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 10.3,
+            "matched": [
+              "abap",
+              "migration",
+              "over"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-mentor",
+            "score": 9.3,
+            "matched": [
+              "abap",
+              "object",
+              "over"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "get_abap_outline",
+            "score": 8.9,
+            "matched": [
+              "abap",
+              "call",
+              "classe",
+              "first",
+              "read"
             ]
           }
         ]

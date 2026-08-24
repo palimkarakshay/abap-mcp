@@ -13,7 +13,7 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (180 tests) + build + routing eval, in order = **the CI gate**
+- `npm run check`     — typecheck + vitest (199 tests) + build + routing eval, in order = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `npm run build`     — `tsc && node scripts/copy-data.mjs` (tsc does NOT copy the bundled `.json`)
 - `node scripts/build-released-api-index.mjs` — **dev-only**, refreshes the SAP released-API
@@ -27,10 +27,11 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
   The in-repo rubric tests in `server.test.ts` enforce the same discipline on every tool and prompt.
 
 ## Layout
-- `src/abap.tools.ts` — the 10 ToolSpecs (lint_abap [+focus rule packs], check_cloud_readiness
-  [+A–D grade], plan_cloud_migration [phased backlog], compare_abap, scaffold_rap_bo,
-  check_released_api, list_abap_rules, explain_abap_rule, format_abap, get_abap_outline
-  [+mermaid]). The registry export `tools` is what @mcp-kit/lint discovers.
+- `src/abap.tools.ts` — the 12 ToolSpecs (lint_abap [+focus rule packs], check_cloud_readiness
+  [+A–D grade +rewrite recipes], plan_cloud_migration [phased backlog +examples], compare_abap,
+  scaffold_rap_bo, scaffold_abap_unit [failing-by-default test harness], get_object_dependencies
+  [tiered graph +released flags +mermaid], check_released_api, list_abap_rules, explain_abap_rule,
+  format_abap, get_abap_outline [+mermaid]). The registry export `tools` is what @mcp-kit/lint discovers.
 - `src/prompts.ts` — the 3 PromptSpecs (abap-review, abap-mentor, abap-migration-plan): the
   packaged consultant workflows, rubric-tested like tools; they steer agents to real tools and
   repeat the honesty boundaries.
@@ -40,16 +41,20 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
   ReadinessReport: stage playbook per category, S/M/L bands, exit criteria — no new judgments) ·
   compare.ts (before/after: content-matched finding diff + grade movement + structure changes) ·
   released.ts (released-API lookup over the bundled snapshot) · scaffold.ts (RAP templates +
-  self-validation) · rules.ts · formatter.ts · outline.ts (+ outlineToMermaid)
+  self-validation) · unittest.ts (ABAP Unit skeletons: fail-loudly markers, abaplint round-trip) ·
+  deps.ts (tiered dependency graph: AST db/func refs + outline structure + labeled textual) ·
+  rules.ts · formatter.ts · outline.ts (+ outlineToMermaid)
 - `src/data/` — bundled data assets: `released-apis.json` (compact SAP Cloudification snapshot,
-  Apache-2.0) + `table-successors.json` (curated classic-table → CDS successor map)
+  Apache-2.0; auto-refreshed by the weekly abapmcp-upgrade cron before each release) +
+  `table-successors.json` (curated classic-table → CDS successor map) + `rewrite-recipes.json`
+  (curated per-category before/after Cloud rewrites, surfaced on readiness categories + plan items)
 - `scripts/` — `build-released-api-index.mjs` (dev: fetch+transform SAP data) ·
   `copy-data.mjs` (build: copy `src/data/*.json` → `dist/data/`)
 - `src/tool.ts`, `src/errors.ts` — vendored mcp-kit patterns (attributed; keep in sync by hand)
 - `src/server.ts` + `src/cli.ts` (entry: subcommand → CLI, bare → stdio server) +
   `src/http.ts` (optional stateless Streamable HTTP entry with auth/body/concurrency/rate limits) +
-  `src/cli-commands.ts` (lint/readiness/plan/compare/scaffold/outline/explain/rules; the CLI may
-  touch fs, the MCP server never does) + `src/index.ts` (library exports)
+  `src/cli-commands.ts` (lint/readiness/plan/compare/scaffold/unittest/deps/outline/explain/rules;
+  the CLI may touch fs, the MCP server never does) + `src/index.ts` (library exports)
 - `docs/DESIGN.md` — decision log · `docs/COOKBOOK.md` — user recipes
 - `plugins/abap-mcp/` + `.agents/plugins/marketplace.json` — Codex plugin, 3 skills, local MCP
 - `evals/routing/` — offline metadata-routing fixtures and reports

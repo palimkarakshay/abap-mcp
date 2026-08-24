@@ -38,6 +38,8 @@ layer:
 - *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
 - *"How far is this classic report from ABAP Cloud? Grade it."* → `check_cloud_readiness` (A–D)
 - *"Plan the migration — what do we tackle first?"* → `plan_cloud_migration` (phased backlog)
+- *"This class has no tests — start me a harness."* → `scaffold_abap_unit` (failing-by-default)
+- *"What depends on what? Migrate which object first?"* → `get_object_dependencies` (+ Mermaid)
 - *"Did this rework make the code better or worse?"* → `compare_abap`
 - *"Is MARA a released API? What do I use instead?"* → `check_released_api`
 - *"Start me a correct RAP business object."* → `scaffold_rap_bo`
@@ -97,7 +99,7 @@ npm install && npm run build
 claude mcp add abap-mcp -- node /path/to/abap-mcp/dist/cli.js
 ```
 
-Connected? Ask your agent *"list your ABAP tools"* — you should see all ten, `lint_abap`
+Connected? Ask your agent *"list your ABAP tools"* — you should see all twelve, `lint_abap`
 through `get_abap_outline`.
 
 ### First things to ask
@@ -130,6 +132,8 @@ npx abap-mcp lint src/ --focus Performance      # themed pass: Performance | Sec
 npx abap-mcp lint src/ --rules-file org.json    # your org's abaplint rule pack, same engine
 npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, scored + graded A–D
 npx abap-mcp plan src/                          # phased migration backlog: work items, S/M/L efforts, exit criteria
+npx abap-mcp unittest src/ --out tests/         # failing-by-default ABAP Unit skeletons for untested classes
+npx abap-mcp deps src/ --mermaid                # dependency graph (+released-API flags) as a Mermaid diagram
 npx abap-mcp compare old/ new/                  # rework verdict: findings resolved/introduced, grade movement
 npx abap-mcp scaffold --entity Travel --table ztravel --key travel_id --out ./out
 npx abap-mcp outline src/zcl_monster.clas.abap  # navigate big objects (--mermaid for a diagram)
@@ -143,6 +147,8 @@ merges batches into one scored, categorized repo report. Exit codes are CI-frien
 
 ## Agentic workflows, recipes & CI
 
+**[docs/examples/abap2xlsx-assessment.md](docs/examples/abap2xlsx-assessment.md)** — what all
+of this produces on a real, well-known open-source repo (100 files, three commands, no system).
 **[docs/COOKBOOK.md](docs/COOKBOOK.md)** — practical recipes: the fix-until-clean loop,
 PR review without a transport, whole-repo migration triage, CI gates, per-persona use cases.
 **[examples/claude-code/](examples/claude-code/)** — drop-in agentic workflows that turn the
@@ -161,6 +167,8 @@ GitHub Actions quality gate for abapGit repos.
 | `compare_abap` | Before/after verdict on a rework: lint findings resolved vs introduced (matched by content, so moved code isn't noise), blocker/score/grade movement, and classes/methods/FORMs added or removed. The objective referee for refactors and AI rewrites. |
 | `check_released_api` | Looks up objects (tables, CDS views, function modules, classes, …) in SAP's bundled Cloudification snapshot → `released` / `deprecated` / `not-released` per object, plus a curated CDS successor for common classic tables. The released-API half of readiness, offline. |
 | `scaffold_rap_bo` | Generates the canonical RAP managed-BO stack (root view, behavior definition `strict(2)` + optional draft, behavior class + handler locals, projection, metadata extension, OData V4 service definition) plus suggested table DDL, activation order and next steps. |
+| `scaffold_abap_unit` | Generates the local ABAP Unit test class for each global class: setup + one skeleton test per public method, every skeleton failing loudly with a TODO so generated-but-empty tests can't masquerade as coverage. Round-tripped through abaplint with the class under test. |
+| `get_object_dependencies` | Dependency graph over the provided sources — parser-level table/function references (annotated with released-API state + CDS successors), inherits/implements structure, and honestly-labeled textual cross-references. Optional Mermaid flowchart. The sequencing companion to `plan_cloud_migration`. |
 | `list_abap_rules` | Browse abaplint's ~180 rules (filter by text or tag). |
 | `explain_abap_rule` | One rule in depth — rationale (often Clean ABAP), examples, docs URL. |
 | `format_abap` | Offline pretty-printer (keyword case + indentation). |
@@ -213,7 +221,8 @@ scaffolder validates its own output, what was deliberately left out — lives in
   underneath every tool here (MIT).
 - [SAP/abap-atc-cr-cv-s4hc](https://github.com/SAP/abap-atc-cr-cv-s4hc) — SAP's official ABAP
   Cloudification Repository (object release list), **Apache-2.0**. The bundled released-API
-  snapshot (`src/data/released-apis.json`, snapshot **2026-06-10**) is a compact transform of
+  snapshot (`src/data/released-apis.json`, refreshed with each weekly release — tool output
+  carries its `snapshotDate`) is a compact transform of
   that data, redistributed under Apache-2.0 with attribution; see
   [docs/DESIGN.md](docs/DESIGN.md) and `scripts/build-released-api-index.mjs` for the pipeline.
 - [mcp-kit](https://github.com/palimkarakshay/mcp-kit) — the production-MCP patterns this server
