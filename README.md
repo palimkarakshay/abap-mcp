@@ -244,6 +244,16 @@ The decision log — why offline, why abaplint, why a dual-parse readiness diff,
 scaffolder validates its own output, what was deliberately left out — lives in
 [`docs/DESIGN.md`](docs/DESIGN.md).
 
+## Related projects
+
+- [abap-kit](https://github.com/furkancosgun/abap-kit) by Furkan Coşgun (MIT) — a CLI that
+  scaffolds complete offline ABAP projects (abapGit layout, abaplint + transpiler config, the
+  [open-abap](https://github.com/open-abap) runtime) and can **execute** ABAP Unit tests locally
+  via the abaplint transpiler. Complementary by design: abap-kit builds and runs the project
+  harness; abap-mcp gives your AI agent the analysis, planning and scaffolding tools inside it —
+  `abap-kit create` + `abap-mcp setup` is a complete offline ABAP+AI workspace. Its
+  transpile-and-run pipeline is also the natural foundation for a future `run_abap_unit` tool here.
+
 ## Credits
 
 - [abaplint](https://github.com/abaplint/abaplint) by Lars Hvam — the parser and rule engine
