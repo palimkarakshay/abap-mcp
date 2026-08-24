@@ -1,5 +1,9 @@
 # abap-mcp
 
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_abap--mcp-0098FF?logo=githubcopilot&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=abap-mcp&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22abap-mcp%22%5D%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install-24bfa5?logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=abap-mcp&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22abap-mcp%22%5D%7D&quality=insiders)
+[![npm](https://img.shields.io/npm/v/abap-mcp?logo=npm)](https://www.npmjs.com/package/abap-mcp)
+
 **Make your AI coding agent an expert SAP ABAP & RAP consultant — local by default. No SAP
 system, no credentials, one command to install.**
 
@@ -78,7 +82,22 @@ but does not operate a public service. Follow the [OpenAI setup and self-hosting
 claude mcp add abap-mcp -- npx -y abap-mcp
 ```
 
-**Cursor · Windsurf · VS Code (Copilot agent mode) · any MCP client** — add this to its
+**VS Code (Copilot agent mode)** — one click on the *Install in VS Code* badge above, or one command:
+
+```bash
+code --add-mcp '{"name":"abap-mcp","command":"npx","args":["-y","abap-mcp"]}'
+```
+
+For a whole team, commit [`examples/vscode/mcp.json`](examples/vscode/mcp.json) as `.vscode/mcp.json`
+in your abapGit repo — everyone who opens the folder gets the server offered automatically.
+
+**Eclipse (via the GitHub Copilot plugin)** — Copilot Chat in Eclipse speaks MCP: open the
+Copilot menu → *Edit preferences* → *MCP*, and add the same `"abap-mcp"` server block
+(command `npx`, args `["-y", "abap-mcp"]`). Steps and prerequisites:
+[GitHub's MCP docs, Eclipse tab](https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp/extend-copilot-chat-with-mcp?tool=eclipse).
+Stock ADT without Copilot has no MCP client today.
+
+**Cursor · Windsurf · any MCP client** — add this to its
 `mcp.json` / `.mcp.json` (project or global):
 
 ```json

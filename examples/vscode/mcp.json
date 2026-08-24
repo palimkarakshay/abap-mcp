@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "abap-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "abap-mcp"]
+    }
+  }
+}
