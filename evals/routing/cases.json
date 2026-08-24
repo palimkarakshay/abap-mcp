@@ -314,5 +314,18 @@
       "direct",
       "autofix"
     ]
+  },
+  {
+    "id": "build-from-spec",
+    "intent": "Here is the functional spec for a travel-approval application. Build the modern RAP implementation for me from this spec — I don't want to start from a blank page.",
+    "expected": {
+      "kind": "prompt",
+      "name": "abap-from-spec"
+    },
+    "tags": [
+      "prompt",
+      "direct",
+      "spec-to-code"
+    ]
   }
 ]

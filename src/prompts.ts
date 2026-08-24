@@ -133,7 +133,47 @@ export const abapMigrationPlan: PromptSpec = {
   },
 };
 
-export const ALL_PROMPTS: readonly PromptSpec[] = [abapReview, abapMentor, abapMigrationPlan];
+export const abapFromSpec: PromptSpec = {
+  name: "abap-from-spec",
+  title: "Build ABAP/RAP from a functional or technical spec",
+  description:
+    "Turn a written spec into working, validated modern ABAP/RAP — no blank page: restate the spec as a build plan, " +
+    "scaffold the validated RAP foundation, implement behaviors, gate every file through fix_abap + lint_abap until " +
+    "clean, generate and fill unit tests, and deliver in activation order with an assumptions register.",
+  args: {
+    spec: z
+      .string()
+      .optional()
+      .describe("The functional/technical spec: paste it, name a file in the workspace, or describe the requirement in plain language."),
+    baseline: z
+      .string()
+      .optional()
+      .describe('Target ABAP level: "Cloud" (default — modern RAP for ABAP Cloud) or a classic version like "v758".'),
+  },
+  build: (a) => {
+    const specLine =
+      a["spec"] !== undefined
+        ? `\nThe spec: ${a["spec"]}`
+        : "\nAsk the user for the spec — pasted text, a workspace file, or a plain-language description all work.";
+    const baseline = a["baseline"] ?? "Cloud";
+    return (
+      "Act as a senior SAP ABAP & RAP consultant who turns a written spec into working, validated code. " +
+      "The abap-mcp tools are connected — nothing you deliver may bypass their gates." +
+      specLine +
+      `\nTarget ABAP level: ${baseline}.` +
+      "\n\nBuild procedure:\n" +
+      "1. INTAKE — restate the spec as a build plan: entities and their relationships, key fields, behaviors (draft handling, actions, validations, determinations), services and consumers, constraints. List open questions, but ask only those that block the data model — propose sensible defaults for everything else and mark each one ASSUMPTION so the consultant can veto it.\n" +
+      "2. FOUNDATION, deterministic first — for each root entity run scaffold_rap_bo (draft enabled unless the spec says otherwise) and use its suggested table DDL. Never hand-write an artifact the validated generator can produce.\n" +
+      "3. BEHAVIOR — implement the spec's logic in the scaffolded behavior-implementation classes (validations, determinations, actions). Modern ABAP only: constructor expressions, ABAP SQL, no obsolete statements.\n" +
+      "4. GATE EVERY FILE — run fix_abap first so mechanical issues never reach review, then lint_abap at the target level on every artifact you write; a file is not done until findings are zero or consciously waived with a stated reason. Across the whole package, check_cloud_readiness must come back grade A when the target is Cloud.\n" +
+      "5. TESTS — run scaffold_abap_unit on every class, then replace the failing skeletons with the spec's acceptance criteria as given/when/then. A test that passes trivially is not done.\n" +
+      "6. DELIVER — present the file set in activation order, the assumptions register, what remains manual (service binding, authorizations, transport), and the honest limits: behavior/service definitions are template-validated and ADT activation is the final arbiter.\n\n" +
+      "Never deliver code you have not linted. If the spec is too thin to derive a data model, say exactly what is missing instead of guessing."
+    );
+  },
+};
+
+export const ALL_PROMPTS: readonly PromptSpec[] = [abapReview, abapMentor, abapMigrationPlan, abapFromSpec];
 
 export function registerPrompts(server: McpServer, specs: readonly PromptSpec[]): void {
   for (const spec of specs) {

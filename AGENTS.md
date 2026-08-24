@@ -2,8 +2,8 @@
 
 MCP server for SAP ABAP: **offline** static analysis (abaplint), ABAP Cloud / Clean Core
 readiness checks, phased migration planning, released-API lookup against SAP's bundled
-Cloudification snapshot, RAP managed-BO scaffolding, plus 3 guided-workflow MCP prompts
-(abap-review / abap-mentor / abap-migration-plan). No SAP system, no credentials, and no
+Cloudification snapshot, RAP managed-BO scaffolding, plus 4 guided-workflow MCP prompts
+(abap-from-spec / abap-review / abap-mentor / abap-migration-plan). No SAP system, no credentials, and no
 user-filesystem — text in, structured JSON out (package-bundled data assets excepted; see
 invariants). The analysis engine makes no outbound network calls; stdio is local, while the
 optional HTTP transport accepts inbound MCP requests. Lumivara product line: **SAP**.
@@ -13,7 +13,7 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (199 tests) + build + routing eval, in order = **the CI gate**
+- `npm run check`     — typecheck + vitest (218 tests) + build + routing eval, in order = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `npm run build`     — `tsc && node scripts/copy-data.mjs` (tsc does NOT copy the bundled `.json`)
 - `node scripts/build-released-api-index.mjs` — **dev-only**, refreshes the SAP released-API
@@ -33,9 +33,10 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
   scaffold_rap_bo, scaffold_abap_unit [failing-by-default test harness], get_object_dependencies
   [tiered graph +released flags +mermaid], check_released_api, list_abap_rules, explain_abap_rule,
   format_abap, get_abap_outline [+mermaid]). The registry export `tools` is what @mcp-kit/lint discovers.
-- `src/prompts.ts` — the 3 PromptSpecs (abap-review, abap-mentor, abap-migration-plan): the
-  packaged consultant workflows, rubric-tested like tools; they steer agents to real tools and
-  repeat the honesty boundaries.
+- `src/prompts.ts` — the 4 PromptSpecs (abap-from-spec [spec→validated code, the blank-page
+  killer], abap-review, abap-mentor, abap-migration-plan): the packaged consultant workflows,
+  rubric-tested like tools; they steer agents to real tools and repeat the honesty boundaries.
+  Mirrored as Codex plugin skills in `plugins/abap-mcp/skills/` — keep the two in lockstep.
 - `src/abap/` — engine.ts (Registry wrapper, filename inference, caps, focus tag filter, AST
   object-reference extraction) · readiness.ts (dual-parse diff + released-API cross-check +
   density-banded A–D grade) · plan.ts (deterministic phased-backlog arrangement of a
@@ -61,7 +62,7 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
   --add-mcp` / `claude mcp add` and prints guided Eclipse steps; the MCP server never does) +
   `src/index.ts` (library exports). Newcomer walkthrough: `docs/INSTALL.md`.
 - `docs/DESIGN.md` — decision log · `docs/COOKBOOK.md` — user recipes
-- `plugins/abap-mcp/` + `.agents/plugins/marketplace.json` — Codex plugin, 3 skills, local MCP
+- `plugins/abap-mcp/` + `.agents/plugins/marketplace.json` — Codex plugin, 4 skills (mirroring the prompts), local MCP
 - `evals/routing/` — offline metadata-routing fixtures and reports
 - `examples/claude-code/` — subagents (reviewer, migrator), .mcp.json, CI workflow
 

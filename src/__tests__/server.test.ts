@@ -174,14 +174,21 @@ describe("MCP server wire", () => {
     expect(migrationFindings).toBe(plan.summary.cloudBlockerCount);
   });
 
-  it("lists the three guided-workflow prompts and renders one", async () => {
+  it("lists the four guided-workflow prompts and renders one", async () => {
     const client = await connectedClient();
     const { prompts } = await client.listPrompts();
     expect(prompts.map((p) => p.name).sort()).toEqual([
+      "abap-from-spec",
       "abap-mentor",
       "abap-migration-plan",
       "abap-review",
     ]);
+    const spec = await client.getPrompt({ name: "abap-from-spec", arguments: {} });
+    const specText = (spec.messages[0]!.content as { type: string; text: string }).text;
+    expect(specText).toContain("scaffold_rap_bo");
+    expect(specText).toContain("fix_abap");
+    expect(specText).toContain("ASSUMPTION");
+    expect(specText).toContain("Never deliver code you have not linted");
     const got = await client.getPrompt({ name: "abap-review", arguments: { focus: "Security" } });
     const text = (got.messages[0]!.content as { type: string; text: string }).text;
     expect(got.messages[0]!.role).toBe("user");

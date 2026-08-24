@@ -131,6 +131,7 @@ through `get_abap_outline`.
 
 ### First things to ask
 
+- *"Here's my functional spec — build the RAP implementation from it."* (or run `/mcp__abap-mcp__abap-from-spec`)
 - *"Lint this class against ABAP Cloud and explain the worst finding like I'm new to ABAP."*
 - *"How cloud-ready is this repo? Grade it and plan the migration in phases."*
 - *"Is MARA a released API? What do I use instead?"*
@@ -139,12 +140,13 @@ through `get_abap_outline`.
 
 ### Guided workflows built in (MCP prompts)
 
-The consultant's playbook ships both as three MCP prompts and as three Codex plugin skills. In
+The consultant's playbook ships both as four MCP prompts and as four Codex plugin skills. In
 Claude Code the prompts appear as slash commands (`/mcp__abap-mcp__…`); prompt-capable clients
 list them natively, while the Codex plugin discovers the corresponding skills:
 
 | Prompt | What it sets up |
 | --- | --- |
+| `abap-from-spec` | **The blank-page killer.** Hand it a functional/tech spec — or a plain-language requirement — and the agent builds working, validated modern ABAP/RAP: spec → build plan with an ASSUMPTION register → deterministic `scaffold_rap_bo` foundation → behavior logic → every file gated through `fix_abap` + `lint_abap` until clean → filled unit tests → delivery in activation order. Nothing unlinted is ever delivered. |
 | `abap-review` | A full senior-consultant code review: lint → triage → explain each finding's *why* → minimal fixes → prove the rework with `compare_abap`. Optional `focus` (Performance / Security / Styleguide). |
 | `abap-mentor` | Over-the-shoulder mentoring mode for the rest of the session: every snippet is quietly linted and readiness-checked, findings become plain-language guidance, new objects start from validated scaffolds. |
 | `abap-migration-plan` | A client-ready phased migration plan driven by `plan_cloud_migration` — current state, phases with S/M/L efforts and exit criteria, released-API work separated — then offers to execute phase 1. |
