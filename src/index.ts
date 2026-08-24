@@ -5,6 +5,10 @@ export { runAbaplint, inferFilename, ABAP_VERSIONS, FOCUS_TAGS } from "./abap/en
 export type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
 export { checkCloudReadiness, gradeReadiness } from "./abap/readiness.js";
 export type { ReadinessReport, ReadinessGrade, ReleasedApiFinding } from "./abap/readiness.js";
+export { planCloudMigration } from "./abap/plan.js";
+export type { MigrationPlan, PlanPhase, PlanWorkItem, PlanEffort } from "./abap/plan.js";
+export { ALL_PROMPTS, registerPrompts } from "./prompts.js";
+export type { PromptSpec } from "./prompts.js";
 export { compareAbap } from "./abap/compare.js";
 export type { CompareReport, CompareOptions, CompareSide, OutlineChanges } from "./abap/compare.js";
 export { lookupReleased, suggestSuccessor, RELEASED_API_SNAPSHOT } from "./abap/released.js";

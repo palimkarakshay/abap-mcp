@@ -15,8 +15,9 @@ checkout, an abapGit export, a code review, CI — long before anything reaches 
   its rationale and examples (`explain_abap_rule`), and `scaffold_rap_bo` starts you from a
   canonical, self-validated RAP business object instead of a blank editor.
 - **Senior ABAP consultant?** It's your assessment and task engine: point your agent at a repo and
-  get a scored, categorized ABAP Cloud readiness backlog with an A–D tech-debt grade
-  (`check_cloud_readiness`), an objective before/after verdict on every rework (`compare_abap`),
+  get a scored, categorized ABAP Cloud readiness report with an A–D tech-debt grade
+  (`check_cloud_readiness`), a phased migration backlog with efforts and exit criteria
+  (`plan_cloud_migration`), an objective before/after verdict on every rework (`compare_abap`),
   released-API replacements (`check_released_api`), and CI gates that hold the line while the
   migration proceeds.
 
@@ -35,6 +36,7 @@ layer:
 
 - *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
 - *"How far is this classic report from ABAP Cloud? Grade it."* → `check_cloud_readiness` (A–D)
+- *"Plan the migration — what do we tackle first?"* → `plan_cloud_migration` (phased backlog)
 - *"Did this rework make the code better or worse?"* → `compare_abap`
 - *"Is MARA a released API? What do I use instead?"* → `check_released_api`
 - *"Start me a correct RAP business object."* → `scaffold_rap_bo`
@@ -80,16 +82,27 @@ npm install && npm run build
 claude mcp add abap-mcp -- node /path/to/abap-mcp/dist/cli.js
 ```
 
-Connected? Ask your agent *"list your ABAP tools"* — you should see all nine, `lint_abap`
+Connected? Ask your agent *"list your ABAP tools"* — you should see all ten, `lint_abap`
 through `get_abap_outline`.
 
 ### First things to ask
 
 - *"Lint this class against ABAP Cloud and explain the worst finding like I'm new to ABAP."*
-- *"How cloud-ready is this repo? Grade it and give me an ordered fix list."*
+- *"How cloud-ready is this repo? Grade it and plan the migration in phases."*
 - *"Is MARA a released API? What do I use instead?"*
 - *"Scaffold a RAP BO for entity Booking on table zbooking, draft enabled."*
 - *"I reworked zcl_pricing — compare old vs new: did it actually get better?"*
+
+### Guided workflows built in (MCP prompts)
+
+The consultant's playbook ships as three MCP prompts — in Claude Code they appear as slash
+commands (`/mcp__abap-mcp__…`); other prompt-capable clients list them natively:
+
+| Prompt | What it sets up |
+| --- | --- |
+| `abap-review` | A full senior-consultant code review: lint → triage → explain each finding's *why* → minimal fixes → prove the rework with `compare_abap`. Optional `focus` (Performance / Security / Styleguide). |
+| `abap-mentor` | Over-the-shoulder mentoring mode for the rest of the session: every snippet is quietly linted and readiness-checked, findings become plain-language guidance, new objects start from validated scaffolds. |
+| `abap-migration-plan` | A client-ready phased migration plan driven by `plan_cloud_migration` — current state, phases with S/M/L efforts and exit criteria, released-API work separated — then offers to execute phase 1. |
 
 ## CLI — same engine, no AI required
 
@@ -100,6 +113,7 @@ npx abap-mcp lint src/                          # lint files or whole directorie
 npx abap-mcp lint src/ --focus Performance      # themed pass: Performance | Security | Styleguide
 npx abap-mcp lint src/ --rules-file org.json    # your org's abaplint rule pack, same engine
 npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, scored + graded A–D
+npx abap-mcp plan src/                          # phased migration backlog: work items, S/M/L efforts, exit criteria
 npx abap-mcp compare old/ new/                  # rework verdict: findings resolved/introduced, grade movement
 npx abap-mcp scaffold --entity Travel --table ztravel --key travel_id --out ./out
 npx abap-mcp outline src/zcl_monster.clas.abap  # navigate big objects (--mermaid for a diagram)
@@ -127,6 +141,7 @@ GitHub Actions quality gate for abapGit repos.
 | --- | --- |
 | `lint_abap` | abaplint static analysis over ABAP/CDS/BDEF sources → structured findings with rule docs links. Presets: `style` (default, snippet-friendly), `full`, `syntax-only`; per-rule overrides for org rule packs; `focus` lens (`Performance` / `Security` / `Styleguide`) for themed reviews. |
 | `check_cloud_readiness` | Dual-parse diff (classic baseline vs `Cloud`): statements that are valid today but illegal in ABAP Cloud become categorized blockers (dynpro, list output, native SQL, …) with a transparent score **and a density-banded A–D tech-debt grade**; code broken at the baseline is reported separately, not counted as migration work. Also surfaces a **separate, dated released-API cross-check** (`releasedApiFindings`): direct access to non-released classic tables and deprecated-API usage found in the source, with CDS successor hints — informational, not folded into the score. |
+| `plan_cloud_migration` | The task-manager layer over readiness: arranges every blocker into a phased, consulting-ordered backlog — repair-the-baseline first, then mechanical quick wins, core rework, UI re-architecture, and a separate snapshot-dated released-API phase. Each work item carries an S/M/L effort band, a remediation recipe and sample locations; each phase carries objective, re-checkable exit criteria. Deterministic: same readiness numbers, rearranged — no new judgments. |
 | `compare_abap` | Before/after verdict on a rework: lint findings resolved vs introduced (matched by content, so moved code isn't noise), blocker/score/grade movement, and classes/methods/FORMs added or removed. The objective referee for refactors and AI rewrites. |
 | `check_released_api` | Looks up objects (tables, CDS views, function modules, classes, …) in SAP's bundled Cloudification snapshot → `released` / `deprecated` / `not-released` per object, plus a curated CDS successor for common classic tables. The released-API half of readiness, offline. |
 | `scaffold_rap_bo` | Generates the canonical RAP managed-BO stack (root view, behavior definition `strict(2)` + optional draft, behavior class + handler locals, projection, metadata extension, OData V4 service definition) plus suggested table DDL, activation order and next steps. |
@@ -159,15 +174,14 @@ GitHub Actions quality gate for abapGit repos.
 
 ```bash
 npm install
-npm run check     # typecheck + 149 tests + build — the CI gate
+npm run check     # typecheck + 171 tests + build — the CI gate
 node dist/cli.js  # stdio MCP server
 npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 ```
 
-Tool descriptions are CI-graded (a rubric test enforces verb-first names, when-to-use,
+Tool and prompt descriptions are CI-graded (a rubric test enforces verb-first names, when-to-use,
 non-goals, described params, worked examples — the
-[mcp-kit](https://github.com/palimkarakshay/mcp-kit) discipline; the full mcp-kit lint scores all
-nine tools 100/100).
+[mcp-kit](https://github.com/palimkarakshay/mcp-kit) discipline).
 
 ## Design
 

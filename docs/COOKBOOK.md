@@ -194,6 +194,20 @@ consistent engine between CI, the CLI, and your AI assistant.)
 
 ## 6. Agentic workflows (see `examples/claude-code/`)
 
+**Zero-setup: the built-in prompts.** Since 0.5.0 the server ships the consultant playbook as
+three MCP prompts — no files to copy. In Claude Code they surface as slash commands
+(`/mcp__abap-mcp__abap-review`, `…abap-mentor`, `…abap-migration-plan`); other prompt-capable
+clients list them natively. `abap-review` = the reviewer flow below; `abap-mentor` = standing
+over-the-shoulder teaching mode; `abap-migration-plan` = drive `plan_cloud_migration` into a
+client-ready phased plan and offer to execute phase 1. The subagent files below remain the
+richer, customizable versions of the same flows.
+
+**The migration backlog in one call.** `plan_cloud_migration` (CLI: `abap-mcp plan src/`)
+turns the readiness diff into a phased work breakdown — repair-the-baseline first, then quick
+wins, core rework, UI re-architecture, with released-API work separate and snapshot-dated.
+Every item has an S/M/L effort band and a recipe; every phase has re-checkable exit criteria,
+so an agent (or a team standup) can walk the backlog and prove each step with `compare_abap`.
+
 **The reviewer subagent.** Drop `abap-code-reviewer.md` into `.claude/agents/` — a subagent
 whose system prompt mandates: outline first, lint every changed object, readiness-check
 anything cloud-bound, explain each finding with the rule rationale, never approve with parser

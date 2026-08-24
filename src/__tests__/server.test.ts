@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import type { ZodType } from "zod";
 
 import { ALL_TOOLS } from "../abap.tools.js";
+import { ALL_PROMPTS } from "../prompts.js";
 import { buildServer } from "../server.js";
 
 async function connectedClient(): Promise<Client> {
@@ -21,7 +22,7 @@ async function connectedClient(): Promise<Client> {
 }
 
 describe("MCP server wire", () => {
-  it("lists all nine tools", async () => {
+  it("lists all ten tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -33,8 +34,59 @@ describe("MCP server wire", () => {
       "get_abap_outline",
       "lint_abap",
       "list_abap_rules",
+      "plan_cloud_migration",
       "scaffold_rap_bo",
     ]);
+  });
+
+  it("plan_cloud_migration phases blockers into a backlog over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "plan_cloud_migration",
+      arguments: {
+        files: [
+          {
+            filename: "zold_report.prog.abap",
+            source: "REPORT zold_report.\nWRITE: / 'hi'.\nCALL SCREEN 100.",
+          },
+        ],
+      },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        summary: { cloudBlockerCount: number; workItemCount: number; estimatedEffort: string };
+        phases: { kind: string; findingCount: number; effort: string; items: unknown[]; exitCriteria: string }[];
+      };
+    };
+    expect(result.isError ?? false).toBe(false);
+    const plan = result.structuredContent!;
+    expect(plan.summary.cloudBlockerCount).toBeGreaterThan(0);
+    expect(plan.phases.length).toBeGreaterThan(0);
+    for (const p of plan.phases) {
+      expect(["S", "M", "L"]).toContain(p.effort);
+      expect(p.items.length).toBeGreaterThan(0);
+      expect(p.exitCriteria.length).toBeGreaterThan(0);
+    }
+    // The migration phases account for every blocker — no silent drops.
+    const migrationFindings = plan.phases
+      .filter((p) => p.kind === "migration")
+      .reduce((n, p) => n + p.findingCount, 0);
+    expect(migrationFindings).toBe(plan.summary.cloudBlockerCount);
+  });
+
+  it("lists the three guided-workflow prompts and renders one", async () => {
+    const client = await connectedClient();
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name).sort()).toEqual([
+      "abap-mentor",
+      "abap-migration-plan",
+      "abap-review",
+    ]);
+    const got = await client.getPrompt({ name: "abap-review", arguments: { focus: "Security" } });
+    const text = (got.messages[0]!.content as { type: string; text: string }).text;
+    expect(got.messages[0]!.role).toBe("user");
+    expect(text).toContain("lint_abap");
+    expect(text).toContain("Security");
   });
 
   it("compare_abap reports grade movement over the wire", async () => {
@@ -113,7 +165,7 @@ describe("MCP server wire", () => {
 });
 
 describe("tool description rubric (mcp-kit discipline)", () => {
-  const VERBS = ["get", "list", "search", "run", "create", "check", "compare", "lint", "scaffold", "explain", "format"];
+  const VERBS = ["get", "list", "search", "run", "create", "check", "compare", "lint", "scaffold", "explain", "format", "plan"];
 
   for (const tool of ALL_TOOLS) {
     describe(tool.name, () => {
@@ -141,6 +193,33 @@ describe("tool description rubric (mcp-kit discipline)", () => {
 
       it("is annotated read-only (this server never mutates anything)", () => {
         expect(tool.annotations?.readOnlyHint).toBe(true);
+      });
+    });
+  }
+});
+
+describe("prompt description rubric", () => {
+  for (const prompt of ALL_PROMPTS) {
+    describe(prompt.name, () => {
+      it("has a kebab-case name, a title and a real description", () => {
+        expect(prompt.name).toMatch(/^[a-z][a-z0-9-]*$/);
+        expect(prompt.title.length).toBeGreaterThanOrEqual(12);
+        expect(prompt.description.length).toBeGreaterThanOrEqual(40);
+      });
+
+      it("describes every argument", () => {
+        for (const [field, schema] of Object.entries(prompt.args)) {
+          const description = (schema as ZodType).description;
+          expect(description, `${prompt.name}.${field} needs .describe()`).toBeTruthy();
+          expect(description!.length).toBeGreaterThanOrEqual(12);
+        }
+      });
+
+      it("renders with no arguments and grounds itself in real tools", () => {
+        const text = prompt.build({});
+        expect(text.length).toBeGreaterThanOrEqual(200);
+        const toolNames = ["lint_abap", "check_cloud_readiness", "plan_cloud_migration", "scaffold_rap_bo", "compare_abap"];
+        expect(toolNames.some((t) => text.includes(t))).toBe(true);
       });
     });
   }

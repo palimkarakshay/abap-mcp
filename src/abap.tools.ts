@@ -12,6 +12,7 @@ import { compareAbap } from "./abap/compare.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, runAbaplint } from "./abap/engine.js";
 import { formatAbap } from "./abap/formatter.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
+import { planCloudMigration } from "./abap/plan.js";
 import { checkCloudReadiness } from "./abap/readiness.js";
 import {
   lookupReleased,
@@ -742,10 +743,95 @@ export const compareAbapTool = defineTool({
   },
 });
 
+export const planCloudMigrationTool = defineTool({
+  name: "plan_cloud_migration",
+  title: "Plan an ABAP Cloud migration",
+  description:
+    "Turn ABAP sources into an ordered, phased ABAP Cloud migration backlog: runs the same dual-parse analysis as " +
+    "check_cloud_readiness, then arranges every blocker into per-object work items across consulting-ordered phases — " +
+    "repair-the-baseline first (broken code is not migration work), then mechanical quick wins, core rework of removed " +
+    "statements, UI/output re-architecture, and a separate snapshot-dated released-API remediation phase. Each work item " +
+    "carries an S/M/L effort band, a remediation recipe and sample locations; each phase carries a goal and objective, " +
+    "re-checkable exit criteria. " +
+    "Use this when someone asks 'plan the migration', 'what do we tackle first', or wants a work breakdown / task " +
+    "backlog instead of raw findings — the natural next call after check_cloud_readiness says rework is needed. " +
+    "It is a deterministic re-arrangement of the readiness analysis: it does not estimate person-days, does not modify " +
+    "any code, and inherits every readiness limitation (static, parser-level, snapshot-dated released-API data — a " +
+    "system's ATC stays authoritative). " +
+    'Example: plan_cloud_migration({ "files": [ { "source": "REPORT zold.\\nWRITE: / \'hi\'.\\nCALL SCREEN 100." } ] }).',
+  inputSchema: {
+    files: filesField,
+    baselineVersion: VERSION_ENUM.default("v758").describe(
+      "Classic ABAP version the code runs on today; used to separate broken-anyway code (phase: repair the baseline) from real migration work.",
+    ),
+  },
+  outputSchema: {
+    summary: z
+      .object({
+        verdict: z.string().describe("Readiness verdict the plan is built from."),
+        score: z.number().describe("Readiness score (100 − 5×blockers, floored at 0)."),
+        grade: z.enum(["A", "B", "C", "D"]).describe("Clean Core tech-debt grade (blocker density banding)."),
+        cloudBlockerCount: z.number().describe("Total statements ABAP Cloud removed — equals the migration phases' finding total."),
+        fileCount: z.number().describe("Files analyzed."),
+        phaseCount: z.number().describe("Phases in the plan."),
+        workItemCount: z.number().describe("Work items across all phases."),
+        estimatedEffort: z.string().describe('Effort-band tally across items, e.g. "3×S, 2×M, 1×L". Bands, not person-days.'),
+      })
+      .describe("Roll-up of the plan and the readiness numbers it rearranges."),
+    phases: z.array(
+      z.object({
+        phase: z.number().describe("1-based execution order."),
+        kind: z
+          .enum(["baseline", "migration", "released-api"])
+          .describe("baseline = broken-code repair; migration = objective blocker work; released-api = informational, snapshot-dated."),
+        title: z.string().describe("Phase name."),
+        goal: z.string().describe("What the phase achieves and why it is ordered here."),
+        effort: z.enum(["S", "M", "L"]).describe("Highest effort band among the phase's items."),
+        itemCount: z.number().describe("Work items in the phase."),
+        findingCount: z.number().describe("Findings behind those items."),
+        items: z.array(z.unknown()).describe("Work items: object, category, effort, findingCount, recipe, sample locations."),
+        exitCriteria: z.string().describe("Objective condition to call the phase done, phrased as a re-runnable check."),
+      }),
+    ),
+    suggestedLoop: z.string().describe("How to execute and prove each item: the fix → compare_abap → re-check loop."),
+    releasedApiSnapshotDate: z.string().describe("Date of the bundled released-API snapshot behind the released-api phase."),
+    scopeNote: z.string().describe("Exactly what the underlying analysis does and does not cover."),
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  examples: [
+    {
+      description: "Phase a classic report with UI, list output and subroutines into a migration backlog.",
+      arguments: {
+        files: [
+          {
+            filename: "zold_report.prog.abap",
+            source: "REPORT zold_report.\nWRITE: / 'hi'.\nCALL SCREEN 100.\nFORM f1.\nENDFORM.",
+          },
+        ],
+      },
+    },
+  ],
+  handler: (args) => {
+    const plan = planCloudMigration(checkCloudReadiness(args.files, args.baselineVersion));
+    const s = plan.summary;
+    const lines = [
+      `${s.cloudBlockerCount} blocker(s) (score ${s.score}, grade ${s.grade}) → ${s.workItemCount} work item(s) in ${s.phaseCount} phase(s); effort ${s.estimatedEffort}`,
+      ...plan.phases.map(
+        (p) => `  ${p.phase}. ${p.title} — ${p.itemCount} item(s), ${p.findingCount} finding(s), effort ${p.effort}`,
+      ),
+    ];
+    return {
+      content: [{ type: "text", text: lines.join("\n") }],
+      structuredContent: plan as unknown as Record<string, unknown>,
+    };
+  },
+});
+
 /** Every tool this server exposes. (`tools` alias = the registry-export shape @mcp-kit/lint discovers.) */
 export const ALL_TOOLS: readonly AnyToolSpec[] = [
   lintAbap,
   checkCloudReadinessTool,
+  planCloudMigrationTool,
   compareAbapTool,
   scaffoldRapBoTool,
   checkReleasedApiTool,

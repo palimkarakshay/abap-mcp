@@ -12,6 +12,7 @@ import { compareAbap } from "./abap/compare.js";
 import type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILES, runAbaplint } from "./abap/engine.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
+import { planCloudMigration } from "./abap/plan.js";
 import type { ReadinessReport } from "./abap/readiness.js";
 import { checkCloudReadiness, gradeReadiness, SCOPE_NOTE } from "./abap/readiness.js";
 import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./abap/released.js";
@@ -216,6 +217,36 @@ export function cmdReadiness(argv: string[], io: CliIo): number {
   return 0;
 }
 
+export function cmdPlan(argv: string[], io: CliIo): number {
+  const { flags, rest } = parseFlags(argv);
+  const files = collectFiles(rest.length > 0 ? rest : ["."], io);
+  if (files.length === 0) {
+    io.err("No ABAP sources found.");
+    return 2;
+  }
+  const baseline = asVersion(flags.get("baseline"), "v758");
+  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline));
+  const plan = planCloudMigration(mergeReadiness(reports, baseline));
+  if (flags.has("json")) {
+    io.out(JSON.stringify(plan, null, 2));
+    return 0;
+  }
+  const s = plan.summary;
+  io.out(
+    `ABAP Cloud migration plan — score ${s.score}, grade ${s.grade}, ${s.cloudBlockerCount} blocker(s) → ` +
+      `${s.workItemCount} work item(s) in ${s.phaseCount} phase(s); effort ${s.estimatedEffort}`,
+  );
+  for (const p of plan.phases) {
+    io.out(`\nPhase ${p.phase} — ${p.title}  [${p.kind}, effort ${p.effort}, ${p.itemCount} item(s)]`);
+    io.out(`  ${p.goal}`);
+    for (const i of p.items)
+      io.out(`  - ${i.object}  ${i.category}×${i.findingCount} [${i.effort}]  ${i.recipe}`);
+    io.out(`  exit: ${p.exitCriteria}`);
+  }
+  io.out(`\nLoop: ${plan.suggestedLoop}`);
+  return 0;
+}
+
 export function cmdScaffold(argv: string[], io: CliIo): number {
   const { flags } = parseFlags(argv);
   const entityName = flags.get("entity");
@@ -410,6 +441,7 @@ Usage:
   abap-mcp                       start the MCP server on stdio (for AI clients)
   abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]
   abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--fail-below N] [--json]
+  abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--json]
   abap-mcp compare BEFORE AFTER  what a rework changed: findings resolved/introduced, blocker/score/grade movement, structure   [--preset …] [--focus …] [--json]
   abap-mcp scaffold …            generate a RAP managed BO   (--entity --table --key [--fields n:type,…] [--no-draft] [--provided-key] [--out DIR])
   abap-mcp outline [paths…]      classes/methods/forms structure   [--mermaid] [--json]
@@ -429,6 +461,8 @@ export function runCli(argv: string[], io: CliIo): number | null {
       return cmdLint(rest, io);
     case "readiness":
       return cmdReadiness(rest, io);
+    case "plan":
+      return cmdPlan(rest, io);
     case "compare":
       return cmdCompare(rest, io);
     case "scaffold":
