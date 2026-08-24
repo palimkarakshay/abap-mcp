@@ -10,7 +10,7 @@ import type { ZodType } from "zod";
 
 import { ALL_TOOLS } from "../abap.tools.js";
 import { ALL_PROMPTS } from "../prompts.js";
-import { buildServer } from "../server.js";
+import { buildServer, SERVER_INSTRUCTIONS } from "../server.js";
 
 async function connectedClient(): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -22,6 +22,14 @@ async function connectedClient(): Promise<Client> {
 }
 
 describe("MCP server wire", () => {
+  it("publishes concise server-wide routing and honesty instructions", async () => {
+    const client = await connectedClient();
+    expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+    expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("check_cloud_readiness");
+    expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("cannot read workspace files");
+    expect(SERVER_INSTRUCTIONS).toContain("do not connect to SAP or run ATC");
+  });
+
   it("lists all ten tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
@@ -196,6 +204,19 @@ describe("tool description rubric (mcp-kit discipline)", () => {
       });
     });
   }
+});
+
+describe("tool routing metadata", () => {
+  it("describes readiness and explicit API lookup as complementary", () => {
+    const readiness = ALL_TOOLS.find((tool) => tool.name === "check_cloud_readiness")!;
+    const releasedApi = ALL_TOOLS.find((tool) => tool.name === "check_released_api")!;
+
+    expect(readiness.description).toContain("released-API observations");
+    expect(readiness.description).toContain("not exhaustive dependency discovery");
+    expect(readiness.description).not.toContain("does not check released-API usage");
+    expect(releasedApi.description).toContain("complements check_cloud_readiness");
+    expect(releasedApi.description).not.toContain("deliberately leaves");
+  });
 });
 
 describe("prompt description rubric", () => {

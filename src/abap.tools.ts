@@ -156,11 +156,14 @@ export const checkCloudReadinessTool = defineTool({
     "baseline (default v758) and once at version Cloud — and diffing: findings that appear only at Cloud are genuine " +
     "cloud blockers (statements ABAP Cloud removed), reported in categories (dynpro, list output, native SQL, report " +
     "events, …) with a transparent score, an A–D tech-debt grade and a verdict; findings already present at the " +
-    "baseline are reported separately as broken code, not migration work. " +
+    "baseline are reported separately as broken code, not migration work. It also reports snapshot-dated " +
+    "released-API observations for direct table and function-module references the parser can extract; those stay " +
+    "separate from the language-level blocker count and score. " +
     "Use this when someone asks 'is this code cloud-ready / Clean Core compliant / S/4HANA-cloud safe', before " +
     "porting classic ABAP into an ABAP Cloud environment, or for a graded tech-debt assessment of an abapGit export. " +
-    "It is static and parser-level: it does not check released-API usage (that needs a system's ATC), does not " +
-    "connect to any SAP system, and a 'ready' verdict means no language-level blockers — not a certification. " +
+    "It is static and parser-level: its released-API scan is not exhaustive dependency discovery, it does not " +
+    "connect to any SAP system or run ATC, and a 'ready' verdict means no detected language-level blockers — not a " +
+    "certification. A target system's ATC remains authoritative. " +
     'Example: check_cloud_readiness({ "files": [ { "source": "REPORT zold.\\nWRITE: / \'hi\'." } ] }).',
   inputSchema: {
     files: filesField,
@@ -562,8 +565,8 @@ export const checkReleasedApiTool = defineTool({
     `This reflects SAP's official Cloudification list as bundled in this package (snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}); ` +
     "it ships offline with the server. " +
     "Use this when you need to know if your code may reference a given object in ABAP Cloud, or which released CDS view " +
-    "to use instead of a classic table — the released-API half of readiness that check_cloud_readiness deliberately " +
-    "leaves to a system's ATC. " +
+    "to use instead of a classic table. This explicit lookup complements check_cloud_readiness's limited, " +
+    "source-extracted released-API observations and can check objects that do not appear in the supplied source. " +
     "It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — a " +
     `system's own released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative; treat ` +
     "an 'absent from the list' result as 'not-released as of the snapshot', not as proof. " +

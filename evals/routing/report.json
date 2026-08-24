@@ -1,0 +1,1500 @@
+{
+  "generatedAt": "2026-08-24T15:22:41.174Z",
+  "mode": "offline-metadata",
+  "summary": {
+    "passed": true,
+    "cases": 22,
+    "passingCases": 22,
+    "failingCases": 0,
+    "toolCount": 10,
+    "promptCount": 3,
+    "abstentionCases": 7,
+    "correctAbstentions": 7,
+    "uncoveredCapabilities": [],
+    "unknownFixtureTargets": []
+  },
+  "capabilities": [
+    {
+      "kind": "tool",
+      "name": "lint_abap",
+      "title": "Lint ABAP source",
+      "description": "Run abaplint static analysis over ABAP, CDS or behavior-definition sources and return structured findings (rule key, message, severity, file/line/column, the offending line, and a docs URL per finding). Use this when you have written or modified ABAP code and want style and correctness feedback before it goes anywhere near a system — it runs entirely offline on the provided text. It does not connect to any SAP system, does not run ATC, and cannot judge whether referenced objects exist unless you provide them in the same call (preset \"style\", the default, skips whole-program checks for that reason; preset \"full\" enables them when you provide every dependency). A focus tag turns a pass into a themed review (performance / security / Clean ABAP style) without hand-picking rules; rule overrides layer a team's own pack on top. For an ABAP-Cloud migration verdict use check_cloud_readiness instead. Example: lint_abap({ \"files\": [ { \"source\": \"REPORT ztest.\\nDATA foo TYPE i.\\nIF foo = 1.\\nENDIF.\" } ] })."
+    },
+    {
+      "kind": "tool",
+      "name": "check_cloud_readiness",
+      "title": "Check ABAP Cloud readiness",
+      "description": "Assess how far ABAP source is from ABAP Cloud (Clean Core tier 1) by parsing it twice — once at a classic baseline (default v758) and once at version Cloud — and diffing: findings that appear only at Cloud are genuine cloud blockers (statements ABAP Cloud removed), reported in categories (dynpro, list output, native SQL, report events, …) with a transparent score, an A–D tech-debt grade and a verdict; findings already present at the baseline are reported separately as broken code, not migration work. Use this when someone asks 'is this code cloud-ready / Clean Core compliant / S/4HANA-cloud safe', before porting classic ABAP into an ABAP Cloud environment, or for a graded tech-debt assessment of an abapGit export. It is static and parser-level: it does not check released-API usage (that needs a system's ATC), does not connect to any SAP system, and a 'ready' verdict means no language-level blockers — not a certification. Example: check_cloud_readiness({ \"files\": [ { \"source\": \"REPORT zold.\\nWRITE: / 'hi'.\" } ] })."
+    },
+    {
+      "kind": "tool",
+      "name": "plan_cloud_migration",
+      "title": "Plan an ABAP Cloud migration",
+      "description": "Turn ABAP sources into an ordered, phased ABAP Cloud migration backlog: runs the same dual-parse analysis as check_cloud_readiness, then arranges every blocker into per-object work items across consulting-ordered phases — repair-the-baseline first (broken code is not migration work), then mechanical quick wins, core rework of removed statements, UI/output re-architecture, and a separate snapshot-dated released-API remediation phase. Each work item carries an S/M/L effort band, a remediation recipe and sample locations; each phase carries a goal and objective, re-checkable exit criteria. Use this when someone asks 'plan the migration', 'what do we tackle first', or wants a work breakdown / task backlog instead of raw findings — the natural next call after check_cloud_readiness says rework is needed. It is a deterministic re-arrangement of the readiness analysis: it does not estimate person-days, does not modify any code, and inherits every readiness limitation (static, parser-level, snapshot-dated released-API data — a system's ATC stays authoritative). Example: plan_cloud_migration({ \"files\": [ { \"source\": \"REPORT zold.\\nWRITE: / 'hi'.\\nCALL SCREEN 100.\" } ] })."
+    },
+    {
+      "kind": "tool",
+      "name": "compare_abap",
+      "title": "Compare two ABAP versions",
+      "description": "Compare a BEFORE and an AFTER version of ABAP source and report what a rework actually changed: lint findings resolved and introduced (matched by content, so moved-but-unchanged code is not noise), cloud-blocker / score / A–D grade movement from the same dual-parse diff as check_cloud_readiness, and structural changes — classes, methods and FORMs added or removed. Use this when reviewing a refactor, a modernization step or an AI-generated rewrite of an existing object and you need an objective better-or-worse verdict instead of eyeballing a diff. It is not a textual diff tool (use git diff to see the edits) and it cannot judge functional equivalence — behavior can change while every number improves; it does not connect to any SAP system. Example: compare_abap({ \"before\": [ { \"source\": \"REPORT zr.\\nWRITE 1.\" } ], \"after\": [ { \"source\": \"REPORT zr.\\nWRITE 2.\" } ] })."
+    },
+    {
+      "kind": "tool",
+      "name": "scaffold_rap_bo",
+      "title": "Scaffold a RAP business object",
+      "description": "Generate the complete, canonical RAP managed business-object stack for one root entity: root CDS view entity, behavior definition (managed, strict(2), optional draft), behavior implementation class with handler locals, projection view with transactional_query, projection behavior definition, UI metadata extension, and an OData V4 service definition — plus a suggested table DDL, the activation order, and next steps. Use this when starting a new RAP business object in ABAP Cloud or S/4HANA and you want correct boilerplate that follows the SAP /DMO reference shape instead of writing it by hand. Generated classes and CDS views are round-trip validated through abaplint at ABAP-Cloud level before being returned; behavior and service definitions are canonical templates (abaplint does not parse those deeply) and ADT activation is the final check. It does not create the table or the service binding (binding is not a source artifact — create it in ADT), and it generates single-entity BOs: model compositions (parent-child) yourself for now. Example: scaffold_rap_bo({ \"entityName\": \"Travel\", \"sqlTable\": \"ztravel\", \"keyField\": \"travel_id\", \"fields\": [ { \"name\": \"agency_id\", \"type\": \"abap.char(6)\" } ], \"draft\": true })."
+    },
+    {
+      "kind": "tool",
+      "name": "check_released_api",
+      "title": "Check ABAP released-API status",
+      "description": "Look up ABAP repository objects (DB tables, CDS view entities, function modules, classes, interfaces, …) in SAP's published ABAP Cloudification list and report, per object, whether it is a 'released' API (safe to use in ABAP Cloud / Clean Core), 'deprecated' (released but being retired), or 'not-released' (a classic/internal object that is not a public API — e.g. most classic DDIC tables) — with a curated CDS successor hint for common tables. This reflects SAP's official Cloudification list as bundled in this package (snapshot 2026-06-10); it ships offline with the server. Use this when you need to know if your code may reference a given object in ABAP Cloud, or which released CDS view to use instead of a classic table — the released-API half of readiness that check_cloud_readiness deliberately leaves to a system's ATC. It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — a system's own released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative; treat an 'absent from the list' result as 'not-released as of the snapshot', not as proof. Example: check_released_api({ \"objects\": [\"MARA\", \"I_Product\", \"BAPI_MATERIAL_GET_DETAIL\"] })."
+    },
+    {
+      "kind": "tool",
+      "name": "list_abap_rules",
+      "title": "List abaplint rules",
+      "description": "List the abaplint rules this server can check, optionally filtered by a free-text query or a tag, returning key, title, one-line description, tags and a documentation URL per rule. Use this when deciding which rules to enable or override in lint_abap, or to discover what a Clean-ABAP-style check exists for. It does not run any analysis and does not change configuration — it is a read-only catalog. Example: list_abap_rules({ \"query\": \"obsolete\" })."
+    },
+    {
+      "kind": "tool",
+      "name": "explain_abap_rule",
+      "title": "Explain an abaplint rule",
+      "description": "Explain one abaplint rule in depth: title, description, extended rationale (often citing the Clean ABAP style guide), tags, documentation URL, and good/bad code examples where the rule defines them. Use this when a lint_abap or check_cloud_readiness finding needs justification — to explain to a developer why the finding matters and how to fix it. It does not run analysis and only knows abaplint rules; SAP ATC check documentation is out of scope. Example: explain_abap_rule({ \"rule\": \"exit_or_check\" })."
+    },
+    {
+      "kind": "tool",
+      "name": "format_abap",
+      "title": "Format ABAP source",
+      "description": "Pretty-print one ABAP source: normalize keyword casing and indentation using abaplint's formatter — the offline equivalent of Pretty Printer in ADT/SE80. Use this when generated or hand-written ABAP has inconsistent casing/indentation and you want it normalized before review or commit. It does not reformat CDS views or behavior definitions, does not change any logic, and fails cleanly on source it cannot parse. Example: format_abap({ \"source\": \"report ztest.\\nwrite 'hi'.\" })."
+    },
+    {
+      "kind": "tool",
+      "name": "get_abap_outline",
+      "title": "Get ABAP source outline",
+      "description": "Return the structural outline of ABAP sources — classes (with methods, visibility, attributes, interfaces, inheritance), interfaces, and FORM routines — without you having to read the whole file. Use this when navigating a large class or legacy program to decide which part to read or edit next; it is the cheap first call before pulling thousands of lines into context. Set mermaid: true to also get the structure as a Mermaid classDiagram (inheritance, interface realization, method visibility) for documentation visuals. It does not return method bodies or analyze code quality (use lint_abap for that), and CDS/behavior-definition files yield an empty outline. Example: get_abap_outline({ \"files\": [ { \"filename\": \"zcl_big.clas.abap\", \"source\": \"CLASS zcl_big DEFINITION…\" } ] })."
+    },
+    {
+      "kind": "prompt",
+      "name": "abap-review",
+      "title": "Review ABAP code like a senior consultant",
+      "description": "Run a full code review over ABAP the user provides or names: lint, triage, explain each finding's why, propose minimal fixes, and prove the rework with compare_abap. Optionally focused (Performance / Security / Styleguide)."
+    },
+    {
+      "kind": "prompt",
+      "name": "abap-mentor",
+      "title": "Over-the-shoulder ABAP/RAP mentor",
+      "description": "Turn the session into a patient senior-consultant mentoring mode: every snippet the user shares is quietly linted and readiness-checked, findings become plain-language guidance, new objects start from validated scaffolds."
+    },
+    {
+      "kind": "prompt",
+      "name": "abap-migration-plan",
+      "title": "Produce a phased ABAP Cloud migration plan",
+      "description": "Drive plan_cloud_migration over the sources in scope and present a client-ready phased backlog — current state, phases with effort bands and exit criteria, released-API work separated — then offer to execute phase 1."
+    }
+  ],
+  "rows": [
+    {
+      "id": "lint-edited-source",
+      "intent": "I changed this ABAP class. Run a static lint pass for syntax, style, and correctness findings before I commit it.",
+      "expected": {
+        "kind": "tool",
+        "name": "lint_abap"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "abap-source"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "lint_abap"
+        },
+        "reason": "top metadata score 18.14; margin 7.592",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 18.14,
+            "matched": [
+              "abap",
+              "analysi",
+              "correctness",
+              "finding",
+              "lint",
+              "pass",
+              "rule",
+              "run",
+              "static",
+              "style"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 10.548,
+            "matched": [
+              "abap",
+              "lint",
+              "rule",
+              "style"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 9.972,
+            "matched": [
+              "abap",
+              "lint",
+              "rule",
+              "style"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 9.9,
+            "matched": [
+              "abap",
+              "chang",
+              "finding",
+              "lint"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "format_abap",
+            "score": 7.3,
+            "matched": [
+              "abap",
+              "commit"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "cloud-readiness-verdict",
+      "intent": "Is this classic ABAP report ABAP Cloud ready and Clean Core compliant? Give me its blockers, score, and grade.",
+      "expected": {
+        "kind": "tool",
+        "name": "check_cloud_readiness"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "clean-core"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "check_cloud_readiness"
+        },
+        "reason": "top metadata score 20.224; margin 7.88",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 20.224,
+            "matched": [
+              "abap",
+              "blocker",
+              "classic",
+              "clean",
+              "cloud",
+              "compliant",
+              "core",
+              "grade",
+              "readiness",
+              "ready",
+              "report",
+              "score"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 12.344,
+            "matched": [
+              "abap",
+              "blocker",
+              "cloud",
+              "core",
+              "readiness",
+              "report"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 12.02,
+            "matched": [
+              "abap",
+              "blocker",
+              "cloud",
+              "grade",
+              "readiness",
+              "report",
+              "score"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 9.42,
+            "matched": [
+              "abap",
+              "clean",
+              "cloud",
+              "readiness",
+              "report"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 9.3,
+            "matched": [
+              "abap",
+              "cloud",
+              "ready"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "rap-bo-scaffold",
+      "intent": "Create the boilerplate for a new draft-enabled RAP managed business object for Travel, including CDS, behavior, projection, UI metadata, and service definition.",
+      "expected": {
+        "kind": "tool",
+        "name": "scaffold_rap_bo"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "rap"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "scaffold_rap_bo"
+        },
+        "reason": "top metadata score 25.092; margin 18.472",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "scaffold_rap_bo",
+            "score": 25.092,
+            "matched": [
+              "behavior",
+              "boilerplate",
+              "business",
+              "cds",
+              "definition",
+              "draft",
+              "generate",
+              "manag",
+              "metadata",
+              "new",
+              "object",
+              "projection",
+              "rap",
+              "scaffold",
+              "service",
+              "travel",
+              "ui"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-mentor",
+            "score": 6.62,
+            "matched": [
+              "new",
+              "object",
+              "rap",
+              "scaffold"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 4.6,
+            "matched": [
+              "behavior",
+              "cds",
+              "definition"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 4.1,
+            "matched": [
+              "object",
+              "ui"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_released_api",
+            "score": 2.5,
+            "matched": [
+              "cds",
+              "object"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "discover-rule-catalog",
+      "intent": "Which abaplint checks are available for security? List the matching rules and their keys; I do not have source code to analyze yet.",
+      "expected": {
+        "kind": "tool",
+        "name": "list_abap_rules"
+      },
+      "tags": [
+        "tool",
+        "ambiguity",
+        "rule-catalog"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "list_abap_rules"
+        },
+        "reason": "top metadata score 15.52; margin 5.62",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 15.52,
+            "matched": [
+              "abaplint",
+              "check",
+              "discover",
+              "list",
+              "rule"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 9.9,
+            "matched": [
+              "abaplint",
+              "check",
+              "code",
+              "rule",
+              "security",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 9.6,
+            "matched": [
+              "check",
+              "code",
+              "list",
+              "not",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 8.9,
+            "matched": [
+              "abaplint",
+              "check",
+              "code",
+              "rule"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 7.2,
+            "matched": [
+              "check",
+              "code",
+              "match",
+              "not",
+              "source"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "explain-one-rule",
+      "intent": "Why did abaplint flag exit_or_check? Explain that one rule, its rationale, and show a compliant example.",
+      "expected": {
+        "kind": "tool",
+        "name": "explain_abap_rule"
+      },
+      "tags": [
+        "tool",
+        "ambiguity",
+        "rule-detail"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "explain_abap_rule"
+        },
+        "reason": "top metadata score 20.54; margin 5.648",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 20.54,
+            "matched": [
+              "abaplint",
+              "check",
+              "cloud",
+              "example",
+              "exit",
+              "explain",
+              "one",
+              "rationale",
+              "readiness",
+              "rule",
+              "why"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 14.892,
+            "matched": [
+              "check",
+              "cloud",
+              "compliant",
+              "example",
+              "readiness",
+              "ready"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 13.4,
+            "matched": [
+              "abaplint",
+              "check",
+              "example",
+              "one",
+              "rule"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 9.168,
+            "matched": [
+              "check",
+              "cloud",
+              "example",
+              "exit",
+              "readiness"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 7.94,
+            "matched": [
+              "abaplint",
+              "check",
+              "cloud",
+              "example",
+              "readiness",
+              "rule"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "format-pasted-abap",
+      "intent": "Pretty-print this pasted ABAP source with consistent indentation and keyword casing, without changing its behavior.",
+      "expected": {
+        "kind": "tool",
+        "name": "format_abap"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "source-transform"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "format_abap"
+        },
+        "reason": "top metadata score 17.724; margin 5.624",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "format_abap",
+            "score": 17.724,
+            "matched": [
+              "abap",
+              "cas",
+              "format",
+              "indentation",
+              "keyword",
+              "pretty",
+              "print",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 12.1,
+            "matched": [
+              "abap",
+              "behavior",
+              "source",
+              "without"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "get_abap_outline",
+            "score": 9.2,
+            "matched": [
+              "abap",
+              "source",
+              "without"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 7.8,
+            "matched": [
+              "abap",
+              "chang",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 6.3,
+            "matched": [
+              "abap",
+              "source"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "outline-large-class",
+      "intent": "Show me the structure of this large ABAP object: its classes, methods, forms, and includes. A Mermaid outline would help.",
+      "expected": {
+        "kind": "tool",
+        "name": "get_abap_outline"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "structure"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "get_abap_outline"
+        },
+        "reason": "top metadata score 15.9; margin 4.7",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "get_abap_outline",
+            "score": 15.9,
+            "matched": [
+              "abap",
+              "classe",
+              "form",
+              "large",
+              "mermaid",
+              "method",
+              "outline",
+              "structure"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 11.2,
+            "matched": [
+              "abap",
+              "classe",
+              "form",
+              "method",
+              "object"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 6.3,
+            "matched": [
+              "abap",
+              "object"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 6,
+            "matched": [
+              "abap"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "format_abap",
+            "score": 6,
+            "matched": [
+              "abap"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "released-api-lookup",
+      "intent": "Using the bundled snapshot, check whether MARA and I_Product are released for ABAP Cloud and suggest a successor where needed.",
+      "expected": {
+        "kind": "tool",
+        "name": "check_released_api"
+      },
+      "tags": [
+        "tool",
+        "ambiguity",
+        "released-api"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "check_released_api"
+        },
+        "reason": "top metadata score 19.348; margin 5.804",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "check_released_api",
+            "score": 19.348,
+            "matched": [
+              "abap",
+              "api",
+              "bundl",
+              "check",
+              "cloud",
+              "mara",
+              "need",
+              "product",
+              "releas",
+              "snapshot",
+              "successor"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 13.544,
+            "matched": [
+              "abap",
+              "api",
+              "check",
+              "cloud",
+              "need",
+              "releas",
+              "snapshot"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 11.024,
+            "matched": [
+              "abap",
+              "check",
+              "cloud"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 9.9,
+            "matched": [
+              "abap",
+              "check",
+              "cloud",
+              "need"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 9.82,
+            "matched": [
+              "abap",
+              "api",
+              "cloud",
+              "releas"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "compare-refactor",
+      "intent": "Compare the before and after ABAP sources for this refactor. Tell me which findings and Cloud blockers were resolved or introduced and whether the grade improved.",
+      "expected": {
+        "kind": "tool",
+        "name": "compare_abap"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "before-after"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "compare_abap"
+        },
+        "reason": "top metadata score 22.02; margin 6.3",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 22.02,
+            "matched": [
+              "abap",
+              "after",
+              "blocker",
+              "cloud",
+              "compare",
+              "finding",
+              "grade",
+              "introduc",
+              "refactor",
+              "resolv",
+              "rework",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 15.72,
+            "matched": [
+              "abap",
+              "after",
+              "blocker",
+              "cloud",
+              "finding",
+              "rework",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 13.9,
+            "matched": [
+              "abap",
+              "blocker",
+              "cloud",
+              "finding",
+              "grade",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 11.3,
+            "matched": [
+              "abap",
+              "cloud",
+              "finding",
+              "source"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 8.8,
+            "matched": [
+              "abap",
+              "cloud",
+              "source"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "machine-migration-backlog",
+      "intent": "Turn these ABAP files into an ordered migration backlog now. I need deterministic phases, work items, effort bands, and exit criteria as structured output.",
+      "expected": {
+        "kind": "tool",
+        "name": "plan_cloud_migration"
+      },
+      "tags": [
+        "tool",
+        "ambiguity",
+        "migration"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "plan_cloud_migration"
+        },
+        "reason": "top metadata score 26.524; margin 6.2",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 26.524,
+            "matched": [
+              "abap",
+              "backlog",
+              "band",
+              "criteria",
+              "effort",
+              "exit",
+              "file",
+              "item",
+              "migration",
+              "need",
+              "order",
+              "output",
+              "phase",
+              "plan",
+              "turn",
+              "work"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 20.324,
+            "matched": [
+              "abap",
+              "backlog",
+              "band",
+              "criteria",
+              "effort",
+              "exit",
+              "migration",
+              "phase",
+              "plan",
+              "work"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 11.2,
+            "matched": [
+              "abap",
+              "file",
+              "migration",
+              "structur",
+              "turn"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 9.4,
+            "matched": [
+              "abap",
+              "file",
+              "migration",
+              "output",
+              "work"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 8.6,
+            "matched": [
+              "abap",
+              "exit",
+              "need"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "guided-review-workflow",
+      "intent": "Start an end-to-end senior consultant review workflow for my ABAP changes: triage findings, explain why they matter, propose fixes, and prove the rework.",
+      "expected": {
+        "kind": "prompt",
+        "name": "abap-review"
+      },
+      "tags": [
+        "prompt",
+        "ambiguity",
+        "workflow"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "prompt",
+          "name": "abap-review"
+        },
+        "reason": "top metadata score 29.7; margin 13.48",
+        "ranking": [
+          {
+            "kind": "prompt",
+            "name": "abap-review",
+            "score": 29.7,
+            "matched": [
+              "abap",
+              "consultant",
+              "explain",
+              "fixe",
+              "propose",
+              "prove",
+              "review",
+              "rework",
+              "senior",
+              "triage",
+              "why"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-mentor",
+            "score": 16.22,
+            "matched": [
+              "abap",
+              "consultant",
+              "finding",
+              "senior",
+              "session",
+              "start"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 10.1,
+            "matched": [
+              "abap",
+              "explain",
+              "matter",
+              "why"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 10,
+            "matched": [
+              "abap"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 7.4,
+            "matched": [
+              "abap",
+              "change",
+              "finding",
+              "review",
+              "rework"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "ongoing-mentor-mode",
+      "intent": "For the rest of this session, be my patient ABAP and RAP mentor. Coach me one concept at a time and quietly check every snippet I share.",
+      "expected": {
+        "kind": "prompt",
+        "name": "abap-mentor"
+      },
+      "tags": [
+        "prompt",
+        "persistent",
+        "workflow"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "prompt",
+          "name": "abap-mentor"
+        },
+        "reason": "top metadata score 27.22; margin 17.22",
+        "ranking": [
+          {
+            "kind": "prompt",
+            "name": "abap-mentor",
+            "score": 27.22,
+            "matched": [
+              "abap",
+              "check",
+              "every",
+              "guidance",
+              "mentor",
+              "patient",
+              "quietly",
+              "rap",
+              "session",
+              "share",
+              "snippet"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 10,
+            "matched": [
+              "abap"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-review",
+            "score": 10,
+            "matched": [
+              "abap"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 5.7,
+            "matched": [
+              "abap",
+              "check"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 5.6,
+            "matched": [
+              "abap",
+              "check",
+              "one"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "client-ready-migration-engagement",
+      "intent": "Act as the lead consultant and guide a client-ready ABAP Cloud migration engagement: present the phased plan, explain the current state, and offer to execute phase one.",
+      "expected": {
+        "kind": "prompt",
+        "name": "abap-migration-plan"
+      },
+      "tags": [
+        "prompt",
+        "ambiguity",
+        "workflow"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "prompt",
+          "name": "abap-migration-plan"
+        },
+        "reason": "top metadata score 34.9; margin 16.8",
+        "ranking": [
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 34.9,
+            "matched": [
+              "abap",
+              "client",
+              "cloud",
+              "current",
+              "execute",
+              "migration",
+              "offer",
+              "phas",
+              "phase",
+              "plan",
+              "present",
+              "ready",
+              "state"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 18.1,
+            "matched": [
+              "abap",
+              "cloud",
+              "migration",
+              "phas",
+              "phase",
+              "plan"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-review",
+            "score": 14.8,
+            "matched": [
+              "abap",
+              "consultant",
+              "explain"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 11.4,
+            "matched": [
+              "abap",
+              "cloud",
+              "explain",
+              "guide",
+              "one"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-mentor",
+            "score": 11.3,
+            "matched": [
+              "abap",
+              "consultant"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "live-atc-run",
+      "intent": "Connect to our live S/4HANA system with my credentials and run ATC against package ZFIN.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "live-system",
+        "atc"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "live SAP connection",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "runtime-debugging",
+      "intent": "Log into SAP and debug transaction VA01 at runtime to find why the update task dumps.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "live-system",
+        "runtime"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "runtime debugging",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "activate-rap-artifacts",
+      "intent": "Activate these RAP artifacts in ADT, create the service binding, and publish it in our development system.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "system-mutation",
+        "rap"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "activate or publish in SAP",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "read-production-table",
+      "intent": "Read the current customer rows from table KNA1 in production SAP and export the data for me.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "live-data"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "read live SAP data",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "prove-functional-equivalence",
+      "intent": "Execute both ABAP versions in SAP and prove they are functionally equivalent for every business input.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "runtime",
+        "compare-boundary"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "execute ABAP in SAP",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "refresh-api-from-network",
+      "intent": "Fetch today's authoritative released-API state directly from my SAP system and the SAP online catalog.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "network",
+        "released-api-boundary"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "network refresh",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "non-abap-review",
+      "intent": "Review this React component for accessibility and browser rendering problems.",
+      "expected": {
+        "kind": "none"
+      },
+      "tags": [
+        "negative",
+        "out-of-domain"
+      ],
+      "actual": {
+        "selected": null,
+        "reason": "outside ABAP/SAP domain",
+        "ranking": []
+      },
+      "passed": true
+    },
+    {
+      "id": "offline-wording-not-blocked",
+      "intent": "Without connecting to SAP or running ATC, assess this pasted ABAP source for Clean Core and ABAP Cloud readiness.",
+      "expected": {
+        "kind": "tool",
+        "name": "check_cloud_readiness"
+      },
+      "tags": [
+        "tool",
+        "negative-wording",
+        "clean-core"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "check_cloud_readiness"
+        },
+        "reason": "top metadata score 15.3; margin 4.5",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 15.3,
+            "matched": [
+              "abap",
+              "assess",
+              "clean",
+              "cloud",
+              "core",
+              "readiness",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 10.8,
+            "matched": [
+              "abap",
+              "clean",
+              "cloud",
+              "readiness",
+              "source",
+              "without"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "plan_cloud_migration",
+            "score": 10.3,
+            "matched": [
+              "abap",
+              "cloud",
+              "core",
+              "readiness",
+              "source"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 9.3,
+            "matched": [
+              "abap",
+              "cloud",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "get_abap_outline",
+            "score": 8.5,
+            "matched": [
+              "abap",
+              "source",
+              "without"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "rule-catalog-not-analysis",
+      "intent": "I am designing our lint policy, not asking you to inspect code. Find the available Performance-tagged abaplint rules.",
+      "expected": {
+        "kind": "tool",
+        "name": "list_abap_rules"
+      },
+      "tags": [
+        "tool",
+        "negative-wording",
+        "rule-catalog"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "list_abap_rules"
+        },
+        "reason": "top metadata score 13.288; margin 0.184",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 13.288,
+            "matched": [
+              "abaplint",
+              "discover",
+              "lint",
+              "list",
+              "rule",
+              "style"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 13.104,
+            "matched": [
+              "abaplint",
+              "analysi",
+              "code",
+              "correctness",
+              "find",
+              "finding",
+              "lint",
+              "performance",
+              "rule",
+              "style"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 9.944,
+            "matched": [
+              "abaplint",
+              "code",
+              "find",
+              "lint",
+              "rule",
+              "style"
+            ]
+          },
+          {
+            "kind": "prompt",
+            "name": "abap-review",
+            "score": 7.4,
+            "matched": [
+              "code",
+              "find",
+              "lint",
+              "performance"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "compare_abap",
+            "score": 4.12,
+            "matched": [
+              "code",
+              "finding",
+              "lint",
+              "not"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    }
+  ]
+}

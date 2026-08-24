@@ -1,0 +1,43 @@
+{
+  "name": "abap-mcp",
+  "version": "0.6.0",
+  "description": "Offline ABAP analysis, ABAP Cloud readiness, released-API guidance, migration planning, and RAP scaffolding for Codex.",
+  "author": {
+    "name": "Akshay Palimkar",
+    "url": "https://github.com/palimkarakshay"
+  },
+  "homepage": "https://github.com/palimkarakshay/abap-mcp",
+  "repository": "https://github.com/palimkarakshay/abap-mcp",
+  "license": "MIT",
+  "keywords": [
+    "abap",
+    "sap",
+    "rap",
+    "clean-core",
+    "static-analysis"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ABAP MCP",
+    "shortDescription": "Review and modernize ABAP without an SAP connection.",
+    "longDescription": "Analyze supplied ABAP, CDS, and RAP source offline; assess ABAP Cloud readiness; inspect dated released-API guidance; plan migrations; and scaffold managed RAP business objects.",
+    "developerName": "Akshay Palimkar",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Static analysis",
+      "ABAP Cloud readiness",
+      "RAP scaffolding"
+    ],
+    "websiteURL": "https://github.com/palimkarakshay/abap-mcp",
+    "privacyPolicyURL": "https://github.com/palimkarakshay/abap-mcp/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Review this ABAP and explain the important findings.",
+      "Assess these sources for ABAP Cloud migration.",
+      "Help me scaffold a managed RAP business object."
+    ],
+    "brandColor": "#006FBB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg"
+  }
+}

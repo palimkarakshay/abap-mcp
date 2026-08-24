@@ -1,0 +1,20 @@
+{
+  "name": "abap-mcp",
+  "interface": {
+    "displayName": "ABAP MCP"
+  },
+  "plugins": [
+    {
+      "name": "abap-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/abap-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

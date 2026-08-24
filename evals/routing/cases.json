@@ -1,0 +1,134 @@
+[
+  {
+    "id": "lint-edited-source",
+    "intent": "I changed this ABAP class. Run a static lint pass for syntax, style, and correctness findings before I commit it.",
+    "expected": { "kind": "tool", "name": "lint_abap" },
+    "tags": ["tool", "direct", "abap-source"]
+  },
+  {
+    "id": "cloud-readiness-verdict",
+    "intent": "Is this classic ABAP report ABAP Cloud ready and Clean Core compliant? Give me its blockers, score, and grade.",
+    "expected": { "kind": "tool", "name": "check_cloud_readiness" },
+    "tags": ["tool", "direct", "clean-core"]
+  },
+  {
+    "id": "rap-bo-scaffold",
+    "intent": "Create the boilerplate for a new draft-enabled RAP managed business object for Travel, including CDS, behavior, projection, UI metadata, and service definition.",
+    "expected": { "kind": "tool", "name": "scaffold_rap_bo" },
+    "tags": ["tool", "direct", "rap"]
+  },
+  {
+    "id": "discover-rule-catalog",
+    "intent": "Which abaplint checks are available for security? List the matching rules and their keys; I do not have source code to analyze yet.",
+    "expected": { "kind": "tool", "name": "list_abap_rules" },
+    "tags": ["tool", "ambiguity", "rule-catalog"]
+  },
+  {
+    "id": "explain-one-rule",
+    "intent": "Why did abaplint flag exit_or_check? Explain that one rule, its rationale, and show a compliant example.",
+    "expected": { "kind": "tool", "name": "explain_abap_rule" },
+    "tags": ["tool", "ambiguity", "rule-detail"]
+  },
+  {
+    "id": "format-pasted-abap",
+    "intent": "Pretty-print this pasted ABAP source with consistent indentation and keyword casing, without changing its behavior.",
+    "expected": { "kind": "tool", "name": "format_abap" },
+    "tags": ["tool", "direct", "source-transform"]
+  },
+  {
+    "id": "outline-large-class",
+    "intent": "Show me the structure of this large ABAP object: its classes, methods, forms, and includes. A Mermaid outline would help.",
+    "expected": { "kind": "tool", "name": "get_abap_outline" },
+    "tags": ["tool", "direct", "structure"]
+  },
+  {
+    "id": "released-api-lookup",
+    "intent": "Using the bundled snapshot, check whether MARA and I_Product are released for ABAP Cloud and suggest a successor where needed.",
+    "expected": { "kind": "tool", "name": "check_released_api" },
+    "tags": ["tool", "ambiguity", "released-api"]
+  },
+  {
+    "id": "compare-refactor",
+    "intent": "Compare the before and after ABAP sources for this refactor. Tell me which findings and Cloud blockers were resolved or introduced and whether the grade improved.",
+    "expected": { "kind": "tool", "name": "compare_abap" },
+    "tags": ["tool", "direct", "before-after"]
+  },
+  {
+    "id": "machine-migration-backlog",
+    "intent": "Turn these ABAP files into an ordered migration backlog now. I need deterministic phases, work items, effort bands, and exit criteria as structured output.",
+    "expected": { "kind": "tool", "name": "plan_cloud_migration" },
+    "tags": ["tool", "ambiguity", "migration"]
+  },
+  {
+    "id": "guided-review-workflow",
+    "intent": "Start an end-to-end senior consultant review workflow for my ABAP changes: triage findings, explain why they matter, propose fixes, and prove the rework.",
+    "expected": { "kind": "prompt", "name": "abap-review" },
+    "tags": ["prompt", "ambiguity", "workflow"]
+  },
+  {
+    "id": "ongoing-mentor-mode",
+    "intent": "For the rest of this session, be my patient ABAP and RAP mentor. Coach me one concept at a time and quietly check every snippet I share.",
+    "expected": { "kind": "prompt", "name": "abap-mentor" },
+    "tags": ["prompt", "persistent", "workflow"]
+  },
+  {
+    "id": "client-ready-migration-engagement",
+    "intent": "Act as the lead consultant and guide a client-ready ABAP Cloud migration engagement: present the phased plan, explain the current state, and offer to execute phase one.",
+    "expected": { "kind": "prompt", "name": "abap-migration-plan" },
+    "tags": ["prompt", "ambiguity", "workflow"]
+  },
+  {
+    "id": "live-atc-run",
+    "intent": "Connect to our live S/4HANA system with my credentials and run ATC against package ZFIN.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "live-system", "atc"]
+  },
+  {
+    "id": "runtime-debugging",
+    "intent": "Log into SAP and debug transaction VA01 at runtime to find why the update task dumps.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "live-system", "runtime"]
+  },
+  {
+    "id": "activate-rap-artifacts",
+    "intent": "Activate these RAP artifacts in ADT, create the service binding, and publish it in our development system.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "system-mutation", "rap"]
+  },
+  {
+    "id": "read-production-table",
+    "intent": "Read the current customer rows from table KNA1 in production SAP and export the data for me.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "live-data"]
+  },
+  {
+    "id": "prove-functional-equivalence",
+    "intent": "Execute both ABAP versions in SAP and prove they are functionally equivalent for every business input.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "runtime", "compare-boundary"]
+  },
+  {
+    "id": "refresh-api-from-network",
+    "intent": "Fetch today's authoritative released-API state directly from my SAP system and the SAP online catalog.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "network", "released-api-boundary"]
+  },
+  {
+    "id": "non-abap-review",
+    "intent": "Review this React component for accessibility and browser rendering problems.",
+    "expected": { "kind": "none" },
+    "tags": ["negative", "out-of-domain"]
+  },
+  {
+    "id": "offline-wording-not-blocked",
+    "intent": "Without connecting to SAP or running ATC, assess this pasted ABAP source for Clean Core and ABAP Cloud readiness.",
+    "expected": { "kind": "tool", "name": "check_cloud_readiness" },
+    "tags": ["tool", "negative-wording", "clean-core"]
+  },
+  {
+    "id": "rule-catalog-not-analysis",
+    "intent": "I am designing our lint policy, not asking you to inspect code. Find the available Performance-tagged abaplint rules.",
+    "expected": { "kind": "tool", "name": "list_abap_rules" },
+    "tags": ["tool", "negative-wording", "rule-catalog"]
+  }
+]

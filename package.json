@@ -1,6 +1,6 @@
 {
   "name": "abap-mcp",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "mcpName": "io.github.palimkarakshay/abap-mcp",
   "description": "Make your AI coding agent an expert SAP ABAP & RAP consultant: offline code review (abaplint), ABAP Cloud / Clean Core readiness grades, released-API checks, rework verdicts, and RAP scaffolding — no SAP system, no credentials, installs with one npx command.",
   "license": "MIT",
@@ -30,22 +30,27 @@
     "node": ">=20"
   },
   "bin": {
-    "abap-mcp": "dist/cli.js"
+    "abap-mcp": "dist/cli.js",
+    "abap-mcp-http": "dist/http.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
     "README.md",
+    "PRIVACY.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-data.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run test && npm run build",
+    "check": "npm run typecheck && npm run test && npm run build && node evals/routing/run.mjs",
+    "eval:routing": "npm run build --silent && node evals/routing/run.mjs",
+    "eval:routing:report": "npm run build --silent && node evals/routing/run.mjs --write",
     "prepublishOnly": "npm run check",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "start:http": "node dist/http.js"
   },
   "dependencies": {
     "@abaplint/core": "^2.120.13",

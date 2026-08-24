@@ -85,16 +85,20 @@ templates, explicitly labeled `validated: "template"`, with ADT activation named
 arbiter. **Rejected:** claiming blanket "machine-validated" status — the negative probe proved
 that would be a lie for two of the eight files.
 
-## 6. Text-in/JSON-out; no filesystem, no network
+## 6. Text-in/JSON-out; no filesystem; local and remote transports
 
-Tools accept source as strings and return structured JSON. The server makes zero network calls
-and never touches the filesystem — the entire attack surface is a parser over text the caller
-explicitly provides. This also keeps it trivially safe to run anywhere (CI, a locked-down
-laptop, a customer engagement) and honest about privacy: code never leaves the process.
+Tools accept source as strings and return structured JSON. The analysis engine makes zero network
+calls and never touches the user's filesystem — its attack surface is a parser over text the caller
+explicitly provides. With the default stdio transport, analysis stays in the local server process.
+The optional Streamable HTTP transport sends that same text to the machine hosting the endpoint;
+it therefore has a separate privacy and operations contract documented in `PRIVACY.md`.
 
 **Rejected for v0.1:** a `lint_directory` tool (filesystem access; the mcp-kit `wrap-abaplint`
-recipe and the abaplint CLI already serve that need) and an HTTP transport (stdio covers every
-current client; HTTP adds an auth surface for no demonstrated demand).
+recipe and the abaplint CLI already serve that need). HTTP was also deferred while local clients
+were the only target. ChatGPT web's remote-MCP/plugin model created a concrete need, so the HTTP
+edition was later added as a separate entry point: stateless `/mcp`, loopback bind by default,
+optional bearer authentication, bounded bodies, concurrency and rate controls, and no source-body
+logging. Stdio remains the zero-operations default.
 
 ## 7. mcp-kit discipline, vendored not depended
 
@@ -106,7 +110,7 @@ depend on a workspace path.
 
 Tool-description quality is **CI-enforced**: an in-repo rubric test requires verb-first names, a
 "Use this when…" sentence, explicit non-goals, every parameter described, and a worked example on
-every tool. The full mcp-kit lint scores all eight tools 100/100 — and grading this server
+every tool. The original eight-tool surface scored 100/100 in the full mcp-kit lint — and grading this server
 surfaced a gap in the kit itself (its imperative-verb whitelist lacked `lint`/`scaffold`/
 `explain`), fixed upstream in the same session: the consumer improved the kit.
 
@@ -129,12 +133,14 @@ is compute even when it isn't I/O.
   false-positive on isolated snippets (the "missing object" noise problem); `full` re-enables
   them for whole-repo calls. Defaults match the common call, flags match the careful one.
 
-## 10. Scope: eight tools, one domain, no padding
+## 10. Scope: ten tools and three prompts, one domain, no padding
 
 The tool list maps one-to-one to verbs an agent actually issues during ABAP work: lint, check
-readiness, scaffold, check released-API status, browse rules, explain a finding, format, outline.
-Nothing speculative (no "run ABAP" — impossible offline; no docs search — exists elsewhere; no
-system bridge — decision 1). A small surface the model can't mis-select beats a broad one it can.
+readiness, plan a migration, compare a rework, scaffold, check released-API status, browse rules,
+explain a finding, format, and outline. Three prompts compose those primitives into review,
+mentoring, and migration workflows. Nothing speculative (no "run ABAP" — impossible offline; no
+docs search — exists elsewhere; no system bridge — decision 1). A small surface the model can
+route reliably beats a broad one it cannot.
 
 ## 11. Released-API check: SAP's own list, bundled and dated — not a guess
 

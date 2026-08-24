@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" role="img" aria-labelledby="title desc">
+  <title id="title">ABAP MCP</title>
+  <desc id="desc">ABAP MCP wordmark with code brackets</desc>
+  <rect width="640" height="200" rx="32" fill="#006FBB"/>
+  <path d="m78 65-34 35 34 35M152 65l34 35-34 35" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m130 48-30 104" fill="none" stroke="#F4D35E" stroke-width="14" stroke-linecap="round"/>
+  <text x="224" y="125" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700" letter-spacing="2">ABAP MCP</text>
+</svg>

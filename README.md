@@ -1,7 +1,7 @@
 # abap-mcp
 
-**Make your AI coding agent an expert SAP ABAP & RAP consultant — fully offline. No SAP system,
-no credentials, one command to install.**
+**Make your AI coding agent an expert SAP ABAP & RAP consultant — local by default. No SAP
+system, no credentials, one command to install.**
 
 abap-mcp is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives any AI
 coding agent — Claude Code, GitHub Copilot, Cursor, Codex, Windsurf — real ABAP senses, built on
@@ -21,10 +21,11 @@ checkout, an abapGit export, a code review, CI — long before anything reaches 
   released-API replacements (`check_released_api`), and CI gates that hold the line while the
   migration proceeds.
 
-TypeScript, 100% local — the server makes **zero network calls** and reads **no user files**:
-sources go in as text, findings come back as structured JSON. (The released-API list and
-abaplint's rule data are package-bundled assets that ship inside the install — no network, no
-user filesystem, at runtime.)
+The default stdio edition is 100% local: the analysis engine makes **zero network calls** and
+reads **no user files**. Sources go in as text and structured findings come back. The released-API
+list and abaplint rule data are package-bundled. An optional guarded Streamable HTTP edition makes
+the same tools available to remote clients such as ChatGPT web; in that mode, source text is sent
+to the machine you host. See [privacy and data handling](PRIVACY.md).
 
 ## Why this exists
 
@@ -47,6 +48,28 @@ layer:
 The only requirement is [Node.js 20+](https://nodejs.org). No SAP system, no credentials, no
 API keys — pick your client:
 
+**Codex CLI · Codex IDE extension · ChatGPT desktop** — one command configures all three on the
+same Codex host:
+
+```bash
+codex mcp add abap-mcp -- npx -y abap-mcp
+```
+
+Restart ChatGPT desktop or the IDE extension, then use `/mcp` to confirm `abap-mcp` is connected.
+In ChatGPT desktop you can alternatively open **Settings → MCP servers → Add server**, choose
+**STDIO**, and enter command `npx` with arguments `-y abap-mcp`.
+
+**Codex plugin (MCP server + review/mentor/migration skills)**
+
+```bash
+codex plugin marketplace add palimkarakshay/abap-mcp
+codex plugin add abap-mcp@abap-mcp
+```
+
+**ChatGPT web** cannot start a local `npx` process. It needs a deployed HTTPS `/mcp` endpoint or
+a secure development tunnel. This repository ships the HTTP entry point and hardening controls,
+but does not operate a public service. Follow the [OpenAI setup and self-hosting guide](docs/OPENAI.md).
+
 **Claude Code**
 
 ```bash
@@ -62,14 +85,6 @@ claude mcp add abap-mcp -- npx -y abap-mcp
     "abap-mcp": { "command": "npx", "args": ["-y", "abap-mcp"] }
   }
 }
-```
-
-**Codex CLI** — add to `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.abap-mcp]
-command = "npx"
-args = ["-y", "abap-mcp"]
 ```
 
 **Claude Desktop** — Settings → Developer → Edit Config, add the same `mcpServers` block to
@@ -95,8 +110,9 @@ through `get_abap_outline`.
 
 ### Guided workflows built in (MCP prompts)
 
-The consultant's playbook ships as three MCP prompts — in Claude Code they appear as slash
-commands (`/mcp__abap-mcp__…`); other prompt-capable clients list them natively:
+The consultant's playbook ships both as three MCP prompts and as three Codex plugin skills. In
+Claude Code the prompts appear as slash commands (`/mcp__abap-mcp__…`); prompt-capable clients
+list them natively, while the Codex plugin discovers the corresponding skills:
 
 | Prompt | What it sets up |
 | --- | --- |
@@ -164,18 +180,20 @@ GitHub Actions quality gate for abapGit repos.
   parser). Behavior/service definitions are outside abaplint's checked surface — they are
   golden-tested canonical templates, and ADT activation is the final arbiter. Each generated
   file is labeled `validated: "abaplint" | "template"`.
-- **Text-in only, by design.** No user-filesystem walking, no network — the entire attack
-  surface is a parser over strings you explicitly pass. (The released-API snapshot and abaplint's
-  rule data are package-bundled assets imported from the install, not fetched or read from your
-  disk.) For linting whole directories, use the [abaplint CLI](https://abaplint.org) in CI, or the
-  [mcp-kit `wrap-abaplint` recipe](https://github.com/palimkarakshay/mcp-kit) this server grew out of.
+- **Text-in only, by design.** The analysis engine does no user-filesystem walking or outbound
+  network access; it parses strings you explicitly pass. With stdio those strings are handled by
+  the local child process. With Streamable HTTP they travel to the endpoint operator, so use HTTPS,
+  authentication, and the [documented privacy controls](PRIVACY.md). For whole directories, use
+  the CLI below, [abaplint](https://abaplint.org) in CI, or the
+  [mcp-kit `wrap-abaplint` recipe](https://github.com/palimkarakshay/mcp-kit).
 
 ## Develop
 
 ```bash
 npm install
-npm run check     # typecheck + 171 tests + build — the CI gate
+npm run check     # typecheck + tests + build + routing eval — the CI gate
 node dist/cli.js  # stdio MCP server
+npm run start:http # guarded Streamable HTTP on http://127.0.0.1:3000/mcp
 npx @modelcontextprotocol/inspector --cli node dist/cli.js --method tools/list
 ```
 

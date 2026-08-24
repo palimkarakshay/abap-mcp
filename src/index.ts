@@ -1,5 +1,5 @@
 /** Library surface — embed the tools or the server in your own process. */
-export { buildServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
+export { buildServer, SERVER_INSTRUCTIONS, SERVER_NAME, SERVER_VERSION } from "./server.js";
 export { ALL_TOOLS } from "./abap.tools.js";
 export { runAbaplint, inferFilename, ABAP_VERSIONS, FOCUS_TAGS } from "./abap/engine.js";
 export type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
@@ -22,3 +22,15 @@ export type { FileOutline, ClassOutline, MethodOutline } from "./abap/outline.js
 export { defineTool, registerTool, registerTools } from "./tool.js";
 export type { ToolSpec, AnyToolSpec, ToolExample } from "./tool.js";
 export { McpToolError, invalidInput, notFound } from "./errors.js";
+export {
+  createHttpServer,
+  httpServerOptionsFromEnv,
+  startHttpServer,
+  DEFAULT_HTTP_HOST,
+  DEFAULT_HTTP_PORT,
+} from "./http.js";
+export type {
+  HttpRateLimitOptions,
+  HttpServerOptions,
+  RunningHttpServer,
+} from "./http.js";
