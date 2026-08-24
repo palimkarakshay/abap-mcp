@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-24T16:28:13.132Z",
+  "generatedAt": "2026-08-24T18:24:37.997Z",
   "mode": "offline-metadata",
   "summary": {
     "passed": true,
-    "cases": 24,
-    "passingCases": 24,
+    "cases": 25,
+    "passingCases": 25,
     "failingCases": 0,
-    "toolCount": 12,
+    "toolCount": 13,
     "promptCount": 3,
     "abstentionCases": 7,
     "correctAbstentions": 7,
@@ -19,6 +19,12 @@
       "name": "lint_abap",
       "title": "Lint ABAP source",
       "description": "Run abaplint static analysis over ABAP, CDS or behavior-definition sources and return structured findings (rule key, message, severity, file/line/column, the offending line, and a docs URL per finding). Use this when you have written or modified ABAP code and want style and correctness feedback before it goes anywhere near a system — it runs entirely offline on the provided text. It does not connect to any SAP system, does not run ATC, and cannot judge whether referenced objects exist unless you provide them in the same call (preset \"style\", the default, skips whole-program checks for that reason; preset \"full\" enables them when you provide every dependency). A focus tag turns a pass into a themed review (performance / security / Clean ABAP style) without hand-picking rules; rule overrides layer a team's own pack on top. For an ABAP-Cloud migration verdict use check_cloud_readiness instead. Example: lint_abap({ \"files\": [ { \"source\": \"REPORT ztest.\\nDATA foo TYPE i.\\nIF foo = 1.\\nENDIF.\" } ] })."
+    },
+    {
+      "kind": "tool",
+      "name": "fix_abap",
+      "title": "Fix ABAP automatically (deterministic)",
+      "description": "Apply abaplint's own machine-applicable corrections to ABAP sources and return the corrected code: keyword casing, obsolete statements with defined modern replacements (MOVE → =, and every other rule that ships a concrete edit), applied in verified batches — after each batch the result is re-parsed, and a batch that would break the parse is discarded, so the output is parser-guaranteed, never guessed. Findings WITHOUT a machine fix come back in `remaining` — those need judgment (yours or an agent's, proven afterwards with compare_abap). Use this when someone highlights code and wants it corrected to best practices / modern syntax instantly, as the mechanical first pass before any AI rewriting, or to modernize a file before review. It does not invent rewrites (only fixes abaplint defines), does not resolve cloud blockers that need re-architecture (dynpro, WRITE output — see plan_cloud_migration), and is not a formatter (format_abap pretty-prints without changing statements). Example: fix_abap({ \"files\": [ { \"source\": \"report zdemo.\\ndata lv_x type i.\\nmove 5 to lv_x.\" } ] })."
     },
     {
       "kind": "tool",
@@ -177,11 +183,13 @@
           },
           {
             "kind": "tool",
-            "name": "format_abap",
-            "score": 7.3,
+            "name": "fix_abap",
+            "score": 7.724,
             "matched": [
               "abap",
-              "commit"
+              "finding",
+              "pass",
+              "syntax"
             ]
           }
         ]
@@ -1696,6 +1704,80 @@
               "classe",
               "first",
               "read"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "autofix-selection",
+      "intent": "I highlighted this block of old ABAP — automatically correct it: fix the keyword casing and replace the obsolete statements with modern syntax, deterministically.",
+      "expected": {
+        "kind": "tool",
+        "name": "fix_abap"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "autofix"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "fix_abap"
+        },
+        "reason": "top metadata score 12.1; margin 5",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "fix_abap",
+            "score": 12.1,
+            "matched": [
+              "abap",
+              "automatically",
+              "correct",
+              "fix",
+              "highlight",
+              "modern",
+              "syntax"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "format_abap",
+            "score": 7.1,
+            "matched": [
+              "abap",
+              "cas",
+              "keyword"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_rule",
+            "score": 5.8,
+            "matched": [
+              "abap",
+              "fix"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "list_abap_rules",
+            "score": 5.8,
+            "matched": [
+              "abap",
+              "obsolete"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "scaffold_abap_unit",
+            "score": 5,
+            "matched": [
+              "abap",
+              "correct"
             ]
           }
         ]

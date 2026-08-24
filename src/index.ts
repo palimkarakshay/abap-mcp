@@ -7,6 +7,8 @@ export { checkCloudReadiness, gradeReadiness } from "./abap/readiness.js";
 export type { ReadinessReport, ReadinessGrade, ReleasedApiFinding } from "./abap/readiness.js";
 export { planCloudMigration } from "./abap/plan.js";
 export type { MigrationPlan, PlanPhase, PlanWorkItem, PlanEffort } from "./abap/plan.js";
+export { fixAbap } from "./abap/fix.js";
+export type { FixResult, FixedEntry } from "./abap/fix.js";
 export { scaffoldAbapUnit } from "./abap/unittest.js";
 export type { UnitTestResult, UnitTestFile } from "./abap/unittest.js";
 export { getObjectDependencies } from "./abap/deps.js";

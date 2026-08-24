@@ -301,5 +301,18 @@
       "direct",
       "sequencing"
     ]
+  },
+  {
+    "id": "autofix-selection",
+    "intent": "I highlighted this block of old ABAP — automatically correct it: fix the keyword casing and replace the obsolete statements with modern syntax, deterministically.",
+    "expected": {
+      "kind": "tool",
+      "name": "fix_abap"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "autofix"
+    ]
   }
 ]

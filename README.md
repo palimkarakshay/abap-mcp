@@ -40,6 +40,7 @@ long before anything reaches a system. This server gives agents the missing feed
 layer:
 
 - *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
+- *"Fix this block automatically — casing, obsolete syntax."* → `fix_abap` (deterministic, parser-guaranteed)
 - *"How far is this classic report from ABAP Cloud? Grade it."* → `check_cloud_readiness` (A–D)
 - *"Plan the migration — what do we tackle first?"* → `plan_cloud_migration` (phased backlog)
 - *"This class has no tests — start me a harness."* → `scaffold_abap_unit` (failing-by-default)
@@ -125,7 +126,7 @@ npm install && npm run build
 claude mcp add abap-mcp -- node /path/to/abap-mcp/dist/cli.js
 ```
 
-Connected? Ask your agent *"list your ABAP tools"* — you should see all twelve, `lint_abap`
+Connected? Ask your agent *"list your ABAP tools"* — you should see all thirteen, `lint_abap`
 through `get_abap_outline`.
 
 ### First things to ask
@@ -154,6 +155,7 @@ Every tool is also a subcommand, so it works in terminals and CI where no MCP cl
 
 ```bash
 npx abap-mcp lint src/                          # lint files or whole directories
+npx abap-mcp fix src/ --write                   # apply abaplint's deterministic auto-fixes in place
 npx abap-mcp lint src/ --focus Performance      # themed pass: Performance | Security | Styleguide
 npx abap-mcp lint src/ --rules-file org.json    # your org's abaplint rule pack, same engine
 npx abap-mcp readiness src/ --fail-below 80     # repo-level ABAP Cloud readiness, scored + graded A–D
@@ -189,6 +191,7 @@ GitHub Actions quality gate for abapGit repos.
 | --- | --- |
 | `lint_abap` | abaplint static analysis over ABAP/CDS/BDEF sources → structured findings with rule docs links. Presets: `style` (default, snippet-friendly), `full`, `syntax-only`; per-rule overrides for org rule packs; `focus` lens (`Performance` / `Security` / `Styleguide`) for themed reviews. |
 | `check_cloud_readiness` | Dual-parse diff (classic baseline vs `Cloud`): statements that are valid today but illegal in ABAP Cloud become categorized blockers (dynpro, list output, native SQL, …) with a transparent score **and a density-banded A–D tech-debt grade**; code broken at the baseline is reported separately, not counted as migration work. Also surfaces a **separate, dated released-API cross-check** (`releasedApiFindings`): direct access to non-released classic tables and deprecated-API usage found in the source, with CDS successor hints — informational, not folded into the score. |
+| `fix_abap` | abaplint's own machine-applicable corrections, applied and verified: keyword casing, obsolete statements with defined modern replacements (`MOVE` → `=`, …). Batches re-parse after every pass and a batch that would break the parse is discarded — output is parser-guaranteed, never guessed. Unfixable findings return as `remaining` for judgment-tier rework (prove it with `compare_abap`). |
 | `plan_cloud_migration` | The task-manager layer over readiness: arranges every blocker into a phased, consulting-ordered backlog — repair-the-baseline first, then mechanical quick wins, core rework, UI re-architecture, and a separate snapshot-dated released-API phase. Each work item carries an S/M/L effort band, a remediation recipe and sample locations; each phase carries objective, re-checkable exit criteria. Deterministic: same readiness numbers, rearranged — no new judgments. |
 | `compare_abap` | Before/after verdict on a rework: lint findings resolved vs introduced (matched by content, so moved code isn't noise), blocker/score/grade movement, and classes/methods/FORMs added or removed. The objective referee for refactors and AI rewrites. |
 | `check_released_api` | Looks up objects (tables, CDS views, function modules, classes, …) in SAP's bundled Cloudification snapshot → `released` / `deprecated` / `not-released` per object, plus a curated CDS successor for common classic tables. The released-API half of readiness, offline. |

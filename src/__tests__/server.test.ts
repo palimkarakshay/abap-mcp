@@ -30,7 +30,7 @@ describe("MCP server wire", () => {
     expect(SERVER_INSTRUCTIONS).toContain("do not connect to SAP or run ATC");
   });
 
-  it("lists all twelve tools", async () => {
+  it("lists all thirteen tools", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -38,6 +38,7 @@ describe("MCP server wire", () => {
       "check_released_api",
       "compare_abap",
       "explain_abap_rule",
+      "fix_abap",
       "format_abap",
       "get_abap_outline",
       "get_object_dependencies",
@@ -47,6 +48,35 @@ describe("MCP server wire", () => {
       "scaffold_abap_unit",
       "scaffold_rap_bo",
     ]);
+  });
+
+  it("fix_abap returns machine-corrected source over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "fix_abap",
+      arguments: {
+        files: [
+          {
+            filename: "zdemo.prog.abap",
+            source: "report zdemo.\ndata lv_x type i.\nmove 5 to lv_x.",
+          },
+        ],
+      },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        files: { source: string; changed: boolean }[];
+        fixedCount: number;
+        remaining: unknown[];
+      };
+    };
+    expect(result.isError ?? false).toBe(false);
+    const sc = result.structuredContent!;
+    expect(sc.fixedCount).toBeGreaterThan(0);
+    expect(sc.files[0]!.changed).toBe(true);
+    expect(sc.files[0]!.source).toContain("REPORT zdemo.");
+    expect(sc.files[0]!.source).toContain("lv_x = 5.");
+    expect(sc.files[0]!.source).not.toContain("move ");
   });
 
   it("scaffold_abap_unit returns a validated failing-by-default harness over the wire", async () => {
@@ -235,7 +265,7 @@ describe("MCP server wire", () => {
 });
 
 describe("tool description rubric (mcp-kit discipline)", () => {
-  const VERBS = ["get", "list", "search", "run", "create", "check", "compare", "lint", "scaffold", "explain", "format", "plan"];
+  const VERBS = ["get", "list", "search", "run", "create", "check", "compare", "lint", "scaffold", "explain", "format", "plan", "fix"];
 
   for (const tool of ALL_TOOLS) {
     describe(tool.name, () => {

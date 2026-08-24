@@ -83,7 +83,7 @@ export function inferFilename(source: string, given?: string): string {
   return "zsnippet.prog.abap";
 }
 
-function boundFiles(files: AbapSource[]): { filename: string; source: string }[] {
+export function boundFiles(files: AbapSource[]): { filename: string; source: string }[] {
   if (files.length === 0) throw new Error("Provide at least one source file.");
   if (files.length > MAX_FILES) throw new Error(`At most ${MAX_FILES} files per call.`);
   const used = new Set<string>();
@@ -142,7 +142,7 @@ export interface RunOptions {
   preset: "style" | "full" | "syntax-only";
 }
 
-function buildConfig(opts: RunOptions): abaplint.Config {
+export function buildConfig(opts: RunOptions): abaplint.Config {
   let raw: Record<string, unknown>;
   if (opts.preset === "syntax-only") {
     raw = {

@@ -13,6 +13,7 @@ import { compareAbap } from "./abap/compare.js";
 import type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILE_CHARS, MAX_FILES, runAbaplint } from "./abap/engine.js";
 import { getObjectDependencies } from "./abap/deps.js";
+import { fixAbap } from "./abap/fix.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { planCloudMigration } from "./abap/plan.js";
 import { scaffoldAbapUnit } from "./abap/unittest.js";
@@ -282,7 +283,7 @@ function setupVsCode(bin: string, io: CliIo): boolean {
     if (r.status === 0) {
       io.out(`✓ ${bin}: abap-mcp registered.`);
       io.out(`  Next: restart ${bin === "code" ? "VS Code" : bin}, open Copilot Chat, switch to Agent mode,`);
-      io.out('  and ask: "list your ABAP tools" — you should see twelve.');
+      io.out('  and ask: "list your ABAP tools" — you should see thirteen.');
       return true;
     }
   } catch {
@@ -370,6 +371,84 @@ export function cmdSetup(argv: string[], io: CliIo): number {
       io.err("Usage: abap-mcp setup [auto|vscode|vscode-insiders|eclipse|claude]");
       return 2;
   }
+}
+
+/** Like collectFiles, but keeps the full path per basename so --write can put fixes back. */
+function collectFilesWithPaths(paths: string[], io: CliIo): { files: AbapSource[]; pathOf: Map<string, string[]> } {
+  const files = collectFiles(paths, io);
+  const pathOf = new Map<string, string[]>();
+  const visit = (p: string): void => {
+    const st = statSync(p);
+    if (st.isDirectory()) {
+      if (basename(p) === ".git" || basename(p) === "node_modules") return;
+      for (const entry of readdirSync(p)) visit(join(p, entry));
+      return;
+    }
+    const name = basename(p).toLowerCase();
+    if (ABAP_FILE_RE.test(name)) {
+      const list = pathOf.get(name) ?? [];
+      list.push(p);
+      pathOf.set(name, list);
+    }
+  };
+  for (const p of paths) visit(p);
+  return { files, pathOf };
+}
+
+export function cmdFix(argv: string[], io: CliIo): number {
+  const { flags, rest } = parseFlags(argv);
+  const { files, pathOf } = collectFilesWithPaths(rest.length > 0 ? rest : ["."], io);
+  if (files.length === 0) {
+    io.err("No ABAP sources found.");
+    return 2;
+  }
+  const opts = {
+    version: asVersion(flags.get("abap-version"), "v758"),
+    preset: asPreset(flags.get("preset")),
+    rules: rulesFromFile(flags.get("rules-file")),
+  };
+  let fixedCount = 0;
+  let remaining = 0;
+  const results = chunk(files, MAX_FILES).map((b) => fixAbap(b, opts));
+  for (const r of results) {
+    fixedCount += r.fixedCount;
+    remaining += r.remaining.length;
+    if (r.stoppedEarly !== undefined) io.err(`note: ${r.stoppedEarly}`);
+  }
+  if (flags.has("json")) {
+    io.out(
+      JSON.stringify(
+        {
+          fixedCount,
+          remainingCount: remaining,
+          files: results.flatMap((r) => r.files),
+          fixed: results.flatMap((r) => r.fixed),
+          remaining: results.flatMap((r) => r.remaining),
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  const changed = results.flatMap((r) => r.files.filter((f) => f.changed));
+  if (flags.has("write")) {
+    for (const f of changed) {
+      const targets = pathOf.get(f.filename) ?? [];
+      if (targets.length !== 1) {
+        io.err(`skip write ${f.filename}: ${targets.length === 0 ? "path unknown" : "ambiguous (same name in several folders)"}`);
+        continue;
+      }
+      writeFileSync(targets[0]!, f.source, "utf8");
+      io.out(`fixed ${targets[0]}`);
+    }
+  } else {
+    for (const r of results)
+      for (const fx of r.fixed) io.out(`${fx.file}:${fx.line} ${fx.rule}: ${fx.message}`);
+    if (changed.length > 0) io.out(`(dry run — use --write to apply, --json for the corrected sources)`);
+  }
+  io.out(`${fixedCount} fix(es) across ${changed.length} file(s); ${remaining} finding(s) have no machine fix`);
+  return 0;
 }
 
 export function cmdUnittest(argv: string[], io: CliIo): number {
@@ -632,6 +711,7 @@ Usage:
   abap-mcp                       start the MCP server on stdio (for AI clients)
   abap-mcp setup [target]        register abap-mcp with your editor (auto-detects; targets: vscode, vscode-insiders, eclipse, claude)
   abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]
+  abap-mcp fix [paths…]          apply abaplint's deterministic auto-fixes (keyword case, MOVE→=, …)   [--write] [--abap-version …] [--preset …] [--rules-file …] [--json]
   abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--fail-below N] [--json]
   abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--json]
   abap-mcp compare BEFORE AFTER  what a rework changed: findings resolved/introduced, blocker/score/grade movement, structure   [--preset …] [--focus …] [--json]
@@ -655,6 +735,8 @@ export function runCli(argv: string[], io: CliIo): number | null {
       return cmdSetup(rest, io);
     case "lint":
       return cmdLint(rest, io);
+    case "fix":
+      return cmdFix(rest, io);
     case "readiness":
       return cmdReadiness(rest, io);
     case "plan":

@@ -27,7 +27,8 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
   The in-repo rubric tests in `server.test.ts` enforce the same discipline on every tool and prompt.
 
 ## Layout
-- `src/abap.tools.ts` — the 12 ToolSpecs (lint_abap [+focus rule packs], check_cloud_readiness
+- `src/abap.tools.ts` — the 13 ToolSpecs (lint_abap [+focus rule packs], fix_abap [deterministic
+  abaplint auto-fixes, batch-verified], check_cloud_readiness
   [+A–D grade +rewrite recipes], plan_cloud_migration [phased backlog +examples], compare_abap,
   scaffold_rap_bo, scaffold_abap_unit [failing-by-default test harness], get_object_dependencies
   [tiered graph +released flags +mermaid], check_released_api, list_abap_rules, explain_abap_rule,
@@ -40,6 +41,8 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
   density-banded A–D grade) · plan.ts (deterministic phased-backlog arrangement of a
   ReadinessReport: stage playbook per category, S/M/L bands, exit criteria — no new judgments) ·
   compare.ts (before/after: content-matched finding diff + grade movement + structure changes) ·
+  fix.ts (deterministic auto-fix: Issue.getDefaultFix edits via abaplint.Edits.applyEditList,
+  batch loop w/ parse-regression safety valve — never invents rewrites) ·
   released.ts (released-API lookup over the bundled snapshot) · scaffold.ts (RAP templates +
   self-validation) · unittest.ts (ABAP Unit skeletons: fail-loudly markers, abaplint round-trip) ·
   deps.ts (tiered dependency graph: AST db/func refs + outline structure + labeled textual) ·
@@ -53,8 +56,8 @@ optional HTTP transport accepts inbound MCP requests. Lumivara product line: **S
 - `src/tool.ts`, `src/errors.ts` — vendored mcp-kit patterns (attributed; keep in sync by hand)
 - `src/server.ts` + `src/cli.ts` (entry: subcommand → CLI, bare → stdio server) +
   `src/http.ts` (optional stateless Streamable HTTP entry with auth/body/concurrency/rate limits) +
-  `src/cli-commands.ts` (setup/lint/readiness/plan/compare/scaffold/unittest/deps/outline/explain/
-  rules; the CLI may touch fs + spawn editor CLIs — `setup` registers the server via `code
+  `src/cli-commands.ts` (setup/lint/fix [--write]/readiness/plan/compare/scaffold/unittest/deps/
+  outline/explain/rules; the CLI may touch fs + spawn editor CLIs — `setup` registers the server via `code
   --add-mcp` / `claude mcp add` and prints guided Eclipse steps; the MCP server never does) +
   `src/index.ts` (library exports). Newcomer walkthrough: `docs/INSTALL.md`.
 - `docs/DESIGN.md` — decision log · `docs/COOKBOOK.md` — user recipes

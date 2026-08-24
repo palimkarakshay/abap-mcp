@@ -1,6 +1,6 @@
 # abap-mcp host-routing eval report
 
-**Mode:** offline metadata · **Result:** PASS · **Cases:** 24/24 · **Surface:** 12 tools + 3 prompts
+**Mode:** offline metadata · **Result:** PASS · **Cases:** 25/25 · **Surface:** 13 tools + 3 prompts
 
 This deterministic smoke test ranks the exact descriptions exposed by MCP. It makes no model or network calls.
 
@@ -30,6 +30,7 @@ This deterministic smoke test ranks the exact descriptions exposed by MCP. It ma
 | rule-catalog-not-analysis | tool:list_abap_rules | tool:list_abap_rules | PASS | top metadata score 13.288; margin 0.184 |
 | unit-test-harness | tool:scaffold_abap_unit | tool:scaffold_abap_unit | PASS | top metadata score 40.6; margin 33.5 |
 | dependency-sequencing | tool:get_object_dependencies | tool:get_object_dependencies | PASS | top metadata score 26.4; margin 14.5 |
+| autofix-selection | tool:fix_abap | tool:fix_abap | PASS | top metadata score 12.1; margin 5 |
 
 ## Coverage checks
 

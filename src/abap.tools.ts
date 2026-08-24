@@ -11,6 +11,7 @@ import { z } from "zod";
 import { compareAbap } from "./abap/compare.js";
 import { getObjectDependencies } from "./abap/deps.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, runAbaplint } from "./abap/engine.js";
+import { fixAbap } from "./abap/fix.js";
 import { formatAbap } from "./abap/formatter.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { planCloudMigration } from "./abap/plan.js";
@@ -980,8 +981,105 @@ export const getObjectDependenciesTool = defineTool({
   },
 });
 
+export const fixAbapTool = defineTool({
+  name: "fix_abap",
+  title: "Fix ABAP automatically (deterministic)",
+  description:
+    "Apply abaplint's own machine-applicable corrections to ABAP sources and return the corrected code: keyword " +
+    "casing, obsolete statements with defined modern replacements (MOVE → =, and every other rule that ships a " +
+    "concrete edit), applied in verified batches — after each batch the result is re-parsed, and a batch that would " +
+    "break the parse is discarded, so the output is parser-guaranteed, never guessed. Findings WITHOUT a machine fix " +
+    "come back in `remaining` — those need judgment (yours or an agent's, proven afterwards with compare_abap). " +
+    "Use this when someone highlights code and wants it corrected to best practices / modern syntax instantly, as " +
+    "the mechanical first pass before any AI rewriting, or to modernize a file before review. " +
+    "It does not invent rewrites (only fixes abaplint defines), does not resolve cloud blockers that need " +
+    "re-architecture (dynpro, WRITE output — see plan_cloud_migration), and is not a formatter (format_abap " +
+    "pretty-prints without changing statements). " +
+    'Example: fix_abap({ "files": [ { "source": "report zdemo.\\ndata lv_x type i.\\nmove 5 to lv_x." } ] }).',
+  inputSchema: {
+    files: filesField,
+    abapVersion: VERSION_ENUM.default("v758").describe(
+      'ABAP language version to parse and fix against ("Cloud" for ABAP Cloud code).',
+    ),
+    preset: z
+      .enum(["style", "full", "syntax-only"])
+      .default("style")
+      .describe(
+        'Which ruleset supplies the fixes: "style" (default) fits isolated snippets; "full" expects all referenced objects provided; "syntax-only" yields no style fixes.',
+      ),
+    rules: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        'abaplint rule overrides merged onto the preset, e.g. { "keyword_case": { "style": "lower" } } — fixes follow your org\'s pack, same as lint_abap.',
+      ),
+  },
+  outputSchema: {
+    files: z.array(
+      z.object({
+        filename: z.string().describe("abapGit-style filename."),
+        source: z.string().describe("The corrected source after all applied fix batches."),
+        changed: z.boolean().describe("False when no fix touched this file."),
+      }),
+    ),
+    fixedCount: z.number().describe("Total machine fixes applied."),
+    fixed: z
+      .array(
+        z.object({
+          rule: z.string().describe("abaplint rule that supplied the fix."),
+          message: z.string().describe("The finding that was fixed."),
+          file: z.string().describe("File the fix landed in."),
+          line: z.number().describe("1-based line of the original finding."),
+        }),
+      )
+      .describe("What was fixed (capped at 200 entries; fixedCount carries the total)."),
+    remaining: z
+      .array(z.unknown())
+      .describe("Findings with no machine fix — judgment work; rework them and verify with compare_abap."),
+    iterations: z.number().describe("Fix batches applied (each batch re-parses before the next)."),
+    stoppedEarly: z
+      .string()
+      .optional()
+      .describe("Present when the safety valve discarded a batch or the batch cap was reached."),
+  },
+  annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  examples: [
+    {
+      description: "Mechanically modernize an old-style snippet (casing + MOVE).",
+      arguments: {
+        files: [
+          {
+            filename: "zdemo.prog.abap",
+            source: "report zdemo.\ndata lv_x type i.\nmove 5 to lv_x.\nif lv_x > 1.\n  write lv_x.\nendif.",
+          },
+        ],
+      },
+    },
+  ],
+  handler: (args) => {
+    const result = fixAbap(args.files, {
+      version: args.abapVersion,
+      preset: args.preset,
+      rules: args.rules,
+    });
+    const byRule = new Map<string, number>();
+    for (const f of result.fixed) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
+    const ruleLine = [...byRule.entries()].map(([r, n]) => `${r}×${n}`).join(", ");
+    const text =
+      `${result.fixedCount} fix(es) applied in ${result.iterations} batch(es)` +
+      (ruleLine.length > 0 ? ` [${ruleLine}]` : "") +
+      `; ${result.remaining.length} finding(s) remain without a machine fix` +
+      (result.stoppedEarly !== undefined ? `; NOTE: ${result.stoppedEarly}` : "");
+    return {
+      content: [{ type: "text", text }],
+      structuredContent: result as unknown as Record<string, unknown>,
+    };
+  },
+});
+
 export const ALL_TOOLS: readonly AnyToolSpec[] = [
   lintAbap,
+  fixAbapTool,
   checkCloudReadinessTool,
   planCloudMigrationTool,
   compareAbapTool,

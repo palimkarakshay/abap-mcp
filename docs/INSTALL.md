@@ -100,10 +100,15 @@ In your assistant's chat (Copilot **Agent mode** / Claude Code), ask:
 
 > list your ABAP tools
 
-You should see twelve, `lint_abap` through `get_abap_outline`. Then try it on real code:
+You should see thirteen, `lint_abap` through `get_abap_outline`. Then try it on real code:
 
 > Here's one of my classes — lint it against ABAP Cloud and explain the worst finding like I'm
 > new to ABAP.
+
+or paste/highlight any block of old-style code and ask:
+
+> Fix this automatically — apply the deterministic fixes (casing, obsolete syntax) first, then
+> rewrite whatever remains and prove it with compare_abap.
 
 or, pointed at a checked-out abapGit repo:
 
