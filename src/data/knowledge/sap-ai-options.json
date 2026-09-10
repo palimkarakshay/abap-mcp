@@ -1,0 +1,443 @@
+{
+  "curatedDate": "2026-09-10",
+  "description": "Decision cards for the SAP AI options an ABAP team can reach in 2026: SAP's ABAP-specialised model, the Generative AI Hub orchestration API, the ABAP AI SDK powered by ISLM, Joule for Developers, SAP's official ADT MCP server, the custom code migration agent, and the community MCP ecosystem. Original abap-mcp prose over cited sources.",
+  "scopeNote": "bundled knowledge curated 2026-09-10; the target system's release notes are authoritative",
+  "cards": [
+    {
+      "id": "sap-abap-1",
+      "title": "SAP-ABAP-1 — SAP's ABAP-specialised foundation model",
+      "kind": "model",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "An SAP-hosted model fine-tuned on SAP's own ABAP and CDS code base, reachable only through the Generative AI Hub orchestration service. It is an explain-first model: SAP labels its code generation experimental and not recommended for production.",
+      "accessPath": {
+        "modelName": "sap-abap-1",
+        "modelVersion": "latest",
+        "endpoint": "POST {orchestrationDeploymentUrl}/v2/completion",
+        "onlyVia": "Generative AI Hub orchestration service — never as a plain foundation-models deployment",
+        "headers": ["ai-resource-group", "authorization: Bearer <XSUAA token>", "content-type: application/json"]
+      },
+      "plan": "SAP AI Core, extended service plan (the standard plan cannot run orchestration). Requires a service instance, a service key, completed client authorization and a running orchestration deployment URL.",
+      "capabilities": [
+        "Code-to-text: input an ABAP class or snippet, output an English explanation.",
+        "The same model that backs Joule for Developers in the development tools, Joule for Consultants and the custom code migration explain feature.",
+        "Three official prompt templates are published: explain a whole class, explain a method with the class as extra context, explain a snippet."
+      ],
+      "limits": [
+        "System prompts are rejected. Since 2026-04-27 the system prompt is predefined and added automatically; a request that carries its own system prompt fails with an error. Send role user only and put instructions at the start or end of the user prompt.",
+        "Maximum context is 128,000 tokens; roughly 120,000 tokens (about 250,000 characters) are usable for input code once instructions and output are reserved.",
+        "Code generation is explicitly experimental and not recommended for productive use.",
+        "No access to model weights, no fine-tuning, no self-hosting.",
+        "ABAP only — other programming languages are not supported. Finished, syntactically valid code with inline documentation works best; commented-out code hurts.",
+        "SAP disclaims responsibility for output quality including bias, hallucination and inaccuracy, and tells customers not to put personal data in prompts."
+      ],
+      "training": "SAP states more than 250 million lines of ABAP code, 30 million lines of CDS code and extensive technical documentation.",
+      "availabilityDate": "2026-01-19 per SAP AI Core What's New; announced publicly 2026-01-13.",
+      "benchmarks": [
+        {
+          "name": "ABAP code generation, cumulative success round 0 to round 5",
+          "figures": "SAP-ABAP-1 10.67% to 19.89%; Claude Opus 4.5 31.61% to 78.72%; GPT-5 19.28% to 77.11%; GPT-5.2 16.33% to 64.00%.",
+          "setup": "180 tasks, created and activated in an ABAP Cloud Developer Trial container, verified with ABAP Unit, up to five compiler and test feedback rounds.",
+          "sourceUrl": "https://blog.zeis.de/posts/2026-02-09-abap-llm-benchmark/",
+          "confidence": "reported"
+        },
+        {
+          "name": "Cost per benchmark run",
+          "figures": "About USD 20.26 for GPT-5.2 and USD 39.76 for Claude Opus 4.5 (both batch-priced), against EUR 98.80 for SAP-ABAP-1 with no batch API and 17.98 million tokens.",
+          "setup": "Same run as above; the token gap is attributed to a much higher retry rate.",
+          "sourceUrl": "https://blog.zeis.de/posts/2026-02-09-abap-llm-benchmark/",
+          "confidence": "reported"
+        },
+        {
+          "name": "ABAP understanding / explanation benchmark",
+          "figures": "A current Anthropic Haiku model outscored SAP-ABAP-1 on structured fact extraction from ABAP plus its unit tests — SAP-ABAP-1 lost on its own stated specialty.",
+          "setup": "Read ABAP and its ABAP Unit tests, emit structured JSON, auto-scored against a reference; no SAP system needed.",
+          "sourceUrl": "https://blog.zeis.de/posts/2026-03-05-abap-llm-benchmark-understanding/",
+          "confidence": "reported"
+        }
+      ],
+      "trial": "A 30-day free trial is available through the Generative AI Hub Try now feature.",
+      "pricing": "Per-model token conversion rates, rate limits and deprecation dates live in SAP Note 3437766, which is behind SAP ONE Support login and could not be read.",
+      "openQuestions": [
+        "A community thread reported a 2026-06-30 retirement date seen in the AI Launchpad model library; SAP never answered. The doc source repo still showed the model live and callable in August 2026, and the discovery schema puts retirementDate on a model VERSION, so the date most likely referred to a point version.",
+        "There is no SAP-ABAP-1.5 or ABAP-2 as of the curation date, even though SAP has already shipped SAP-RPT-1.5 for its tabular model."
+      ],
+      "whenToUse": "When you need an SAP-hosted explanation of existing ABAP or CDS, you already run AI Core on the extended plan, and the data-residency story of an SAP-operated model matters more than raw quality.",
+      "whenNotToUse": "For generating ABAP. SAP itself labels generation experimental, and independent benchmarks put it far behind frontier general models on both generation and explanation while costing more per completed task. Never rely on a system prompt with it.",
+      "sources": [
+        "https://help.sap.com/docs/sap-ai-core/generative-ai/sap-abap-1",
+        "https://help.sap.com/docs/sap-ai-core/generative-ai/example-payloads-for-inferencing-sap-abap-1",
+        "https://help.sap.com/docs/sap-ai-core/generative-ai/prompting-templates",
+        "https://raw.githubusercontent.com/SAP-docs/sap-artificial-intelligence/main/docs/sap-ai-core/what-s-new-for-sap-ai-core-b7f76ad.md",
+        "https://news.sap.com/2026/01/sap-business-ai-release-highlights-q4-2025/",
+        "https://blog.zeis.de/posts/2026-02-09-abap-llm-benchmark/",
+        "https://blog.zeis.de/posts/2026-03-05-abap-llm-benchmark-understanding/"
+      ],
+      "keywords": ["sap-abap-1", "foundation model", "system prompt", "128k context", "code explanation", "benchmark", "orchestration"]
+    },
+    {
+      "id": "generative-ai-hub-orchestration",
+      "title": "Generative AI Hub orchestration API (V2)",
+      "kind": "api",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "SAP AI Core's harmonised entry point to many vendors' models behind one request shape, with optional content filtering, data masking, document grounding and translation modules in the same call.",
+      "accessPath": {
+        "endpoint": "POST {deploymentUrl}/v2/completion",
+        "headers": ["Authorization: Bearer <XSUAA token>", "content-type: application/json", "AI-Resource-Group: <group>"],
+        "auth": "XSUAA client credentials from an AI Core service key: clientid, clientsecret, url (token endpoint is url + /oauth/token) and serviceurls.AI_API_URL.",
+        "discovery": "GET {AI_API_URL}/v2/lm/scenarios/foundation-models/models lists models with provider, versions, contextLength, cost, capabilities, deprecated and retirementDate."
+      },
+      "plan": "SAP AI Core extended service plan. A running orchestration deployment is required; the default resource group usually already has one named defaultOrchestrationConfig. Additional resource groups need their own orchestration deployment.",
+      "modules": {
+        "prompt_templating": "Mandatory. Carries prompt.template[] and the nested model {name, version, params}.",
+        "filtering": "Optional input and output filters, e.g. azure_content_safety with hate, self_harm, sexual and violence thresholds.",
+        "masking": "Optional sap_data_privacy_integration provider with anonymization or pseudonymization over named entity types.",
+        "grounding": "Optional document_grounding_service; data_repository_type defaults to vector, and help.sap.com searches the SAP Help Portal instead of your own repositories.",
+        "translation": "Optional sap_document_translation on input and output."
+      },
+      "requestShape": "{ config: { modules: { ... } }, placeholder_values: { ... } }",
+      "responseShape": "{ request_id, intermediate_results: { templating, input_filtering, ..., llm }, final_result } — the llm and final_result blocks follow the OpenAI chat-completion shape with choices[] and usage.",
+      "v1Eol": "The original V1 endpoint (POST {deploymentUrl}/completion) is deprecated and scheduled for decommissioning on 2026-10-31. Migrate before then.",
+      "v1ToV2Renames": {
+        "llm_module_config + templating_module_config": "prompt_templating (model nested inside)",
+        "input_params": "placeholder_values",
+        "module_results": "intermediate_results",
+        "orchestration_result": "final_result",
+        "max_tokens": "max_completion_tokens"
+      },
+      "sdks": [
+        {
+          "package": "@sap-ai-sdk/orchestration",
+          "registry": "npm",
+          "version": "2.15.0",
+          "asOf": "2026-09-09",
+          "note": "Versioned in lockstep with @sap-ai-sdk/foundation-models. The same v2.0.0 rename landed here: llm.model_name became promptTemplating.model.name and inputParams became placeholderValues."
+        },
+        {
+          "package": "@sap-ai-sdk/foundation-models",
+          "registry": "npm",
+          "version": "2.15.0",
+          "asOf": "2026-09-09",
+          "note": "AzureOpenAiChatClient and AzureOpenAiEmbeddingClient for direct foundation-model access."
+        },
+        {
+          "package": "sap-ai-sdk-gen",
+          "registry": "PyPI",
+          "version": "7.2.0",
+          "asOf": "2026-09-09",
+          "note": "Current Python SDK, namespace gen_ai_hub.orchestration_v2. Requires Python 3.9 or higher."
+        },
+        {
+          "package": "generative-ai-hub-sdk",
+          "registry": "PyPI",
+          "version": "4.12.4",
+          "asOf": "2026-09-09",
+          "note": "DEPRECATED and unmaintained since May 2025. Its own description points to sap-ai-sdk-gen; class names are unchanged after the rebrand."
+        }
+      ],
+      "gotchas": [
+        "SAP's own harmonised-API page still describes the V1 response in prose while its JSON sample shows the V2 shape. Trust the JSON samples, not the prose.",
+        "The deployment-creation page ships literally malformed JSON and mismatched deployment ids between steps.",
+        "SAP uses scenarioId orchestration when creating the configuration but the running deployment echoes llm-orchestration.",
+        "The JS stream() return value is not itself the async iterable — iterate response.stream, and toContentStream() is a method on that.",
+        "Only SAP Note 3437766 is authoritative for the current model list, rates and retirement dates, and it is paywalled."
+      ],
+      "whenToUse": "When an application needs a model call from outside ABAP — a Node or Python service, a side-by-side extension — and you want SAP-governed filtering, masking or grounding in the same request without wiring a vendor SDK per model.",
+      "whenNotToUse": "For calls made from inside ABAP Cloud: use the ABAP AI SDK, which wraps this service. Do not build new integrations on the V1 endpoint, and do not assume a model is available just because the docs list it.",
+      "sources": [
+        "https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide/orchestration-workflow-v2",
+        "https://help.sap.com/docs/sap-ai-core/generative-ai/orchestration-workflow-v1-deprecated",
+        "https://help.sap.com/docs/sap-ai-core/generative-ai/harmonized-api",
+        "https://help.sap.com/docs/sap-ai-core/generative-ai/choose-model",
+        "https://sap.github.io/ai-sdk/docs/js/orchestration/chat-completion",
+        "https://sap.github.io/ai-sdk/docs/js/connecting-to-ai-core",
+        "https://pypi.org/project/sap-ai-sdk-gen/"
+      ],
+      "keywords": ["orchestration", "v2/completion", "generative ai hub", "ai core", "xsuaa", "grounding", "masking", "harmonized api"]
+    },
+    {
+      "id": "abap-ai-sdk-islm",
+      "title": "ABAP AI SDK powered by Intelligent Scenario Lifecycle Management",
+      "kind": "abap-library",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "SAP's official ABAP reuse library for calling models on the Generative AI Hub from custom ABAP Cloud code. Design-time artifacts called intelligent scenarios and intelligent scenario models carry the connection, the model choice and any prompt templates.",
+      "reuseComponents": ["Prompt completion", "Prompt library", "Function calling", "Exception handling"],
+      "classInventory": [
+        { "name": "CL_AIC_ISLM_COMPL_API_FACTORY", "role": "Completion API factory. GET( ) returns IF_AIC_ISLM_COMPL_API_FACTORY." },
+        { "name": "IF_AIC_ISLM_COMPL_API_FACTORY", "role": "Factory interface. CREATE_INSTANCE( islm_scenario ) returns the completion API; only the scenario name is needed because it carries connection and model." },
+        { "name": "IF_AIC_COMPLETION_API", "role": "EXECUTE_FOR_STRING, EXECUTE_FOR_MESSAGES, CREATE_MESSAGE_CONTAINER, GET_PARAMETER_SETTER, REGISTER_FUNCTION, DEFINE_RESPONSE_FORMAT." },
+        { "name": "IF_AIC_COMPLETION_API_RESULT", "role": "GET_COMPLETION, GET_RUNTIME_MS, GET_PROMPT_TOKEN_COUNT, GET_COMPLETION_TOKEN_COUNT, GET_TOTAL_TOKEN_COUNT, GET_FINISH_REASON, GET_ORIGINAL_FINISH_REASON, GET_TOOL_CALLS." },
+        { "name": "IF_AIC_MESSAGE_CONTAINER", "role": "SET_SYSTEM_ROLE, ADD_USER_MESSAGE, ADD_ASSISTANT_MESSAGE, GET_MESSAGES, ADD_TOOL_RESULTS, ADD_USER_MEDIA_MESSAGE." },
+        { "name": "IF_AIC_COMPLETION_PARAMETERS", "role": "Obtained from GET_PARAMETER_SETTER. SET_TEMPERATURE (0 to 1), SET_MAXIMUM_TOKENS, SET_ANY_PARAMETER. Parameters persist across EXECUTE calls on the same API instance." },
+        { "name": "CL_AIC_ISLM_PROMPT_TPL_FACTORY", "role": "Prompt library factory. GET( )->CREATE_INSTANCE( islm_scenario, template_id )->GET_PROMPT( parameters ). Only ISLM-defined templates are supported." },
+        { "name": "CL_AIC_ISLM_ORCH_API_FACTORY", "role": "Orchestration API factory. GET( ) returns IF_AIC_ISLM_ORCH_API_FACTORY, whose CREATE_INSTANCE returns IF_AIC_ORCHESTRATION_API." },
+        { "name": "IF_AIC_ORCHESTRATION_API", "role": "EXECUTE( ) returns IF_AIC_ORCHESTRATION_RESPONSE; read the answer through ORCHESTRATION_RESULT( ). Setup uses the RESET / SET_ / CONFIGURE_ / ADD_ / FINISHED chaining contract of IF_AIC_ORCHESTRATION_SETUP." },
+        { "name": "IF_AIC_ADT_COMPLETION_API", "role": "Streaming: STREAM_FOR_MESSAGES returns IF_AIC_COMPLETION_STREAM with HAS_NEXT, GET_NEXT, CANCEL and GET_FINAL_RESULTS." },
+        { "name": "CX_AIC_API_FACTORY", "role": "Raised when the factory cannot create an instance — typically a missing or unpublished intelligent scenario." },
+        { "name": "CX_AIC_COMPLETION_API", "role": "Raised by the EXECUTE methods. Attribute API_ERROR of type IF_AIC_API_ERROR carries GET_CODE, GET_ORIGINAL_CODE and GET_ORIGINAL_MESSAGE." },
+        { "name": "CX_AIC_PROMPT_TEMPLATE", "role": "Prompt-library exception, seen in SAP's own cheat-sheet sample rather than named on the help page." },
+        { "name": "TH_AIC_ORCH_API_INJECTOR", "role": "Test-double injector for unit-testing orchestration calls." }
+      ],
+      "errorCodes": ["CONTEXT_LENGTH_EXCEEDED", "INVALID_PROMPT", "CONTENT_FILTER"],
+      "errorNotes": "Unknown codes and programming errors produce a short dump rather than a catchable exception. CX_AIQUOTA_ADT_LIMIT_EXCEEDED must not be caught inside development-tools actions.",
+      "prerequisites": [
+        "Subscribe to SAP AI Core and add a service plan in the BTP cockpit — the extended plan is what the Generative AI Hub needs.",
+        "Create an AI Core service instance and an X.509 service key built with the ABAP system's downloaded client default certificate.",
+        "Create a communication arrangement on communication scenario SAP_COM_0A69. Only one instance per client is possible.",
+        "Create an intelligent scenario (INTS) and an intelligent scenario model (INTM) in the development tools or the Intelligent Scenarios Fiori app (transaction F4469), then deploy and activate through Intelligent Scenario Management (transaction F4470).",
+        "Expect a synchronisation delay to the AI Core instance, standard configuration about five minutes."
+      ],
+      "lifecycleGotchas": [
+        "Once an intelligent scenario is published it cannot be edited at all.",
+        "Once an intelligent scenario model is published only the model version and the prompt template can be edited.",
+        "The setup path differs by product: only the BTP and public-edition variant names SAP_COM_0A69; the private-edition and on-premise variant lists just the two cockpit steps."
+      ],
+      "orchestrationLimitations": ["Structured output is not yet available through the ABAP orchestration API.", "Function calling is not yet available through it.", "Media input is not yet available through it.", "An execution flow template must be configured in the ISLM model first."],
+      "availability": {
+        "btp": "Available",
+        "s4hc-public": "Available",
+        "s4hc-private": "Available; standard delivery from release 2025, lower releases via transport-based correction instructions per SAP Note 3513374",
+        "onprem": "Available; standard delivery from release 2025, lower releases via TCI per SAP Note 3513374"
+      },
+      "tracing": "The SDK is wired into the ABAP Cross Trace. Enable the ABAP Generative AI and SDK entries when creating a trace configuration to inspect a failing call.",
+      "lookalikes": "Do not confuse this with Microsoft's AI SDK for SAP ABAP (stale, targets 2022 and 2023 Azure OpenAI API versions) or Google's Vertex AI SDK for ABAP, part of the ABAP SDK for Google Cloud. Neither talks to SAP's Generative AI Hub.",
+      "agentPattern": "There is no separate agent API family. SAP's agent guidance is function calling applied in a DO loop, and the only dedicated artifact is a Discovery Center mission.",
+      "whenToUse": "When the model call has to happen inside ABAP — a RAP determination, a validation, a background job, a recommendation. It is the only SAP-supported ABAP client for the Generative AI Hub.",
+      "whenNotToUse": "When the call can live outside ABAP, or when you need structured output, function calling or media input through the orchestration API — those are still completion-API only. Do not assume every Generative AI Hub model is usable; the SDK and the hub ship on different cadences.",
+      "sources": [
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/abap-ai-sdk-powered-by-intelligent-scenario-lifecycle-management",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/completion-api",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/calling-completion-api",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/function-calling",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/prompt-library-api",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/catchable-exceptions",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/utilization-of-orchestration-service-of-generative-ai-hub",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/availability",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/recommendations-and-constraints-for-abap-ai-sdk",
+        "https://github.com/SAP-samples/abap-cheat-sheets/blob/main/30_Generative_AI.md",
+        "https://developers.sap.com/tutorials/abap-islm-simple-genai-scenario/"
+      ],
+      "keywords": ["abap ai sdk", "islm", "cl_aic_islm_compl_api_factory", "intelligent scenario", "sap_com_0a69", "function calling", "f4469", "f4470"]
+    },
+    {
+      "id": "joule-for-developers",
+      "title": "Joule for Developers, ABAP AI capabilities",
+      "kind": "assistant",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "SAP's in-IDE AI toolset for ABAP developers, distinct from the ABAP AI SDK. It covers chat, predictive completion, explanation, ABAP Unit and CDS test generation, CDS annotations, custom code migration assistance and the agentic capabilities layered on the ADT MCP server.",
+      "pricing": {
+        "model": "Consumption-based on AI units since Q2 2026, replacing the earlier flat arrangement.",
+        "promotionEnds": "The free promotional period ends in September 2026 — the Extensibility Assistant licence promotion is documented as available until 2026-09-30.",
+        "skus": { "customers": "8019164", "partners": "8019670" },
+        "extensibilityAssistantMaterials": { "customers": "8019124", "partners": "8019541" },
+        "notes": [
+          "AI units are bought annually and expire after twelve months if unused.",
+          "Capabilities sit in the Joule Premium package; activation runs through SAP for Me with users assigned in Cloud Identity Services.",
+          "Requests are executed and metered in the ABAP AI Hub Service on SAP BTP.",
+          "ADT client 3.58.3 or higher is required for the AI-units setup.",
+          "The extra licence for ATC Explain and related features is governed by SAP Note 3571857."
+        ]
+      },
+      "availability": "Extended to S/4HANA Cloud Private Edition for all releases from 2021, GA Q2 2026, through a hub service on SAP BTP that combines authentication, licence management, AI Core access and ABAP-specific logic. On-premise availability for 2021, 2022, 2023 and 2025 is subject to special RISE contract conditions.",
+      "licenceGatedMcpTools": ["abap_atc_apply_ai_fix", "abap_atc_get_ai_fix_result"],
+      "capabilities": [
+        "Joule chat and documentation chat in the development tools",
+        "Predictive code completion",
+        "Explain code and explain ATC findings",
+        "ABAP Unit test generation and CDS test generation",
+        "CDS annotation generation",
+        "OData UI Service from Scratch and RAP business logic prediction (S/4HANA Cloud Private Edition 2025 or higher)",
+        "Custom code migration assistance",
+        "Agentic AI for ABAP development through the ADT MCP server"
+      ],
+      "whenToUse": "When a team already licenses Joule and wants SAP-native assistance inside Eclipse without wiring an external coding agent, or when they need the two licence-gated AI ATC fix tools.",
+      "whenNotToUse": "As a substitute for offline verification, or as an assumed-free capability — the promotion ends in September 2026 and everything after that is metered on AI units. Note that eighteen of SAP's twenty MCP tools need no Joule licence at all.",
+      "sources": [
+        "https://community.sap.com/t5/technology-blog-posts-by-sap/entering-the-new-era-of-agentic-ai-for-abap-development/ba-p/14394643",
+        "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-ai-chapter-3-we-go-agentic/ba-p/14391469",
+        "https://community.sap.com/t5/artificial-intelligence-blogs-posts/sap-joule-for-developers-abap-ai-capabilities-including-agentic/ba-p/14417633",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/availability",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/mcp-tools"
+      ],
+      "keywords": ["joule for developers", "ai units", "8019164", "sap note 3571857", "promotion", "predictive completion", "abap ai hub service"]
+    },
+    {
+      "id": "official-adt-mcp-server",
+      "title": "SAP's official ADT MCP server",
+      "kind": "mcp-server",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "An MCP server on SAP's new ABAP Language Server, shipped inside ADT for Eclipse and for VS Code. Twenty tools across eight toolsets let any MCP-capable coding agent create, activate, transport, test and check ABAP in a live system.",
+      "activation": {
+        "eclipse": "Preferences > ABAP Development > MCP Server. Enabling starts a local HTTP server and auto-generates a bearer token.",
+        "vscode": "Extension setting checkbox; the server is DISABLED by default for security and starts automatically once enabled.",
+        "endpoint": "http://localhost:<port>/mcp",
+        "defaultPort": 2234,
+        "auth": "Bearer token in the Authorization header, generated when the server is enabled.",
+        "hostConfigExample": "SAP documents a GitHub Copilot JSON block keyed com.sap.adt/mcp with type http, the local URL and requestInit.headers.Authorization."
+      },
+      "extension": {
+        "marketplaceId": "SAPSE.adt-vscode",
+        "firstPublished": "2026-05-29 (v1.0.0)",
+        "currentVersion": "1.1.2 (2026-08-14)",
+        "platforms": "darwin-arm64, darwin-x64, linux-x64, win32-x64 — there is no win32-arm64 target at any version.",
+        "cost": "free of charge"
+      },
+      "supportedBackends": "ABAP release 7.31 and higher, cloud and on premise. Per-feature backend matrices are narrower; check SAP's what's-new page for the target runtime.",
+      "tools": [
+        { "name": "abap_lists_destinations", "toolset": "destinations", "jouleLicence": false, "purpose": "List configured ABAP destinations." },
+        { "name": "abap_creation-create_object", "toolset": "creation", "jouleLicence": false, "purpose": "Create a repository object." },
+        { "name": "abap_creation-get_object_type_details", "toolset": "creation", "jouleLicence": false, "purpose": "Return the creation schema for an object type." },
+        { "name": "abap_creation-get_all_creatable_objects", "toolset": "creation", "jouleLicence": false, "purpose": "List object types creatable on the connected backend." },
+        { "name": "abap_creation-run_validation", "toolset": "creation", "jouleLicence": false, "purpose": "Validate an object around creation." },
+        { "name": "abap_activate_objects", "toolset": "activation", "jouleLicence": false, "purpose": "Activate repository objects." },
+        { "name": "abap_transport-create", "toolset": "transport", "jouleLicence": false, "purpose": "Create a transport request." },
+        { "name": "abap_transport-get", "toolset": "transport", "jouleLicence": false, "purpose": "Retrieve transport information." },
+        { "name": "abap_transport-unifiedDifference", "toolset": "transport", "jouleLicence": false, "purpose": "Produce a git-like unified diff of a transport's content." },
+        { "name": "abap_run_unit_tests", "toolset": "abap-unit", "jouleLicence": false, "purpose": "Run ABAP Unit tests." },
+        { "name": "abap_generators-list_generators", "toolset": "generators", "jouleLicence": false, "purpose": "List available object generators." },
+        { "name": "abap_generators-get_schema", "toolset": "generators", "jouleLicence": false, "purpose": "Get a generator's input schema." },
+        { "name": "abap_generators-generate_objects", "toolset": "generators", "jouleLicence": false, "purpose": "Run a generator to produce objects." },
+        { "name": "abap_business_services-fetch_service_information", "toolset": "business-services", "jouleLicence": false, "purpose": "Read information about a business service." },
+        { "name": "abap_business_services-fetch_services", "toolset": "business-services", "jouleLicence": false, "purpose": "List business services." },
+        { "name": "abap_run_atc", "toolset": "atc", "jouleLicence": false, "purpose": "Start an ABAP Test Cockpit run." },
+        { "name": "abap_atc_get_result", "toolset": "atc", "jouleLicence": false, "purpose": "Retrieve ATC results." },
+        { "name": "abap_atc_execute_deterministic_quickfixes", "toolset": "atc", "jouleLicence": false, "purpose": "Apply deterministic ATC quick fixes." },
+        { "name": "abap_atc_apply_ai_fix", "toolset": "atc", "jouleLicence": true, "purpose": "Start an AI-generated ATC fix. Joule licence required." },
+        { "name": "abap_atc_get_ai_fix_result", "toolset": "atc", "jouleLicence": true, "purpose": "Retrieve the AI fix result. Joule licence required." }
+      ],
+      "gaps": [
+        "No tool edits the source of an existing object — editing is delegated to the MCP host's own editor.",
+        "No delete tool, so an agent cannot clean up objects it created wrongly.",
+        "No table-content read tool, so an agent scaffolding from a table's fields cannot inspect them.",
+        "No read-back or verification tool: once an object is created or activated there is no way to ask the server to confirm the result matches the request.",
+        "No repository search or where-used tool, even though the underlying ADT REST layer supports it. SAP's field tester calls this a scope decision, not a technical limit."
+      ],
+      "agenticLoop": "SAP's documented example runs destinations, then creation discovery and validation, then transport create, then object create, then the HOST's own edit tool, then activate, then run unit tests. Step seven is explicitly not an ADT MCP tool.",
+      "security": "SAP places responsibility for the MCP host configuration and for vetting any additional third-party MCP servers on the developer or admin, and calls out prompt injection as a client-side risk.",
+      "agentsMd": "SAP recommends an AGENTS.md file for agent rules and publishes a template covering package and prefix conventions, MCP usage, virtual-workspace file-search caveats and a mandatory run-tests-after-changes rule.",
+      "openSource": "The ADT MCP server itself is not open source. No repository for it exists under SAP or SAP-samples; the closest official artifact is the hands-on tutorial repo SAP-samples/abap-platform-rap130.",
+      "whenToUse": "When an agent must act on a real system — create, activate, transport, run ABAP Unit or run ATC. Pair it with offline verification: SAP writes and activates, an offline checker verifies, because SAP left no read-back tool.",
+      "whenNotToUse": "As a source of repository knowledge or as an offline gate. It needs a live system, a running IDE and a configured destination, and it cannot edit, delete, search, or read table content.",
+      "sources": [
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/mcp-tools",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/enabling-adt-mcp-server-6f6e72852b9746ffbe083d5a818fbbec",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/configuring-adt-mcp-server-ed94320814734d97801f51a5b6deb802",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/scenario-agentic-loop",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/security-considerations-and-recommendations",
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/agent-configuration",
+        "https://community.sap.com/t5/technology-blog-posts-by-sap/the-official-abap-mcp-server-what-my-tests-revealed/ba-p/14470224",
+        "https://marketplace.visualstudio.com/items?itemName=SAPSE.adt-vscode"
+      ],
+      "keywords": ["adt mcp server", "abap language server", "port 2234", "20 tools", "8 toolsets", "read-back gap", "sapse.adt-vscode", "agents.md"]
+    },
+    {
+      "id": "custom-code-migration-agent",
+      "title": "Mass S/4 Custom Code Conversion Agent",
+      "kind": "agent",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "SAP's first custom code migration agent, generally available since Q2 2026. It runs readiness checks over a package, categorises findings, applies deterministic quick fixes, then attempts AI fixes with a confidence score, and re-runs the checks.",
+      "loop": [
+        "Run ATC with S/4HANA readiness criteria over the package and its sub-components.",
+        "Analyse and categorise findings by complexity and available remediation.",
+        "Apply deterministic quick fixes automatically.",
+        "Apply AI remediation to complex cases, each carrying a confidence score.",
+        "Auto-apply only above a high confidence threshold and only if the result passes syntax validation; otherwise insert the proposal as a code comment.",
+        "Re-run ATC to show progress and iterate."
+      ],
+      "prerequisites": [
+        "An S/4HANA target system at release 2023 or higher, private cloud or on premise, holding custom code migrated from ECC.",
+        "The latest ADT for Eclipse build with MCP server capability (the deep-dive blog names version 3.60).",
+        "A paid GitHub Copilot Pro or Amazon Q Developer Pro licence plus the matching Eclipse plugin.",
+        "Joule for Developers ABAP AI capabilities on the AI-units commercial model.",
+        "SAP Notes 3751537 (Copilot custom instructions) and 3751829 (Amazon Q rules); 3743859 and 3721223 on the target system; 3757335 for Object Set Playground support; known limitations in 3759994.",
+        "Eclipse only — it is not available in VS Code until all required object types are supported there."
+      ],
+      "transportRule": "The package being migrated must have no sub-objects or sub-packages already assigned to a transport, and one dedicated transport request must be created and handed to the agent for the whole run.",
+      "drivingPrompt": "Migrate package <name> to SAP S/4HANA compliant code with variant <ATC_Variant>, where the variant must be S4HANA_READINESS_2021 or higher.",
+      "output": "AI fixes and their confidence scores are exported to a CSV file for review.",
+      "targetBenefit": "SAP states it targets a 40% efficiency gain in custom code transformation work, based on early evaluations. That is SAP's own unverified figure.",
+      "roadmap": "Two further agents are planned for later in 2026: a Mass Clean Core Adoption Agent and a Web Dynpro to SAP Fiori App Modernization Agent. Neither had shipped as of the curation date.",
+      "whenToUse": "For a bulk ECC-to-S/4HANA custom code conversion where the team already holds Joule AI units and a paid Copilot or Amazon Q licence, and can dedicate a clean transport per package.",
+      "whenNotToUse": "For clean-core remediation of already-migrated code, for VS Code users, or where the transport hygiene rule cannot be met. It is not a substitute for a human review of the low-confidence proposals it leaves as comments.",
+      "sources": [
+        "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/custom-code-migration-agent-1",
+        "https://community.sap.com/t5/technology-blog-posts-by-sap/s-4hana-custom-code-migration-agent-accelerating-ecc-to-sap-s-4hana/ba-p/14418929",
+        "https://community.sap.com/t5/technology-blog-posts-by-sap/entering-the-new-era-of-agentic-ai-for-abap-development/ba-p/14394643"
+      ],
+      "keywords": ["custom code migration agent", "ccm", "s4hana_readiness", "confidence score", "quick fix", "eclipse only", "transport"]
+    },
+    {
+      "id": "community-servers",
+      "title": "Community ABAP MCP servers and where they fit",
+      "kind": "ecosystem",
+      "asOf": "2026-09-09",
+      "confidence": "confirmed",
+      "summary": "Around two dozen community MCP servers cover the ground SAP's official server left open. Most drive the ADT REST layer from outside the system; one is an SDK for building MCP servers inside ABAP itself.",
+      "servers": [
+        {
+          "name": "williansaez/abap-adt-mcp",
+          "licence": "MIT",
+          "surface": "173 tools across 16 toolsets at v2.0.1 (2026-09-09); an earlier blog figure of 142 tools across 11 areas is stale.",
+          "fills": "setObjectSource for edits, deleteObject, tableContents and atcApplyQuickfix — exactly the official server's gaps.",
+          "note": "Very new (created 2026-07-28) and self-validated by its author against one S/4HANA Cloud tenant.",
+          "url": "https://github.com/williansaez/abap-adt-mcp"
+        },
+        {
+          "name": "abap-ai/mcp",
+          "licence": "MIT",
+          "surface": "An SDK for building MCP servers natively in ABAP: prompts, resources, tools, tasks, completions and DDIC-based schema generation.",
+          "fills": "Server-side MCP inside the ABAP stack, with no Node bridge.",
+          "note": "Frozen at MCP protocol 2025-11-25. Start new work on abap-ai/mcp2, rewritten because the 2026-07-28 spec revision removed session support. No SSE, so no sampling, elicitation, roots or notifications; authorization cannot follow the MCP spec and relies on ABAP features.",
+          "url": "https://github.com/abap-ai/mcp"
+        },
+        {
+          "name": "marianfoo/abap-mcp-server",
+          "licence": "Apache-2.0",
+          "surface": "ABAP best practices and keyword documentation.",
+          "fills": "Knowledge, not system access — the benchmark author pairs it with abaplint rather than with an ADT write server.",
+          "url": "https://github.com/marianfoo/abap-mcp-server"
+        },
+        {
+          "name": "arc-mcp/arc-1",
+          "licence": "MIT",
+          "surface": "The most complete community ADT stack: read-only mode, an Eclipse extension that adds read-only tools to SAP's own server, an LSP-delegating variant, a multi-system hub and a bundled agent plugin.",
+          "fills": "Repository search, metadata and navigation on top of SAP's server.",
+          "url": "https://github.com/arc-mcp/arc-1"
+        },
+        {
+          "name": "ClementRingot/ROSA",
+          "licence": "MIT",
+          "surface": "Seven MCP tools with REST twins over SAP's Cloudification Repository: search objects, object details, find successor, clean-core compliance, list versions, list object types, statistics.",
+          "fills": "Live released-object lookup; abap-mcp answers the same question from a bundled snapshot with no network.",
+          "url": "https://github.com/ClementRingot/ROSA"
+        },
+        {
+          "name": "marianfoo/sap-ai-mcp-servers",
+          "licence": "catalogue",
+          "surface": "A daily-updated catalogue of the whole SAP MCP ecosystem, official and community, with star counts and licences.",
+          "fills": "Discovery. Official SAP servers listed include Fiori, CAP, UI5, UI5 Web Components and MDK; the ADT, BTP admin and LeanIX servers appear as documentation pages with no public repository.",
+          "url": "https://github.com/marianfoo/sap-ai-mcp-servers"
+        }
+      ],
+      "apiPolicyCaveat": "SAP's API Policy v.4.2026a, section 2.2.2, restricts using SAP APIs with autonomous or generative AI systems that plan, select or execute sequences of API calls unless routed through an SAP-endorsed pathway such as the MCP Gateway on Integration Suite or Joule with the Agent Gateway. A read-only developer assistant is treated differently from autonomous orchestration.",
+      "whenToUse": "When SAP's official surface is too thin for the task — you need edit, delete, search, where-used or table reads — and the team accepts a third-party component driving ADT with their credentials.",
+      "whenNotToUse": "Where governance requires SAP-supported components only, or where the API Policy pathway question is unresolved. None of these servers replaces offline verification either; several authors explicitly pair them with abaplint.",
+      "sources": [
+        "https://github.com/marianfoo/sap-ai-mcp-servers",
+        "https://github.com/williansaez/abap-adt-mcp",
+        "https://github.com/abap-ai/mcp",
+        "https://github.com/abap-ai/mcp2",
+        "https://github.com/ClementRingot/ROSA",
+        "https://github.com/arc-mcp/arc-1",
+        "https://help.sap.com/doc/sap-api-policy/latest/en-US/API_Policy_latest.pdf",
+        "https://blog.zeis.de/posts/2026-06-01-mcp-api-policy/"
+      ],
+      "keywords": ["community mcp", "abap-adt-mcp", "abap-ai/mcp", "rosa", "arc-1", "api policy", "section 2.2.2", "ecosystem"]
+    }
+  ]
+}

@@ -1,0 +1,567 @@
+{
+  "curatedDate": "2026-09-10",
+  "description": "Bundled Clean Core / released-API governance knowledge: SAP's Clean Core Level A-D model, the retired 3-tier framing, release contracts C0-C4, the real ATC check and variant vocabulary, and the SAP/abap-atc-cr-cv-s4hc Cloudification Repository file and schema inventory. Original abap-mcp prose over cited sources.",
+  "scopeNote": "bundled knowledge curated 2026-09-10; the target system's release notes are authoritative",
+  "entries": [
+    {
+      "id": "clean-core-level-a",
+      "topic": "levels",
+      "title": "Clean Core Level A",
+      "summary": "The cleanest grade. Extensions are built on stack with the ABAP Cloud development model, or side by side on SAP BTP with any SAP Build option, and they consume only released APIs or custom wrappers over them.",
+      "atcPriority": "no finding",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["level a", "abap cloud", "released apis", "clean core", "sap build"]
+    },
+    {
+      "id": "clean-core-level-b",
+      "topic": "levels",
+      "title": "Clean Core Level B",
+      "summary": "Classic ABAP development that follows SAP's recommendations for classic technologies and frameworks offered as classic SAP APIs. Level B is not \"BTP with some legacy calls\" - side-by-side BTP work is Level A.",
+      "atcPriority": "Priority 3 (information)",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["level b", "classic abap", "classic api", "priority 3", "recommended technology"]
+    },
+    {
+      "id": "clean-core-level-c",
+      "topic": "levels",
+      "title": "Clean Core Level C",
+      "summary": "Classic ABAP that cannot qualify for Level B because it reaches arbitrary SAP internal objects. SAP calls it conditionally clean: acceptable only if changelog checks for the used SAP objects run before every upgrade.",
+      "atcPriority": "Priority 2 (warning)",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["level c", "internal objects", "conditionally clean", "priority 2", "changelog check"]
+    },
+    {
+      "id": "clean-core-level-d",
+      "topic": "levels",
+      "title": "Clean Core Level D",
+      "summary": "Not clean core. Modifications, use of objects SAP does not recommend, and not-recommended extension technologies such as implicit enhancements land here, and they carry the highest upgrade risk.",
+      "atcPriority": "Priority 1 (error)",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["level d", "modification", "implicit enhancement", "priority 1", "technical debt"]
+    },
+    {
+      "id": "levels-replace-three-tier",
+      "topic": "levels",
+      "title": "The A-D levels replaced the 3-tier extensibility model in August 2025",
+      "summary": "SAP's August 2025 extensibility guide update swapped a binary clean or not-clean tier framing for four graded levels, because the old model was too restrictive for landscapes carrying large amounts of classic custom code.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["3-tier model", "a-d levels", "august 2025", "whitepaper", "extensibility guide"]
+    },
+    {
+      "id": "three-tier-model-historical",
+      "topic": "levels",
+      "title": "The historical 3-tier extensibility model",
+      "summary": "Tier 1 was ABAP Cloud on stack plus SAP Build side by side; tier 2 was cloud API enablement, custom wrappers released for tier-1 consumption; tier 3 was classic ABAP. Historical since August 2025 - do not present it as current guidance.",
+      "sourceUrl": "https://community.sap.com/t5/technology-q-a/3-tier-extensibility-model-for-sap-s-4hana-private-cloud-and-on-premise/qaq-p/12728070",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["tier 1", "tier 2", "tier 3", "historical", "cloud api enablement"]
+    },
+    {
+      "id": "tier-two-wrappers-survive",
+      "topic": "levels",
+      "title": "Wrapper packages survive even though \"tier 2\" as a layer name did not",
+      "summary": "SAP still recommends keeping custom wrappers in separate, governed packages. What was dropped is the word layer: tier 2 described a practice, not a technical tier, so the practice continues under the A-D model.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["wrapper", "tier 2", "package governance", "c1 release", "custom wrapper"]
+    },
+    {
+      "id": "package-guidance-cloud-vs-classic",
+      "topic": "levels",
+      "title": "Package guidance: separate cloud-language and classic software components",
+      "summary": "Put ABAP Cloud objects in packages of a software component whose language version is ABAP for Cloud Development, and keep classic ABAP - including the wrappers - in a Standard ABAP software component such as HOME.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["software component", "package", "language version", "home package", "wrapper package"]
+    },
+    {
+      "id": "release-contract-c0",
+      "topic": "contracts",
+      "title": "Release contract C0 - Extend",
+      "summary": "Stability is guaranteed at dedicated extension points only. It applies to objects meant to be enhanced with the enhancement tools of the ABAP Dictionary or ABAP CDS.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["c0", "extend", "extension point", "release contract", "enhancement"]
+    },
+    {
+      "id": "release-contract-c1",
+      "topic": "contracts",
+      "title": "Release contract C1 - Use System-Internally",
+      "summary": "A technically stable public interface for use inside the system. Visible components must not change incompatibly, optional components may be added later, and it is the contract relevant to objects consumed from another ABAP language version.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["c1", "system internal", "stable interface", "release contract", "cloud development"]
+    },
+    {
+      "id": "release-contract-c2",
+      "topic": "contracts",
+      "title": "Release contract C2 - Use as Remote API",
+      "summary": "Everything C1 guarantees, plus an assurance that external consumers need no adjustment after an upgrade. It is relevant only where an object really is consumed from outside the system.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["c2", "remote api", "external consumer", "release contract", "upgrade stability"]
+    },
+    {
+      "id": "release-contract-c3",
+      "topic": "contracts",
+      "title": "Release contract C3 - Manage Configuration Content",
+      "summary": "Stable persistence for a customer's own configuration content, exportable, importable and editable through dedicated APIs. Keys and existing fields must not change; non-key fields may be added. Relevant to business configuration tooling.",
+      "note": "An earlier research pass could not confirm C3 and flagged it as reported; the fact-check verified it directly on SAP's release-contracts page on 2026-09-09, so it is carried here as confirmed.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["c3", "configuration content", "business configuration", "release contract", "persistence"]
+    },
+    {
+      "id": "release-contract-c4",
+      "topic": "contracts",
+      "title": "Release contract C4 - Use in AMDP",
+      "summary": "Like C1 but stricter: no optional components may be added later and no changes are allowed. It applies to AMDP methods that other AMDP methods call, such as BAdI methods implemented as AMDP.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["c4", "amdp", "database procedure", "release contract", "badi"]
+    },
+    {
+      "id": "c1-is-the-consumption-gate",
+      "topic": "contracts",
+      "title": "C1 is the gate for consuming a released API",
+      "summary": "Objects under C0 or C1 can be made visible to the restricted language versions ABAP for Cloud Development and ABAP for Key Users, but for actually accessing a released API from another repository object only C1 counts.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/released-apis",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["c1", "visibility", "restricted language version", "released api", "consumption"]
+    },
+    {
+      "id": "released-api-type-rule",
+      "topic": "contracts",
+      "title": "A released API's parameter types need not themselves be released",
+      "summary": "When a data object is passed to an API in another software component, its type generally need not be released for that API to inspect it. A passed reference can be accessed, but the pointed-to data object cannot unless its type is released.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/released-apis",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["released api", "type release", "data reference", "generic framework", "software component"]
+    },
+    {
+      "id": "abap-language-versions",
+      "topic": "language",
+      "title": "ABAP language versions and their internal ids",
+      "summary": "Standard ABAP carries id X, ABAP for Cloud Development id 5 and ABAP for Key Users id 2. The cloud version allows only a restricted element set, forces most code into methods, enforces client isolation and applies the strictest available SQL syntax check.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/abap-language-versions",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["abap for cloud development", "language version", "client isolation", "key user", "standard abap"]
+    },
+    {
+      "id": "abap-cloud-access-rule",
+      "topic": "language",
+      "title": "What ABAP for Cloud Development may access",
+      "summary": "Beyond a few allowed cases such as access inside the same software component, only objects that are a released API for that language version may be used. Most SAP tables are therefore unreachable and a released CDS abstraction must be used instead.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/released-apis",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["access rule", "same software component", "released api", "cds abstraction", "cloud blocker"]
+    },
+    {
+      "id": "atc-check-usage-of-released-apis",
+      "topic": "atc",
+      "title": "ATC check \"Usage of Released APIs (Cloudification Repository)\"",
+      "summary": "This is the check name used for SAP Cloud ERP, the public edition. Activate it under Cloud Readiness and point it at objectReleaseInfoLatest.json in SAP's Cloudification Repository.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["usage of released apis", "cloud readiness", "atc check", "public edition", "cloudification repository"]
+    },
+    {
+      "id": "atc-check-usage-of-apis",
+      "topic": "atc",
+      "title": "ATC check \"Usage of APIs (Cloudification Repository)\", technical id SYCM_USAGE_OF_APIS",
+      "summary": "The private-edition and clean-core variant of the same idea. Its technical check object is SYCM_USAGE_OF_APIS; after implementing SAP Note 3565942 you must import its parameters in the development tools before it works.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["usage of apis", "sycm_usage_of_apis", "sap note 3565942", "clean core", "private edition"]
+    },
+    {
+      "id": "atc-usage-of-apis-replaces-released",
+      "topic": "atc",
+      "title": "\"Usage of APIs\" replaces \"Usage of Released APIs\" in the clean-core variant",
+      "summary": "The replacement is scoped to the classic-ABAP clean-core development variant, where the three ABAP Cloud checks are excluded. It is not a global deprecation of the released-API check.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["usage of apis", "replaces", "clean core variant", "atc", "scoped"]
+    },
+    {
+      "id": "atc-variant-abap-clean-core-development",
+      "topic": "atc",
+      "title": "Check variant ABAP_CLEAN_CORE_DEVELOPMENT",
+      "summary": "The clean-core development variant, for remote ATC on the BTP ABAP environment and for ATC on S/4HANA 2025 FPS01 or higher, private cloud or on premise.",
+      "supersedes": ["ABAP_CLOUD_DEVELOPMENT_3TIER"],
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["abap_clean_core_development", "check variant", "fps01", "remote atc", "clean core"]
+    },
+    {
+      "id": "atc-variant-abap-clean-core-readiness",
+      "topic": "atc",
+      "title": "Check variant ABAP_CLEAN_CORE_READINESS",
+      "summary": "The preconfigured variant for checking existing code on ECC systems and on S/4HANA below 2023, which have no native clean-core checks. Run it from ATC on SAP BTP against those systems.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["abap_clean_core_readiness", "ecc", "s4hana 2023", "remote atc", "readiness"]
+    },
+    {
+      "id": "atc-variant-deprecations",
+      "topic": "atc",
+      "title": "Three deprecated ATC check variants and their successors",
+      "summary": "SAP's own released-object feed records ABAP_CLOUD_DEVELOPMENT_3TIER superseded by ABAP_CLEAN_CORE_DEVELOPMENT, SAP_CP_READINESS by ABAP_CLOUD_READINESS, and SAP_CLOUD_PLATFORM_ATC_DEFAULT by ABAP_CLOUD_DEVELOPMENT_DEFAULT.",
+      "supersedes": ["ABAP_CLOUD_DEVELOPMENT_3TIER", "SAP_CP_READINESS", "SAP_CLOUD_PLATFORM_ATC_DEFAULT"],
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["deprecated variant", "successor", "sap_cp_readiness", "abap_cloud_readiness", "chkv"]
+    },
+    {
+      "id": "atc-sap-cp-readiness-legacy",
+      "topic": "atc",
+      "title": "SAP_CP_READINESS is a deprecated legacy variant, not a released-API check",
+      "summary": "It differs from its successor ABAP_CLOUD_READINESS only in two parameters of the sortedness check, and SAP's feed marks it deprecated. Do not describe it as the check that validates released-API usage.",
+      "sourceUrl": "https://community.sap.com/t5/technology-q-a/atc-check-variants-sap-cp-readiness-vs-abap-cloud-readiness-which-one-to/qaq-p/13995883",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["sap_cp_readiness", "abap_cloud_readiness", "ci_no_order_by", "deprecated", "legacy variant"]
+    },
+    {
+      "id": "atc-no-api-release-state-check",
+      "topic": "atc",
+      "title": "There is no ATC check called API_RELEASE_STATE_CHECK",
+      "summary": "That identifier appears in no SAP source. The real display names are Usage of Released APIs (Cloudification Repository), Usage of APIs (Cloudification Repository), Usage of APIs and Allowed Enhancement Technologies.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["api_release_state_check", "hallucination", "wrong identifier", "atc check name", "honesty"]
+    },
+    {
+      "id": "atc-provider-side-release-checks",
+      "topic": "atc",
+      "title": "Provider-side checks: consistency and compatibility of released APIs",
+      "summary": "A separate family, message class ARS_CMP_ATC, polices whether the provider of a released API changed it incompatibly. It is the closest real thing to an \"API release state\" check but it is not a consumer check.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-btp-abap-environment-release-2508/ba-p/14182635",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["ars_cmp_atc", "consistency check", "compatibility check", "provider", "released api"]
+    },
+    {
+      "id": "atc-recommended-variant-recipe",
+      "topic": "atc",
+      "title": "SAP's recommended clean-core variant recipe",
+      "summary": "Copy the variant ABAP_CLOUD_DEVELOPMENT_DEFAULT and add three checks: CI_CRITICAL_STATEMENTS, CI_SEARCH_CUST_MODIFICATIONS and SYCM_USAGE_OF_APIS. This is the recipe quoted from the extensibility guide.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["variant recipe", "ci_critical_statements", "ci_search_cust_modifications", "sycm_usage_of_apis", "abap_cloud_development_default"]
+    },
+    {
+      "id": "atc-four-recommended-checks",
+      "topic": "atc",
+      "title": "The four recommended clean-core checks",
+      "summary": "Usage of APIs, Allowed SAP enhancement technologies, Search for customer modifications and Critical statements. Code vulnerability analysis is optional and needs its own licence.",
+      "sourceUrl": "https://help.sap.com/docs/btp/btp-developers-guide/keep-clean-core-governance-with-abap-test-cockpit",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["recommended checks", "enhancement technologies", "customer modifications", "critical statements", "cva"]
+    },
+    {
+      "id": "atc-blocking-mode-governance",
+      "topic": "atc",
+      "title": "Clean-core governance: blocking mode in development systems",
+      "summary": "SAP's guidance is to configure blocking mode in development systems so Priority 1 and 2 findings cannot be transported, with a five-step rollout from a central ATC system through variant, analysis app, exemptions and enforcement.",
+      "sourceUrl": "https://help.sap.com/docs/btp/btp-developers-guide/keep-clean-core-governance-with-abap-test-cockpit",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["blocking mode", "governance", "exemption", "baseline", "priority 1"]
+    },
+    {
+      "id": "atc-partner-classic-apis",
+      "topic": "atc",
+      "title": "Partner classic APIs in the Usage of APIs check",
+      "summary": "Certified partners generate a namespace classification file with report SYCM_API_CLASSIFICATION_MANAGR after implementing SAP Note 3630552, then contribute it by pull request to the repository's partner folder.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["partner api", "sycm_api_classification_managr", "sap note 3630552", "namespace", "pull request"]
+    },
+    {
+      "id": "atc-partner-folder-inventory",
+      "topic": "repository",
+      "title": "29 partner namespace files in src/partner",
+      "summary": "As of 2026-09-09 the partner folder held 29 objectClassifications files, the largest being SAAR at about 155 KB and OTX at about 86 KB, plus a 25-byte NAMESPACE template.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src/partner",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["partner folder", "objectclassifications", "namespace", "inventory", "saar"]
+    },
+    {
+      "id": "cloudification-repository-overview",
+      "topic": "repository",
+      "title": "SAP/abap-atc-cr-cv-s4hc is the Cloudification Repository",
+      "summary": "SAP's Apache-2.0 repository of released and classic API lists for the ATC cloud-readiness and clean-core checks. It is actively maintained and is the machine-readable source of truth those checks consume.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc",
+      "sourceKind": "sap-github",
+      "licence": "Apache-2.0",
+      "confidence": "confirmed",
+      "keywords": ["cloudification repository", "apache-2.0", "released api list", "classic api list", "data source"]
+    },
+    {
+      "id": "cloudification-src-inventory",
+      "topic": "repository",
+      "title": "What src/ actually contains",
+      "summary": "Sixteen entries: objectClassifications_SAP.json, objectReleaseInfoLatest.json, objectReleaseInfo_BTPLatest.json, ten per-FPS private-cloud files, objectReleaseInfo_PCELatest.json, a PCELatest TOON file, plus the partner and archive folders.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["src inventory", "objectreleaseinfolatest", "btplatest", "pcelatest", "file list"]
+    },
+    {
+      "id": "cloudification-no-src-classifications-toon",
+      "topic": "repository",
+      "title": "src/objectClassifications_SAP.toon does not exist",
+      "summary": "The README links it, but the file returns 404. The TOON classification file lives only under src/archive. Any tool that fetches the linked path will fail.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["toon", "404", "broken link", "readme", "archive"]
+    },
+    {
+      "id": "cloudification-archive-inventory",
+      "topic": "repository",
+      "title": "src/archive holds half-yearly public-edition snapshots",
+      "summary": "Files are named by year and month: 2208, 2302, 2308, 2402 and 2408 exist as both CSV and JSON, while 2502, 2508 and 2602 are JSON only. Dated classification snapshots and the old 3-tier model files sit alongside them.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src/archive",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["archive", "yymm", "snapshot", "csv", "3tiermodel"]
+    },
+    {
+      "id": "cloudification-no-2608-archive",
+      "topic": "repository",
+      "title": "No 2608 archive file existed as of 2026-09-09",
+      "summary": "The public-edition archive series ends at 2602. The August 2026 file was genuinely absent even though the repository had been pushed to that same morning, so do not assume a 2608 file exists.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src/archive",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["2608", "missing file", "archive", "snapshot gap", "as of date"]
+    },
+    {
+      "id": "cloudification-edition-file-mapping",
+      "topic": "repository",
+      "title": "Which file to use per edition",
+      "summary": "objectReleaseInfoLatest.json for SAP Cloud ERP public edition, objectReleaseInfo_BTPLatest.json for the BTP ABAP environment, objectReleaseInfo_PCELatest.json for private cloud. Private-cloud files refresh per feature pack stack, not per support package.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["edition", "btp", "pce", "public edition", "feature pack stack"]
+    },
+    {
+      "id": "cloudification-readme-broken-fps-url",
+      "topic": "repository",
+      "title": "The README's FPS example URL is broken",
+      "summary": "It tells you to use objectReleaseInfo_PCE2025.json for release 2025 FPS00, but no such file exists. The real names carry a stack suffix: PCE2025_0 and PCE2025_1.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["broken url", "pce2025", "fps00", "readme error", "configuration"]
+    },
+    {
+      "id": "object-release-info-schema",
+      "topic": "schema",
+      "title": "Shape of objectReleaseInfo*.json",
+      "summary": "formatVersion \"1\" with a single objectReleaseInfo array. Each entry carries tadirObject, tadirObjName, objectType, objectKey, softwareComponent, applicationComponent and state, plus optional successorClassification, successors and successorConceptName.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["formatversion 1", "objectreleaseinfo", "successors", "successorconceptname", "schema"]
+    },
+    {
+      "id": "object-release-info-states",
+      "topic": "schema",
+      "title": "State and successorClassification value sets in the live data",
+      "summary": "States seen are released, notToBeReleased and deprecated. successorClassification takes an empty string, oneObject, multipleObjects or concept, and is absent entirely on a few hundred entries.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["released", "nottoberelease", "deprecated", "oneobject", "multipleobjects", "concept"]
+    },
+    {
+      "id": "object-classifications-schema",
+      "topic": "schema",
+      "title": "Shape of objectClassifications_SAP.json",
+      "summary": "A draft-07 JSON schema is published as schema/classicAPI-schema.json. formatVersion is fixed at \"2\", state is one of classicAPI, noAPI or internalAPI, optional labels are remote-enabled and transactional-consistent, and additionalProperties is false at every level.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/schema/classicAPI-schema.json",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["classicapi-schema", "formatversion 2", "classicapi", "noapi", "internalapi", "labels"]
+    },
+    {
+      "id": "object-classifications-generated-from",
+      "topic": "schema",
+      "title": "objectClassifications_SAP.json is generated, not hand-edited",
+      "summary": "The schema carries a comment saying the file is autogenerated from ABAP interface IF_YCM_CLASSIC_API_LIST_V2. There is no published schema for the objectReleaseInfo files, so their shape must be inferred from the data.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/schema/classicAPI-schema.json",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["if_ycm_classic_api_list_v2", "autogenerated", "no schema", "objectreleaseinfo", "provenance"]
+    },
+    {
+      "id": "cloudification-feed-statistics",
+      "topic": "schema",
+      "title": "Feed sizes on 2026-09-09",
+      "summary": "The public-edition feed held 37,030 entries, the BTP feed 7,023 and the classification feed 8,588. The classification feed had zero internalAPI rows even though the schema permits that state.",
+      "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": ["statistics", "entry count", "37030", "8588", "internalapi"]
+    },
+    {
+      "id": "state-to-level-to-priority",
+      "topic": "levels",
+      "title": "Release state maps to a clean-core level and an ATC priority",
+      "summary": "Released gives Level A and no finding; deprecated and classic API give Level B at Priority 3; not to be released gives Level C at Priority 2; no API means maximum technical debt, Level D at Priority 1.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/object-release-state-in-cloudification-repository-viewer-for-clean-core/ba-p/14350668",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["state mapping", "level", "atc priority", "noapi", "classic api"]
+    },
+    {
+      "id": "state-precedence-rule",
+      "topic": "levels",
+      "title": "Precedence when an object carries two states",
+      "summary": "Classic API together with released resolves to released, so Level A and no message. Classic API together with not to be released resolves to classic, so Level B at Priority 3 with a move to the named successor.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/object-release-state-in-cloudification-repository-viewer-for-clean-core/ba-p/14350668",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["precedence", "two states", "classic api", "released", "per release"]
+    },
+    {
+      "id": "cloudification-viewer",
+      "topic": "repository",
+      "title": "Cloudification Repository Viewer",
+      "summary": "A browser view over the same data at sap.github.io, switchable between feeds with a version query parameter and filterable by state and label, which is how you find candidates for a wrapper.",
+      "sourceUrl": "https://sap.github.io/abap-atc-cr-cv-s4hc/",
+      "sourceKind": "sap-github",
+      "confidence": "reported",
+      "keywords": ["viewer", "browser", "filter", "labels", "transactional-consistent"]
+    },
+    {
+      "id": "cloudification-tools-repo",
+      "topic": "repository",
+      "title": "abap-atc-cr-cv-s4hc-tools: the exemption migration tool",
+      "summary": "SAP's only sibling repository ships an abapGit-installable ABAP program that migrates existing cloud-readiness check exemptions to the new clean-core checks. There is no separate cloud or BTP data repository; editions are files.",
+      "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc-tools",
+      "sourceKind": "sap-github",
+      "licence": "Apache-2.0",
+      "confidence": "confirmed",
+      "keywords": ["exemption migration", "tools repo", "abapgit", "sibling repository", "clean core"]
+    },
+    {
+      "id": "project-kernseife",
+      "topic": "repository",
+      "title": "SAP/project-kernseife: a custom scoring ATC check",
+      "summary": "An actively maintained Apache-2.0 SAP open-source custom ATC check that scores the use of SAP objects against an adjustable classification, which is the tool behind Kernseife references in clean-core material.",
+      "sourceUrl": "https://github.com/SAP/project-kernseife",
+      "sourceKind": "sap-github",
+      "licence": "Apache-2.0",
+      "confidence": "confirmed",
+      "keywords": ["kernseife", "custom atc check", "scoring", "technical debt", "open source"]
+    },
+    {
+      "id": "clean-core-kpis",
+      "topic": "governance",
+      "title": "Clean Core Share and Technical Debt Score",
+      "summary": "Two KPIs on the RISE methodology dashboard in SAP Cloud ALM: the distribution of custom objects across the A-D levels, and a severity-weighted debt score with a three-month trend.",
+      "sourceUrl": "https://community.sap.com/t5/enterprise-resource-planning-blog-posts-by-sap/new-clean-core-extensibility-kpis-arrive-on-the-rise-with-sap-dashboard/ba-p/14257352",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["clean core share", "technical debt score", "cloud alm", "rise dashboard", "kpi"]
+    },
+    {
+      "id": "clean-core-kpi-import-constraints",
+      "topic": "governance",
+      "title": "The dashboard needs a manual ATC result import",
+      "summary": "Results must be imported by hand, the global variant has to include Allowed SAP enhancement technologies, Usage of APIs and Critical Statements, extra checks are ignored and only bloat the export, and the import file is capped at 100 MB.",
+      "sourceUrl": "https://community.sap.com/t5/enterprise-resource-planning-blog-posts-by-sap/new-clean-core-extensibility-kpis-arrive-on-the-rise-with-sap-dashboard/ba-p/14257352",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["manual import", "100 mb", "cloud alm", "atc export", "dashboard"]
+    },
+    {
+      "id": "custom-code-app-split",
+      "topic": "governance",
+      "title": "Custom Code Migration split into two Fiori apps",
+      "summary": "From the 2508 releases and S/4HANA 2025 there are two tiles: Analyze Custom Code for the analysis role and Custom Code Migration for the project role. Three project types exist: S/4HANA migration, BTP analysis and custom code analysis.",
+      "sourceUrl": "https://help.sap.com/docs/btp/sap-business-technology-platform/custom-code-migration",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["analyze custom code", "custom code migration", "fiori app", "project type", "2508"]
+    },
+    {
+      "id": "edition-names",
+      "topic": "editions",
+      "title": "Current edition names and what runs where",
+      "summary": "SAP Cloud ERP public edition and the BTP ABAP environment use ABAP for Cloud Development. SAP Cloud ERP private edition and on-premise S/4HANA also permit Standard ABAP; their 2025 platform is ABAP Platform 2025, SAP_BASIS 816.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-cloud-background-concepts-and-overview/cloud-optimized-abap-language",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["public edition", "private edition", "on premise", "btp abap environment", "edition names"]
+    },
+    {
+      "id": "abap-mcp-grade-is-not-sap-level",
+      "topic": "levels",
+      "title": "abap-mcp's A-D grade is not SAP's Clean Core Level A-D",
+      "summary": "This server grades blocker density in supplied source text. SAP's levels classify an object's extensibility approach and map to ATC priorities. Never present one as the other; only a real ATC run produces a SAP level.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": ["grade meaning", "blocker density", "not sap level", "honesty", "disambiguation"]
+    },
+    {
+      "id": "abapdocu-url-retirement",
+      "topic": "repository",
+      "title": "The old abapdocu URL scheme is being retired",
+      "summary": "Pages such as the release-contract glossary entry now return not found. Content moved under help.sap.com/docs/abap-cloud/abap-keyword/, so any tool hard-coding the old abenXXX.htm links will break.",
+      "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/abap-apis",
+      "sourceKind": "help.sap.com",
+      "confidence": "confirmed",
+      "keywords": ["abapdocu", "dead link", "url change", "abap keyword documentation", "migration"]
+    },
+    {
+      "id": "clean-core-sap-notes",
+      "topic": "governance",
+      "title": "SAP Notes referenced by clean-core ATC governance",
+      "summary": "3565942 introduces the new checks, 3627152 tracks corrections through the Note Analyzer, 3630552 adds partner classic APIs, 3679781 filters technical-only modifications, and 3571857 governs the Joule licence for ATC Explain.",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
+      "sourceKind": "sap-blog",
+      "confidence": "reported",
+      "keywords": ["sap notes", "3565942", "3627152", "3630552", "note analyzer"]
+    }
+  ]
+}

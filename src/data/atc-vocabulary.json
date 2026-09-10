@@ -1,0 +1,64 @@
+{
+  "curatedDate": "2026-09-09",
+  "sources": [
+    "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
+    "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
+    "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
+    "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
+    "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
+    "https://community.sap.com/t5/technology-q-a/atc-check-variants-sap-cp-readiness-vs-abap-cloud-readiness-which-one-to/qaq-p/13995883"
+  ],
+  "checks": [
+    {
+      "name": "Usage of Released APIs (Cloudification Repository)",
+      "edition": "SAP Cloud ERP Public Edition",
+      "note": "ATC check group \"Cloud Readiness\"; fed by objectReleaseInfoLatest.json from SAP/abap-atc-cr-cv-s4hc (Apache-2.0)."
+    },
+    {
+      "name": "Usage of APIs (Cloudification Repository)",
+      "edition": "SAP Cloud ERP Private Edition / on-premise",
+      "note": "ATC check group \"Clean Core\" (technical check object SYCM_USAGE_OF_APIS, introduced by SAP Note 3565942, Aug 2025); fed by objectReleaseInfo_PCELatest.json; replaces the former released-APIs check for this edition."
+    }
+  ],
+  "variants": [
+    {
+      "name": "ABAP_CLEAN_CORE_DEVELOPMENT",
+      "scope": "SAP BTP ABAP environment, or SAP S/4HANA >= 2025 FPS01 private cloud / on-premise",
+      "status": "current"
+    },
+    {
+      "name": "ABAP_CLEAN_CORE_READINESS",
+      "scope": "preconfigured variant for checking existing code on ECC systems or SAP S/4HANA < 2023 systems, which lack native clean-core checks — run via ATC on SAP BTP",
+      "status": "current"
+    },
+    {
+      "name": "ABAP_CLOUD_DEVELOPMENT_3TIER",
+      "scope": "legacy check variant named for the retired 3-tier extensibility model",
+      "status": "deprecated",
+      "successor": "ABAP_CLEAN_CORE_DEVELOPMENT"
+    },
+    {
+      "name": "ABAP_CLOUD_READINESS",
+      "scope": "general ATC Cloud Readiness variant (CI_NO_ORDER_BY: AnalyzeOnlyLocalProcedures=true, NonLocalAnalysisDepth=1) — a broader cloud-readiness sweep, NOT the released-API check above",
+      "status": "current"
+    },
+    {
+      "name": "SAP_CP_READINESS",
+      "scope": "legacy general ATC Cloud Readiness variant (CI_NO_ORDER_BY: AnalyzeOnlyLocalProcedures=false, NonLocalAnalysisDepth=2) — predecessor of ABAP_CLOUD_READINESS, NOT the released-API check above",
+      "status": "deprecated",
+      "successor": "ABAP_CLOUD_READINESS"
+    }
+  ],
+  "cleanCoreLevels": {
+    "A": "Cleanest: built on-stack with the ABAP Cloud development model, or side-by-side on SAP BTP (ABAP Cloud, CAP, low-code/no-code), using only released APIs (or wrappers).",
+    "B": "Classic ABAP development using classic SAP APIs per SAP's recommendations for classic technologies/frameworks (ATC Priority 3 / info).",
+    "C": "Cannot qualify for Level B because it uses arbitrary SAP-internal objects; conditionally clean only if changelog-for-SAP-objects checks run before every upgrade (ATC Priority 2 / warning).",
+    "D": "Not clean core: modifications, not-recommended SAP objects, or not-recommended extension technologies such as implicit enhancements (ATC Priority 1 / error)."
+  },
+  "releaseContracts": {
+    "C0": "Extend — stability at defined extension points for objects enhanced via ABAP Dictionary / ABAP CDS enhancement tools.",
+    "C1": "Use System-Internally — technically stable public interface for system-internal use across ABAP language versions; the actual gate for \"released for use in ABAP Cloud / cloud development\".",
+    "C2": "Use as Remote API — like C1, plus guarantees external/remote consumers need no adjustment after an upgrade.",
+    "C3": "Manage Configuration Content — stable persistence for own configuration content, exportable/importable/editable via dedicated APIs, for Business Configuration Tools."
+  }
+}

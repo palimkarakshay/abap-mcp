@@ -1,0 +1,222 @@
+{
+  "curatedDate": "2026-09-10",
+  "attribution": "Curated by abap-mcp from a fact-checked research corpus (~/docs/reports/abap-mcp-sap-ai-upgrade-2026-09-09/). Class/interface/method SHAPES that mirror SAP-samples/abap-cheat-sheets and SAP-samples/abap-partner-reference-application (both Apache-2.0) are drawn from those repos. help.sap.com and developers.sap.com pages are cited by URL only — no prose from those pages is reproduced here; every string below is this project's own summary.",
+  "sources": [
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/generative-ai-in-abap-cloud", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/abap-ai-sdk-powered-by-intelligent-scenario-lifecycle-management", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/architecture-overview", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/set-up-abap-ai-sdk-powered-by-intelligent-scenario-lifecycle-management", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/calling-completion-api", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/function-calling", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/prompt-library-api", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/availability", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/recommendations-and-constraints-for-abap-ai-sdk", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/catchable-exceptions", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/streaming-of-llm-responses", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/media-input-for-large-language-model-requests", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/format-specification-of-completion-api-response", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/utilization-of-orchestration-service-of-generative-ai-hub", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/tracing", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
+    { "url": "https://developers.sap.com/tutorials/abap-islm-simple-genai-scenario/", "licence": "citation-only (developers.sap.com terms; no prose reproduced)" },
+    { "url": "https://developers.sap.com/tutorials/abap-islm-orchestration-service-consumption/", "licence": "citation-only (developers.sap.com terms; no prose reproduced)" },
+    { "url": "https://github.com/SAP-samples/abap-cheat-sheets/blob/main/30_Generative_AI.md", "licence": "Apache-2.0" },
+    { "url": "https://github.com/SAP-samples/abap-partner-reference-application/blob/main/Tutorials/42-Consuming-ISLM-for-GenAI.md", "licence": "Apache-2.0" },
+    { "url": "https://community.sap.com/t5/artificial-intelligence-blogs-posts/developing-ai-enabled-applications-with-abap-ai-sdk-powered-by-islm/ba-p/14252514", "licence": "citation-only (community.sap.com terms; no prose reproduced)" }
+  ],
+  "classes": [
+    {
+      "name": "CL_AIC_ISLM_COMPL_API_FACTORY",
+      "kind": "class",
+      "role": "Static entry point for the Completion API. GET( ) returns IF_AIC_ISLM_COMPL_API_FACTORY, whose CREATE_INSTANCE( islm_scenario ) returns IF_AIC_COMPLETION_API — only the intelligent-scenario name is needed since it already carries the connection and model info.",
+      "methods": [
+        { "name": "GET", "purpose": "Static factory accessor, no parameters." }
+      ]
+    },
+    {
+      "name": "IF_AIC_ISLM_COMPL_API_FACTORY",
+      "kind": "interface",
+      "role": "Returned by CL_AIC_ISLM_COMPL_API_FACTORY=>GET( ).",
+      "methods": [
+        { "name": "CREATE_INSTANCE", "purpose": "IMPORTING islm_scenario, RETURNING IF_AIC_COMPLETION_API, RAISING CX_AIC_API_FACTORY." }
+      ]
+    },
+    {
+      "name": "IF_AIC_COMPLETION_API",
+      "kind": "interface",
+      "role": "The completion client bound to one ISLM intelligent-scenario instance; the core object every interaction variant is built on.",
+      "methods": [
+        { "name": "EXECUTE_FOR_STRING", "purpose": "Simple string-prompt completion; raises CX_AIC_COMPLETION_API." },
+        { "name": "EXECUTE_FOR_MESSAGES", "purpose": "Message-container (system/user/assistant/tool-result) completion; raises CX_AIC_COMPLETION_API." },
+        { "name": "CREATE_MESSAGE_CONTAINER", "purpose": "Build an IF_AIC_MESSAGE_CONTAINER to hold a multi-turn prompt." },
+        { "name": "GET_PARAMETER_SETTER", "purpose": "Returns IF_AIC_COMPLETION_PARAMETERS (temperature, max tokens, provider passthrough); the setting persists on this API instance across calls." },
+        { "name": "REGISTER_FUNCTION", "purpose": "Declare one callable tool/function for the function-calling DO-loop pattern." },
+        { "name": "DEFINE_RESPONSE_FORMAT", "purpose": "Structured-output entry point: define_response_format( )->json_schema( )->from_string( <json-schema-string> )." }
+      ]
+    },
+    {
+      "name": "IF_AIC_COMPLETION_API_RESULT",
+      "kind": "interface",
+      "role": "Returned by EXECUTE_FOR_STRING / EXECUTE_FOR_MESSAGES.",
+      "methods": [
+        { "name": "GET_COMPLETION", "purpose": "The model's answer text." },
+        { "name": "GET_TOTAL_TOKEN_COUNT", "purpose": "Prompt + completion tokens for this call (also GET_PROMPT_TOKEN_COUNT / GET_COMPLETION_TOKEN_COUNT)." },
+        { "name": "GET_FINISH_REASON", "purpose": "Normalized stop reason (also GET_ORIGINAL_FINISH_REASON for the provider's raw value)." },
+        { "name": "GET_TOOL_CALLS", "purpose": "Table of IF_AIC_TOOL_CALL when the model requested a function call — empty when it answered directly." },
+        { "name": "GET_RESPONSE_FORMAT_REFUSAL", "purpose": "True when structured-output generation was refused; initial state means the schema was accepted." }
+      ]
+    },
+    {
+      "name": "IF_AIC_MESSAGE_CONTAINER",
+      "kind": "interface",
+      "role": "Holds a multi-turn / multi-role prompt, built via CREATE_MESSAGE_CONTAINER.",
+      "methods": [
+        { "name": "SET_SYSTEM_ROLE", "purpose": "IMPORTING system_role — the system-prompt text." },
+        { "name": "ADD_USER_MESSAGE", "purpose": "IMPORTING message — append a user turn." },
+        { "name": "ADD_ASSISTANT_MESSAGE", "purpose": "IMPORTING message — append a prior assistant turn (for few-shot / history replay)." },
+        { "name": "ADD_TOOL_RESULTS", "purpose": "IMPORTING the populated tool_calls table (with SET_CALL_RESULT already applied) so the next EXECUTE call can continue the function-calling loop." },
+        { "name": "ADD_USER_MEDIA_MESSAGE", "purpose": "Returns IF_AIC_MEDIA_MESSAGE for base64 image/media input; ADD_MEDIA must precede its SET_* calls." }
+      ]
+    },
+    {
+      "name": "IF_AIC_COMPLETION_PARAMETERS",
+      "kind": "interface",
+      "role": "Returned by GET_PARAMETER_SETTER; bound to (and persists on) one API instance.",
+      "methods": [
+        { "name": "SET_TEMPERATURE", "purpose": "String value, must be between 0 and 1." },
+        { "name": "SET_MAXIMUM_TOKENS", "purpose": "Integer cap on completion tokens." },
+        { "name": "SET_ANY_PARAMETER", "purpose": "Generic provider-parameter passthrough (name/value); unsupported names can cause a runtime error, booleans must be ABAP_TRUE/ABAP_FALSE." }
+      ]
+    },
+    {
+      "name": "CL_AIC_ISLM_PROMPT_TPL_FACTORY",
+      "kind": "class",
+      "role": "Prompt-library entry point. Only ISLM-defined prompt templates are currently supported. NOTE: there is no CL_AIC_PROMPT_TEMPLATE class in the verified surface — that name is a common but incorrect guess.",
+      "methods": [
+        { "name": "GET", "purpose": "Static factory accessor, no parameters." }
+      ]
+    },
+    {
+      "name": "IF_AIC_PROMPT_TEMPLATE",
+      "kind": "interface",
+      "role": "Returned by CL_AIC_ISLM_PROMPT_TPL_FACTORY=>GET( )->CREATE_INSTANCE( islm_scenario, template_id ).",
+      "methods": [
+        { "name": "GET_PROMPT", "purpose": "IMPORTING parameters (name/value pairs matching {ISLM_<name>} placeholders), RETURNING the rendered prompt string; raises CX_AIC_PROMPT_TEMPLATE." }
+      ]
+    },
+    {
+      "name": "CL_AIC_ISLM_ORCH_API_FACTORY",
+      "kind": "class",
+      "role": "Entry point for the Orchestration API — SAP AI Core's Orchestration Service (content filtering, data masking, document grounding) via ISLM, with fewer features than the Completion API.",
+      "methods": [
+        { "name": "GET", "purpose": "Static factory accessor, no parameters." }
+      ]
+    },
+    {
+      "name": "IF_AIC_ORCHESTRATION_API",
+      "kind": "interface",
+      "role": "Requires an execution-flow template configured in the ISLM model.",
+      "methods": [
+        { "name": "CONFIGURE_TEMPLATING", "purpose": "Returns IF_AIC_ORCHESTRATION_SETUP (chainable ADD_USER_MESSAGE / ADD_PROMPT_TEMPLATE)." },
+        { "name": "EXECUTE", "purpose": "Returns IF_AIC_ORCHESTRATION_RESPONSE; read the answer via ->orchestration_result( )->completion( )." }
+      ]
+    },
+    {
+      "name": "CX_AIC_API_FACTORY",
+      "kind": "exception",
+      "role": "Raised by CREATE_INSTANCE when the factory cannot build a client for the given intelligent scenario."
+    },
+    {
+      "name": "CX_AIC_COMPLETION_API",
+      "kind": "exception",
+      "role": "Raised by EXECUTE_FOR_STRING / EXECUTE_FOR_MESSAGES. Collects HTTP/connection/config errors and LLM/provider errors; carries attribute API_ERROR (IF_AIC_API_ERROR) for the documented error codes. Errors outside the documented codes cause a short dump instead of a catchable exception."
+    },
+    {
+      "name": "IF_AIC_API_ERROR",
+      "kind": "interface",
+      "role": "CX_AIC_COMPLETION_API's API_ERROR attribute type.",
+      "methods": [
+        { "name": "GET_CODE", "purpose": "One of the documented enum constants (see constraints[])." },
+        { "name": "GET_ORIGINAL_CODE", "purpose": "The provider's raw error code, when different from the normalized one." },
+        { "name": "GET_ORIGINAL_MESSAGE", "purpose": "The provider's raw error message." }
+      ]
+    },
+    {
+      "name": "CX_AIC_PROMPT_TEMPLATE",
+      "kind": "exception",
+      "role": "Raised by the prompt-template factory / GET_PROMPT (per SAP-samples/abap-cheat-sheets; not named on the Prompt Library API help page itself)."
+    },
+    {
+      "name": "IF_AIC_ADT_COMPLETION_API",
+      "kind": "interface",
+      "role": "Streaming completion surface — incremental deltas for a chat-style UI (e.g. pushed over WebSockets).",
+      "methods": [
+        { "name": "STREAM_FOR_MESSAGES", "purpose": "Returns IF_AIC_COMPLETION_STREAM (HAS_NEXT / GET_NEXT -> IF_AIC_COMPLETION_STREAM_PART -> GET_COMPLETION_DELTA / CANCEL / GET_FINAL_RESULTS)." }
+      ]
+    },
+    {
+      "name": "IF_AIC_MEDIA_MESSAGE",
+      "kind": "interface",
+      "role": "Returned by ADD_USER_MEDIA_MESSAGE for multimodal (image etc.) input; media data must be base64-encoded and ADD_MEDIA must precede the SET_* calls (they act on the most recently added item).",
+      "methods": [
+        { "name": "ADD_MEDIA", "purpose": "Register one media item." },
+        { "name": "ADD_TEXT", "purpose": "Attach text alongside the media item." },
+        { "name": "SET_MEDIA_DATA", "purpose": "Base64 payload for the most recently added media item." },
+        { "name": "SET_ANY_MEDIA_PARAMETER", "purpose": "Provider-specific media parameter passthrough." }
+      ]
+    },
+    {
+      "name": "CX_AIQUOTA_ADT_LIMIT_EXCEEDED",
+      "kind": "exception",
+      "role": "A separate quota exception that must NOT be caught inside ADT IDE actions (per SAP's own catchable-exceptions guidance)."
+    },
+    {
+      "name": "TH_AIC_ORCH_API_INJECTOR",
+      "kind": "class",
+      "role": "Test-double injector for the Orchestration API, for unit-testing code that calls it."
+    },
+    {
+      "name": "AIC_MEDIA_TYPE",
+      "kind": "constants",
+      "role": "Media-type constants for ADD_MEDIA, e.g. AIC_MEDIA_TYPE=>IMAGE_PNG."
+    }
+  ],
+  "setupSteps": [
+    "Subscribe to the SAP AI Core service and add the 'extended' service plan in the BTP cockpit (needed for Generative AI Hub / LLM access, not the base plan).",
+    "Create an SAP AI Core service instance and a service key — the X.509 service key must be created using the ABAP system's downloaded client default certificate.",
+    "Create a communication arrangement for communication scenario SAP_COM_0A69 to connect the ABAP system to SAP AI Core / Generative AI Hub — only ONE instance of this scenario can exist per client.",
+    "Create the Intelligent Scenario (INTS) — in ABAP Development Tools, or via the 'Intelligent Scenarios' Fiori app / SAP GUI transaction F4469 — and set scenario type 'Generative AI'.",
+    "Add an Intelligent Scenario Model (INTM) to the INTS: choose the LLM and version, optionally attach prompt templates.",
+    "Publish the INTS. WARNING: once published an intelligent scenario cannot be edited at all; an intelligent scenario model can only have its LLM version and prompt template edited after publishing.",
+    "Deploy and activate via the 'Intelligent Scenario Management' Fiori app (or SAP GUI transaction F4470): Deploy, then Activate 'For All'. Allow up to ~5 minutes for sync to the BTP AI Core instance (standard configuration).",
+    "Only after activation does CL_AIC_ISLM_COMPL_API_FACTORY=>GET( )->CREATE_INSTANCE( '<scenario name>' ) resolve at runtime — installing this generated class is not enough on its own."
+  ],
+  "constraints": [
+    "Temperature must be between 0 and 1 (SET_TEMPERATURE takes a string in that range).",
+    "Parameters set via GET_PARAMETER_SETTER persist on that API instance across multiple EXECUTE calls; a separate CREATE_INSTANCE call gets a separate, independent parameter set.",
+    "SET_ANY_PARAMETER passes provider-specific parameters straight through; unsupported names can cause a runtime error, and booleans must use ABAP_TRUE/ABAP_FALSE.",
+    "Catch CX_AIC_COMPLETION_API and read API_ERROR->GET_CODE( ) (IF_AIC_API_ERROR) for the documented error codes CONTEXT_LENGTH_EXCEEDED, INVALID_PROMPT and CONTENT_FILTER; unknown/programming-error cases raise a short dump instead of a catchable exception.",
+    "Do not catch CX_AIQUOTA_ADT_LIMIT_EXCEEDED inside ADT IDE actions.",
+    "Debug a failing call via the ABAP Cross Trace in ADT: Window > Show View > Other > ABAP Cross Trace, then enable the 'ABAP Generative AI' and 'SDK' entries in the trace configuration.",
+    "LLM output can be a hallucination or a wrong answer — add your own handling; the underlying models are third-party with their own independent lifecycle and can be deprecated or withdrawn at any time, on a release cadence that differs from the ABAP AI SDK's own."
+  ],
+  "orchestrationLimitations": ["structured output", "function calling", "media input"],
+  "availability": [
+    "SAP BTP ABAP Environment — no release qualifier stated on SAP's own availability table.",
+    "SAP S/4HANA Cloud Public Edition — no release qualifier stated on SAP's own availability table.",
+    "SAP S/4HANA Cloud Private Edition and on-premise SAP S/4HANA — 'as of release 2025 via standard delivery' per a January 2026 SAP-authored community blog; lower releases via Transport-based Correction Instructions, see SAP Note 3513374 (number only — note content is access-gated)."
+  ],
+  "lookalikes": [
+    {
+      "name": "AI SDK for SAP ABAP",
+      "vendor": "Microsoft",
+      "url": "https://microsoft.github.io/aisdkforsapabap/docs/intro/",
+      "note": "Third-party client for Azure OpenAI — NOT SAP's SDK, does not use ISLM or Generative AI Hub. Self-described as v1.0, supporting only Azure OpenAI API versions 2022-12-01 and 2023-03-15-preview — materially stale as of this curation."
+    },
+    {
+      "name": "Vertex AI SDK for ABAP",
+      "vendor": "Google",
+      "url": "https://docs.cloud.google.com/sap/docs/abap-sdk/vertex-ai-sdk-overview",
+      "note": "A component of the 'ABAP SDK for Google Cloud' — NOT SAP's SDK. Calls Google Vertex AI (Gemini text + multimodal) directly; offered at no extra cost beyond Google Cloud usage. Commonly mis-named 'ABAP SDK for Vertex AI' (inverted) in secondary sources."
+    }
+  ]
+}
