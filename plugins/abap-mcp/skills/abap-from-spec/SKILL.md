@@ -16,7 +16,10 @@ delivered may bypass their gates.
    `ASSUMPTION` so the consultant can veto it.
 2. **Foundation, deterministic first.** For each root entity run `scaffold_rap_bo` (draft on
    unless the spec says otherwise) and use its suggested table DDL. Never hand-write an artifact
-   the validated generator can produce.
+   the validated generator can produce. For any 2025+ feature the spec needs (CDS table entities,
+   side effects, business events, collaborative draft, RAP recommendations) confirm syntax and the
+   minimum release with `explain_abap_release` first; for a Generative AI Hub call use
+   `scaffold_abap_ai_sdk`.
 3. **Behavior.** Implement the spec's logic in the scaffolded behavior-implementation classes.
    Modern ABAP only: constructor expressions, ABAP SQL, no obsolete statements.
 4. **Gate every file.** `fix_abap` first (mechanical issues never reach review), then
@@ -24,9 +27,14 @@ delivered may bypass their gates.
    or consciously waived with a reason. For Cloud targets, `check_cloud_readiness` across the
    package must return grade A.
 5. **Tests.** `scaffold_abap_unit` on every class, then replace the failing skeletons with the
-   spec's acceptance criteria as given/when/then. Trivially-passing tests are not done.
+   spec's acceptance criteria as given/when/then. Trivially-passing tests are not done. When
+   `run_abap_unit` is available, execute the tests offline and iterate until green — it exercises
+   pure logic only (no database, CDS, EML or authorizations), so say which tests still need a
+   real system.
 6. **Deliver.** File set in activation order, the assumptions register, what remains manual
-   (service binding, authorizations, transport), and the honest limits.
+   (service binding, authorizations, transport), and the honest limits. If an online ADT MCP
+   server is connected (SAP's official one or `abap-adt-mcp`), hand it the activation-ordered
+   files, then read back its ABAP Unit and ATC results and fix before declaring done.
 
 ## Honesty boundaries
 
@@ -34,4 +42,6 @@ delivered may bypass their gates.
   say exactly what is missing instead of guessing.
 - Behavior and service definitions are template-validated, not deep-parsed — ADT activation is
   the final arbiter.
-- Everything runs offline on supplied text: no SAP system, no ATC, no runtime execution.
+- Everything runs offline on supplied text: no SAP system, no ATC. `run_abap_unit` (opt-in)
+  executes transpiled JavaScript against the open-abap kernel, not SAP's — evidence for pure
+  logic only.

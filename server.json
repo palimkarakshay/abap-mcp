@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.palimkarakshay/abap-mcp",
-  "description": "Make your AI agent an expert SAP ABAP/RAP consultant: offline lint, Cloud readiness, scaffolding.",
+  "description": "Make your AI agent an expert SAP ABAP/RAP consultant: offline lint, ABAP Cloud readiness, edition-aware released APIs, a dated SAP knowledge base, RAP + ABAP AI SDK scaffolding, offline ABAP Unit runs.",
   "repository": {
     "url": "https://github.com/palimkarakshay/abap-mcp",
     "source": "github"
   },
-  "version": "0.10.0",
+  "version": "0.11.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "abap-mcp",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "transport": {
         "type": "stdio"
       }

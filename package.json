@@ -1,8 +1,8 @@
 {
   "name": "abap-mcp",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "mcpName": "io.github.palimkarakshay/abap-mcp",
-  "description": "Make your AI coding agent an expert SAP ABAP & RAP consultant: offline code review (abaplint), ABAP Cloud / Clean Core readiness grades, released-API checks, rework verdicts, and RAP scaffolding — no SAP system, no credentials, installs with one npx command.",
+  "description": "Make your AI coding agent an expert SAP ABAP & RAP consultant: offline code review (abaplint), ABAP Cloud / Clean Core readiness grades, edition-aware released-API checks with SAP's successors, a bundled 2025\u20132026 ABAP Cloud/RAP knowledge base, RAP and ABAP-AI-SDK scaffolding, and an offline ABAP Unit runner \u2014 no SAP system, no credentials, installs with one npx command.",
   "license": "MIT",
   "author": "Akshay Palimkar",
   "repository": {
@@ -23,7 +23,12 @@
     "ai-agent",
     "s4hana",
     "clean-abap",
-    "scaffolding"
+    "scaffolding",
+    "knowledge-base",
+    "generative-ai-hub",
+    "sap-ai-core",
+    "unit-testing",
+    "transpiler"
   ],
   "type": "module",
   "engines": {
@@ -31,7 +36,8 @@
   },
   "bin": {
     "abap-mcp": "dist/cli.js",
-    "abap-mcp-http": "dist/http.js"
+    "abap-mcp-http": "dist/http.js",
+    "abap-mcp-genai": "dist/genai.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -53,7 +59,9 @@
     "start:http": "node dist/http.js"
   },
   "dependencies": {
-    "@abaplint/core": "^2.120.13",
+    "@abaplint/core": "^2.120.48",
+    "@abaplint/runtime": "2.13.82",
+    "@abaplint/transpiler": "2.13.82",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^4.4.3"
   },

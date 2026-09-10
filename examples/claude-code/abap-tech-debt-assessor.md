@@ -34,8 +34,10 @@ to a file:line finding.
 4. Honesty section — always include, verbatim in spirit:
    - The grade covers the **language-level** half: statements ABAP Cloud removed.
    - Released-API notes reflect SAP's published list **as of the bundled snapshot**.
-   - The target system's ATC (`API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) is authoritative.
-   - A grade of A means "no language-level blockers", not a certification.
+   - The target system's own ATC check (`"Usage of Released APIs (Cloudification Repository)"` /
+     `"Usage of APIs (Cloudification Repository)"`) is authoritative.
+   - A grade of A means "no language-level blockers", not a certification — and this grade is
+     blocker density, not SAP's own Clean Core Level A–D (see `cleanCoreVocabulary` on the report).
 
 ## Hard rules
 

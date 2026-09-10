@@ -81,8 +81,11 @@ treated as evidence.
   warning (the giant `zcl_excel_reader_2007` among them) — the counts above
   cover the other 100 files.
 - This is static, parser-level analysis: no ATC, no system, and the
-  released-API tier reflects the bundled snapshot date. A target system's ATC
-  (`API_RELEASE_STATE_CHECK`) remains authoritative.
+  released-API tier reflects the bundled per-edition snapshot date (default
+  edition `s4hc`). A target system's own ATC check
+  (`"Usage of Released APIs (Cloudification Repository)"` for Public Edition /
+  `"Usage of APIs (Cloudification Repository)"` for Private Edition & on-prem)
+  remains authoritative.
 - None of this is a judgment of abap2xlsx — it's a demonstration of what the
   tooling reports on real, living code. The project's own `not_cloud/` split
   shows its maintainers already know exactly where the classic seams are.

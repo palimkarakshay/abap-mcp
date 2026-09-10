@@ -116,8 +116,10 @@ with file:line for every finding — enough to size remediation buckets, split w
 sprint. The readiness JSON also carries `releasedApiFindings` — direct access to non-released
 classic tables and deprecated-API usage found in the source, with CDS successor hints — *dated
 and separate from the score* (see §4a). The report's scope note keeps you honest with clients:
-the objective score is the statement-level half; the released-API list is a bundled snapshot, and
-the system's ATC (`API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) is still authoritative.
+the objective score is the statement-level half; the released-API list is a per-edition bundled
+snapshot (`--edition s4hc|btp|pce`, default `s4hc`), and the system's own ATC check
+(`"Usage of Released APIs (Cloudification Repository)"` / `"Usage of APIs (Cloudification Repository)"`)
+is still authoritative.
 
 **Tip:** run it per package directory (`readiness src/zfi/ src/zsd/ …`) to get per-team scores.
 
@@ -127,7 +129,9 @@ Every readiness report now carries a `grade`: **A** = no cloud blockers, **B** =
 blockers/file, **C** = ≤ 2 blockers/file, **D** = worse. It is banded on blocker *density*
 (blockers ÷ files), so a single object and a 500-file package grade on the same scale — and it
 is derived from the same objective parser-level count as the score, with nothing subjective
-mixed in.
+mixed in. The report spells this out as `gradeMeaning: "blocker-density"` — **this is not SAP's
+own Clean Core Level A–D** (a different, ATC-derived concept; see `cleanCoreVocabulary` on the
+report, or `src/data/atc-vocabulary.json`, for what SAP's Level A–D actually means).
 
 The consulting workflow on an abapGit export:
 
@@ -264,3 +268,93 @@ deterministic makes it the perfect referee between two LLMs.
 - **Two snippets, same object name** = rejected on purpose (they'd silently shadow each other).
 - **Severity ≠ priority.** abaplint severities are rule defaults; triage by category and your
   own ruleset, not raw counts.
+
+## 9. v0.11 recipes — the knowledge base, the unit-test loop, and pairing with an online server
+
+### Offline-verify then write in-system with SAP ADT MCP / abap-adt-mcp
+
+abap-mcp never touches a system; SAP's official ADT MCP server (GA, ships in ADT for Eclipse/VS
+Code) and the community `abap-adt-mcp` do — and neither has an offline lint, readiness grade, or
+released-API check of its own. Run both side by side:
+
+1. **Offline first.** `fix_abap` → `lint_abap` → `check_cloud_readiness` (or `scaffold_rap_bo` /
+   `scaffold_abap_unit` / `scaffold_abap_ai_sdk` for new objects) until the files are clean —
+   entirely local, no credentials touched yet.
+2. **Write and activate in the system.** Hand the same files to SAP's official server
+   (`abap_creation-create_object`, `abap_activate_objects`) or `abap-adt-mcp`
+   (`setObjectSource`, `activateByName`).
+3. **Run the real tests.** `abap_run_unit_tests` / `abap_run_atc` (or `unitTestRun` /
+   `createAtcRun` on `abap-adt-mcp`) — the real ABAP Unit and ATC runs abap-mcp cannot perform.
+4. **Verify again, offline.** If the online server returned modified source, `compare_abap` or
+   `check_cloud_readiness` it before calling the change done — the loop is provable from both ends.
+
+With an assistant: *"Lint and grade this class with abap-mcp, then use SAP's ADT MCP server to
+write, activate and run ATC on it, then compare_abap the result against what you started with."*
+`get_abap_agent_rules({ pairedWith: ["sap-adt-mcp"] })` emits this division of labour as a paste-
+ready AGENTS.md block for the repo.
+
+### The unit-test loop with run_abap_unit
+
+`run_abap_unit` executes ABAP Unit tests offline by transpiling to JavaScript and running on the
+bundled open-abap kernel — no database, CDS, EML/RAP, AMDP, authority checks or locks, and it says
+so in every result's `scopeNote`. It is **opt-in** on the MCP surface
+(`ABAP_MCP_ENABLE_RUN=1`) and **always on** in the CLI:
+
+```bash
+claude mcp add abap-mcp --env ABAP_MCP_ENABLE_RUN=1 -- npx -y abap-mcp   # opt in on the MCP surface
+npx abap-mcp unittest --run src/                        # every test class found under src/
+npx abap-mcp unittest --run src/ --only ZCL_CALC>ADD_WORKS --timeout-ms 10000
+```
+
+With an assistant: *"Write the failing test first with scaffold_abap_unit, then run_abap_unit
+until it's green; treat a green run as evidence about pure logic only."* The CLI exits 1 on any
+failure, so `unittest --run` slots into the same CI gate as `lint --preset syntax-only`.
+
+### Ask the knowledge base before designing a 2025+ RAP feature
+
+Before assuming a RAP feature exists (or is new), ask the bundled, dated (curated 2026-09-10)
+knowledge base instead of guessing from training-data memory:
+
+```bash
+npx abap-mcp release --since 2605 --kind rap          # what's new in RAP at/after the 2605 train
+npx abap-mcp knowledge "draft table entity"            # free-text search across the whole bundle
+```
+
+With an assistant: *"Before you implement draft on this CDS table entity, call explain_abap_release
+for 'draft table entity' and confirm the minimum release."* Rows flagged `pre-2502` exist
+specifically to stop an agent presenting an established feature (business events, late numbering)
+as a 2025-26 novelty. Every row carries a cited `sourceUrl` and a `confirmed`/`reported` confidence
+flag — read both before it goes in a client deliverable.
+
+### Scaffold a Generative AI Hub call from ABAP
+
+`scaffold_abap_ai_sdk` generates a validated ABAP class calling the Generative AI Hub through the
+ABAP AI SDK (ISLM) — the class/method names are checked against abap-mcp's own bundled stubs, not
+guessed from memory (a real hallucination surface: e.g. inventing `CL_AIC_PROMPT_TEMPLATE`):
+
+```bash
+npx abap-mcp aisdk --scenario ZDEMO_AI_SCENARIO --interaction function-calling --test --out ./out
+```
+
+With an assistant: *"Scaffold an ABAP AI SDK function-calling class for scenario ZSTOCK_AGENT with
+a get_current_stock_level tool, plus a unit-test skeleton."* Read the returned `setupSteps` —
+manual ISLM configuration (extended AI Core plan, `SAP_COM_0A69`, INTS/INTM deploy+activate) this
+tool cannot perform — and the `validated: "abaplint-syntax"` label: the ABAP parses against
+abap-mcp's own `IF_AIC_*` stubs, not a guarantee it matches SAP's real API signatures exactly.
+
+### Which edition am I on? (s4hc/btp/pce)
+
+Released-API state genuinely differs by SAP edition. `check_released_api`, readiness, `deps`, and
+the CLI all take `--edition` (`s4hc` = S/4HANA Cloud Public Edition, `btp` = BTP ABAP environment,
+`pce` = Private Cloud Edition / on-premise; default `s4hc`):
+
+```bash
+npx abap-mcp released MARA --edition s4hc     # Public Edition state + SAP's own successor
+npx abap-mcp released MARA --edition pce      # same object, Private Cloud Edition state
+npx abap-mcp readiness src/ --edition btp     # readiness's releasedApiFindings for BTP
+```
+
+Pick the edition that matches the actual target system — a Private Cloud on-prem team checking
+against the Public Edition snapshot (or vice versa) will get plausible-looking but wrong verdicts.
+`successorSource` on each finding tells you whether the successor came from SAP's own published
+data (`"sap"`) or abap-mcp's curated fallback (`"curated"`, used only when SAP's data has none).

@@ -10,7 +10,9 @@ import { runCli } from "./cli-commands.js";
 import { buildServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
 
 async function main(): Promise<void> {
-  const code = runCli(process.argv.slice(2), {
+  // `unittest --run` is asynchronous (it transpiles and spawns a subprocess);
+  // every other command resolves immediately.
+  const code = await runCli(process.argv.slice(2), {
     out: (s) => console.log(s),
     err: (s) => console.error(s),
   });

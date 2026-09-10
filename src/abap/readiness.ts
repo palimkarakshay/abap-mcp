@@ -14,11 +14,44 @@
  * score, because those are objective, parser-level numbers and the snapshot is
  * only as current as its date.
  */
+import atcVocabularyData from "../data/atc-vocabulary.json" with { type: "json" };
 import recipeData from "../data/rewrite-recipes.json" with { type: "json" };
 
 import type { AbapSource, AbapVersion, Finding } from "./engine.js";
 import { extractObjectReferences, runAbaplint } from "./engine.js";
-import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./released.js";
+import type { ReleasedEdition, SuccessorSource } from "./released.js";
+import { DEFAULT_EDITION, lookupReleased, RELEASED_API_SNAPSHOTS, suggestSuccessor } from "./released.js";
+
+/** One ATC check or check-variant fact, as curated in src/data/atc-vocabulary.json. */
+interface AtcCheck {
+  name: string;
+  edition: string;
+  note: string;
+}
+interface AtcVariant {
+  name: string;
+  scope: string;
+  status: "current" | "deprecated";
+  successor?: string;
+}
+interface AtcVocabulary {
+  curatedDate: string;
+  sources: string[];
+  checks: AtcCheck[];
+  variants: AtcVariant[];
+  cleanCoreLevels: { A: string; B: string; C: string; D: string };
+  releaseContracts: { C0: string; C1: string; C2: string; C3: string };
+}
+
+const ATC_VOCAB = atcVocabularyData as unknown as AtcVocabulary;
+
+/** The real ATC checks/variants for released-API governance, exposed on readiness reports (see F04). */
+export interface CleanCoreVocabulary {
+  checks: AtcCheck[];
+  variants: AtcVariant[];
+}
+
+const CLEAN_CORE_VOCABULARY: CleanCoreVocabulary = { checks: ATC_VOCAB.checks, variants: ATC_VOCAB.variants };
 
 /** Curated canonical rewrite for one blocker category — illustrative, not drop-in. */
 export interface RewriteRecipe {
@@ -60,6 +93,10 @@ export interface ReleasedApiFinding {
   state: "deprecated" | "not-released";
   /** Curated released CDS successor for a classic table, when known. */
   successor?: string;
+  /** Where the successor (if any) came from: SAP's own snapshot, the curated fallback map, or none available. */
+  successorSource: SuccessorSource;
+  /** SAP edition this finding's released-API state was looked up against. */
+  edition: ReleasedEdition;
   file: string;
   line: number;
   /** Human-facing explanation of why this was flagged. */
@@ -89,6 +126,12 @@ export interface ReadinessReport {
   score: number;
   /** A–D banding of blocker density (blockers / files) — see gradeReadiness. */
   grade: ReadinessGrade;
+  /**
+   * What `grade` means, spelled out so it is never confused with SAP's own
+   * Clean Core Level A–D (see cleanCoreVocabulary.cleanCoreLevels): always
+   * "blocker-density" — a banding of blockers per file, nothing else.
+   */
+  gradeMeaning: "blocker-density";
   cloudBlockerCount: number;
   /** Files analyzed — the denominator of the grade's density banding. */
   fileCount: number;
@@ -103,18 +146,37 @@ export interface ReadinessReport {
   releasedApiFindings: ReleasedApiFinding[];
   /** Date of the bundled released-API snapshot the releasedApiFindings reflect. */
   releasedApiSnapshotDate: string;
+  /** SAP edition the released-API findings were checked against. */
+  edition: ReleasedEdition;
   baselineVersion: AbapVersion;
   scopeNote: string;
+  /** The real ATC checks/variants that govern released-API state — see F04 / atc-vocabulary.json. */
+  cleanCoreVocabulary: CleanCoreVocabulary;
 }
 
-export const SCOPE_NOTE =
-  "Static parser-level analysis (abaplint) PLUS a released-API cross-check against SAP's bundled Cloudification " +
-  `snapshot (dated ${RELEASED_API_SNAPSHOT.snapshotDate}). It detects statements ABAP Cloud removes (the objective ` +
-  "cloud-blocker count and score) and, separately, flags deprecated-API usage and direct access to non-released " +
-  "classic tables (releasedApiFindings — informational, NOT counted in the score). The bundled list is only as current " +
-  "as its snapshot date, and covers tables and function modules referenced here, not every API; a target system's own " +
-  "released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative. " +
-  "Treat 'ready' as 'no language-level blockers', not as a full Clean Core certification.";
+function scopeNoteFor(edition: ReleasedEdition): string {
+  const publicCheck = ATC_VOCAB.checks.find((c) => c.edition.includes("Public"));
+  const privateCheck = ATC_VOCAB.checks.find((c) => c.edition.includes("Private"));
+  const currentVariants = ATC_VOCAB.variants
+    .filter((v) => v.status === "current" && v.name.startsWith("ABAP_CLEAN_CORE"))
+    .map((v) => v.name)
+    .join(" / ");
+  return (
+    "Static parser-level analysis (abaplint) PLUS a released-API cross-check against SAP's bundled Cloudification " +
+    `snapshot for edition "${edition}" (dated ${RELEASED_API_SNAPSHOTS[edition].snapshotDate}). It detects statements ` +
+    "ABAP Cloud removes (the objective cloud-blocker count and score) and, separately, flags deprecated-API usage " +
+    "and direct access to non-released classic tables (releasedApiFindings — informational, NOT counted in the " +
+    "score). The bundled list is only as current as its snapshot date, and covers tables and function modules " +
+    "referenced here, not every API; a target system's own released-API ATC check " +
+    `("${publicCheck?.name}" for ${publicCheck?.edition} / "${privateCheck?.name}" for ${privateCheck?.edition}, via ` +
+    `variants such as ${currentVariants}) remains authoritative. ` +
+    "Treat 'ready' as 'no language-level blockers', not as a full Clean Core certification. " +
+    "The A–D grade above is blocker density (gradeMeaning), NOT SAP's own Clean Core Level A–D."
+  );
+}
+
+/** Scope note for the default edition (s4hc) — kept for callers that predate multi-edition support. */
+export const SCOPE_NOTE = scopeNoteFor(DEFAULT_EDITION);
 
 /** Map an offending line to a human category by its leading keyword(s). */
 function categorize(excerpt: string): { category: string; label: string } {
@@ -141,6 +203,7 @@ function categorize(excerpt: string): { category: string; label: string } {
 export function checkCloudReadiness(
   files: AbapSource[],
   baselineVersion: AbapVersion = "v758",
+  edition: ReleasedEdition = DEFAULT_EDITION,
 ): ReadinessReport {
   const cloud = runAbaplint(files, { version: "Cloud", preset: "syntax-only" });
   const baseline = runAbaplint(files, { version: baselineVersion, preset: "syntax-only" });
@@ -173,14 +236,17 @@ export function checkCloudReadiness(
     verdict,
     score,
     grade: gradeReadiness(n, files.length),
+    gradeMeaning: "blocker-density",
     cloudBlockerCount: n,
     fileCount: files.length,
     categories: [...byCategory.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: baseline.findings,
-    releasedApiFindings: computeReleasedApiFindings(files, baselineVersion),
-    releasedApiSnapshotDate: RELEASED_API_SNAPSHOT.snapshotDate,
+    releasedApiFindings: computeReleasedApiFindings(files, baselineVersion, edition),
+    releasedApiSnapshotDate: RELEASED_API_SNAPSHOTS[edition].snapshotDate,
+    edition,
     baselineVersion,
-    scopeNote: SCOPE_NOTE,
+    scopeNote: scopeNoteFor(edition),
+    cleanCoreVocabulary: CLEAN_CORE_VOCABULARY,
   };
 }
 
@@ -199,23 +265,32 @@ export function checkCloudReadiness(
 function computeReleasedApiFindings(
   files: AbapSource[],
   baselineVersion: AbapVersion,
+  edition: ReleasedEdition,
 ): ReleasedApiFinding[] {
   const out: ReleasedApiFinding[] = [];
   for (const ref of extractObjectReferences(files, baselineVersion)) {
-    let hit = lookupReleased(ref.name, ref.objectType);
+    let hit = lookupReleased(ref.name, ref.objectType, edition);
     // An ABAP-SQL FROM clause names either a DDIC table or a CDS entity, but
     // the extractor labels both TABL — fall back to the CDS record so a
     // deprecated CDS view in a SELECT is still caught.
     if (!hit.recorded && ref.objectType === "TABL") {
-      hit = lookupReleased(ref.name, "CDS_STOB");
+      hit = lookupReleased(ref.name, "CDS_STOB", edition);
     }
     if (hit.state === "released") continue;
+
+    // Curated table-successors.json wins when it has an entry (nicely-cased,
+    // hand-checked); SAP's own successors[] is the fallback — hit.successorSource
+    // says which one answered (mirrors lookupReleased's own priority).
+    const successor = hit.successorSource === "curated" ? suggestSuccessor(ref.name) : hit.successors?.[0]?.name;
 
     if (hit.state === "deprecated") {
       out.push({
         object: ref.name,
         objectType: ref.objectType,
         state: "deprecated",
+        ...(successor !== undefined ? { successor } : {}),
+        successorSource: hit.successorSource,
+        edition,
         file: ref.file,
         line: ref.line,
         note:
@@ -237,6 +312,9 @@ function computeReleasedApiFindings(
         object: ref.name,
         objectType: ref.objectType,
         state: "not-released",
+        ...(successor !== undefined ? { successor } : {}),
+        successorSource: hit.successorSource,
+        edition,
         file: ref.file,
         line: ref.line,
         note: `Function module ${ref.name} is recorded as not-to-be-released in SAP's Cloudification list — it will not become a public API in ABAP Cloud; use a released successor API instead.`,
@@ -245,12 +323,13 @@ function computeReleasedApiFindings(
     }
 
     if (ref.objectType === "TABL" && hit.objectType === "TABL") {
-      const successor = suggestSuccessor(ref.name);
       out.push({
         object: ref.name,
         objectType: ref.objectType,
         state: "not-released",
         ...(successor !== undefined ? { successor } : {}),
+        successorSource: hit.successorSource,
+        edition,
         file: ref.file,
         line: ref.line,
         note:

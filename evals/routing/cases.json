@@ -278,7 +278,7 @@
   },
   {
     "id": "unit-test-harness",
-    "intent": "This class has no tests yet. Scaffold ABAP Unit test classes for it — a failing-by-default harness with one skeleton test method per public method.",
+    "intent": "This class has no tests yet. Scaffold ABAP Unit test classes for it \u2014 a failing-by-default harness with one skeleton test method per public method.",
     "expected": {
       "kind": "tool",
       "name": "scaffold_abap_unit"
@@ -291,7 +291,7 @@
   },
   {
     "id": "dependency-sequencing",
-    "intent": "Build a dependency graph over these ABAP objects — which classes read which tables and call which function modules — so we can sequence the migration leaves-first.",
+    "intent": "Build a dependency graph over these ABAP objects \u2014 which classes read which tables and call which function modules \u2014 so we can sequence the migration leaves-first.",
     "expected": {
       "kind": "tool",
       "name": "get_object_dependencies"
@@ -304,7 +304,7 @@
   },
   {
     "id": "autofix-selection",
-    "intent": "I highlighted this block of old ABAP — automatically correct it: fix the keyword casing and replace the obsolete statements with modern syntax, deterministically.",
+    "intent": "I highlighted this block of old ABAP \u2014 automatically correct it: fix the keyword casing and replace the obsolete statements with modern syntax, deterministically.",
     "expected": {
       "kind": "tool",
       "name": "fix_abap"
@@ -317,7 +317,7 @@
   },
   {
     "id": "build-from-spec",
-    "intent": "Here is the functional spec for a travel-approval application. Build the modern RAP implementation for me from this spec — I don't want to start from a blank page.",
+    "intent": "Here is the functional spec for a travel-approval application. Build the modern RAP implementation for me from this spec \u2014 I don't want to start from a blank page.",
     "expected": {
       "kind": "prompt",
       "name": "abap-from-spec"
@@ -326,6 +326,99 @@
       "prompt",
       "direct",
       "spec-to-code"
+    ]
+  },
+  {
+    "id": "release-delta-lookup",
+    "intent": "Which ABAP Cloud release introduced CDS table entities with draft support, and what is the minimum release I need before designing around them?",
+    "expected": {
+      "kind": "tool",
+      "name": "explain_abap_release"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "knowledge"
+    ]
+  },
+  {
+    "id": "rap-whats-new-2508",
+    "intent": "Explain what changed in RAP in release 2508 \u2014 side effects, collaborative draft, factory actions \u2014 with sources.",
+    "expected": {
+      "kind": "tool",
+      "name": "explain_abap_release"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "knowledge"
+    ]
+  },
+  {
+    "id": "sap-abap-1-facts",
+    "intent": "Search the bundled SAP knowledge: how do I access the sap-abap-1 model through the generative AI hub and what are its limits?",
+    "expected": {
+      "kind": "tool",
+      "name": "search_sap_knowledge"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "sap-ai"
+    ]
+  },
+  {
+    "id": "clean-core-levels",
+    "intent": "Look up the definition in the bundled SAP knowledge base: what do SAP's Clean Core Levels A, B, C and D mean, and what are the current ATC check variant names? I have no code to analyze, just the terminology question.",
+    "expected": {
+      "kind": "tool",
+      "name": "search_sap_knowledge"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "clean-core",
+      "knowledge"
+    ]
+  },
+  {
+    "id": "abap-ai-sdk-scaffold",
+    "intent": "Scaffold an ABAP class that calls a large language model on the generative AI hub through the ABAP AI SDK with ISLM, including function calling.",
+    "expected": {
+      "kind": "tool",
+      "name": "scaffold_abap_ai_sdk"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "sap-ai",
+      "scaffold"
+    ]
+  },
+  {
+    "id": "agents-md-rules",
+    "intent": "Generate the AGENTS.md rules block for our ABAP Cloud repository so coding agents lint, check readiness and run the unit-test loop consistently.",
+    "expected": {
+      "kind": "tool",
+      "name": "get_abap_agent_rules"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "agent-config"
+    ]
+  },
+  {
+    "id": "run-unit-tests-offline",
+    "intent": "Execute the ABAP Unit tests of this class offline right now and show me which test methods pass or fail with expected versus actual values.",
+    "expected": {
+      "kind": "tool",
+      "name": "run_abap_unit"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "execution"
     ]
   }
 ]

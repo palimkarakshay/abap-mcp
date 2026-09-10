@@ -8,6 +8,8 @@
  */
 import { z } from "zod";
 
+import atcVocabularyData from "./data/atc-vocabulary.json" with { type: "json" };
+
 import { compareAbap } from "./abap/compare.js";
 import { getObjectDependencies } from "./abap/deps.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, runAbaplint } from "./abap/engine.js";
@@ -17,8 +19,10 @@ import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { planCloudMigration } from "./abap/plan.js";
 import { checkCloudReadiness } from "./abap/readiness.js";
 import {
+  DEFAULT_EDITION,
   lookupReleased,
-  RELEASED_API_SNAPSHOT,
+  RELEASED_API_SNAPSHOTS,
+  RELEASED_EDITIONS,
   suggestSuccessor,
 } from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
@@ -27,8 +31,36 @@ import { scaffoldAbapUnit } from "./abap/unittest.js";
 import { invalidInput } from "./errors.js";
 import type { AnyToolSpec } from "./tool.js";
 import { defineTool } from "./tool.js";
+import { AGENT_RULES_TOOLS } from "./tools/agent-rules.tools.js";
+import { AISDK_TOOLS } from "./tools/aisdk.tools.js";
+import { KNOWLEDGE_TOOLS } from "./tools/knowledge.tools.js";
 
 const VERSION_ENUM = z.enum(ABAP_VERSIONS);
+// Literal tuple (not RELEASED_EDITIONS directly) so the inferred zod type is
+// exactly ReleasedEdition ("s4hc"|"btp"|"pce"), not a widened string.
+const EDITION_ENUM = z.enum(["s4hc", "btp", "pce"] as const satisfies readonly (typeof RELEASED_EDITIONS)[number][]);
+
+/** The two real ATC checks behind released-API governance (src/data/atc-vocabulary.json — see F04). */
+const ATC_VOCAB = atcVocabularyData as unknown as {
+  checks: { name: string; edition: string; note: string }[];
+  variants: { name: string; scope: string; status: "current" | "deprecated"; successor?: string }[];
+};
+const PUBLIC_ATC_CHECK = ATC_VOCAB.checks.find((c) => c.edition.includes("Public"))!;
+const PRIVATE_ATC_CHECK = ATC_VOCAB.checks.find((c) => c.edition.includes("Private"))!;
+const CURRENT_CLEAN_CORE_VARIANTS = ATC_VOCAB.variants
+  .filter((v) => v.status === "current" && v.name.startsWith("ABAP_CLEAN_CORE"))
+  .map((v) => v.name)
+  .join(" / ");
+/** Data-driven honesty clause naming the real target-system ATC check — replaces a previously invented identifier (see F04). */
+const ATC_AUTHORITY_NOTE =
+  `a target system's own released-API ATC check ("${PUBLIC_ATC_CHECK.name}" for ${PUBLIC_ATC_CHECK.edition} / ` +
+  `"${PRIVATE_ATC_CHECK.name}" for ${PRIVATE_ATC_CHECK.edition}, via variants such as ${CURRENT_CLEAN_CORE_VARIANTS}) remains authoritative`;
+
+const editionField = EDITION_ENUM.default(DEFAULT_EDITION).describe(
+  'SAP edition of the bundled Cloudification snapshot to check against: "s4hc" (default, SAP Cloud ERP Public Edition), ' +
+    '"btp" (SAP BTP ABAP environment), or "pce" (SAP Cloud ERP Private Edition / on-premise). Release state and ' +
+    "successors can differ by edition — the same object may be released in one and not yet in another.",
+);
 
 const filesField = z
   .array(
@@ -166,13 +198,15 @@ export const checkCloudReadinessTool = defineTool({
     "porting classic ABAP into an ABAP Cloud environment, or for a graded tech-debt assessment of an abapGit export. " +
     "It is static and parser-level: its released-API scan is not exhaustive dependency discovery, it does not " +
     "connect to any SAP system or run ATC, and a 'ready' verdict means no detected language-level blockers — not a " +
-    "certification. A target system's ATC remains authoritative. " +
+    `certification. Our A–D grade is blocker density (see gradeMeaning), NOT SAP's own Clean Core Level A–D; ` +
+    `${ATC_AUTHORITY_NOTE}. ` +
     'Example: check_cloud_readiness({ "files": [ { "source": "REPORT zold.\\nWRITE: / \'hi\'." } ] }).',
   inputSchema: {
     files: filesField,
     baselineVersion: VERSION_ENUM.default("v758").describe(
       "Classic ABAP version the code is assumed to run on today; used to separate broken-anyway code from cloud blockers.",
     ),
+    edition: editionField,
   },
   outputSchema: {
     verdict: z
@@ -182,7 +216,12 @@ export const checkCloudReadinessTool = defineTool({
     grade: z
       .enum(["A", "B", "C", "D"])
       .describe(
-        "Clean Core tech-debt grade banded on blocker density: A = no blockers, B = ≤ 0.5 blockers/file, C = ≤ 2 blockers/file, D = more. The same objective count as the score, sized for assessment reports.",
+        "Blocker-density tech-debt grade (see gradeMeaning): A = no blockers, B = ≤ 0.5 blockers/file, C = ≤ 2 blockers/file, D = more. The same objective count as the score, sized for assessment reports.",
+      ),
+    gradeMeaning: z
+      .literal("blocker-density")
+      .describe(
+        "What `grade` means: a banding of blockers per file. NOT SAP's own Clean Core Level A–D (see cleanCoreVocabulary.cleanCoreLevels for those) — do not conflate the two.",
       ),
     cloudBlockerCount: z.number().describe("Statements valid at the baseline but not in ABAP Cloud."),
     fileCount: z.number().describe("Files analyzed — the denominator of the grade's density banding."),
@@ -200,13 +239,20 @@ export const checkCloudReadinessTool = defineTool({
     releasedApiFindings: z
       .array(z.unknown())
       .describe(
-        "Released-API observations from the bundled SAP Cloudification snapshot (deprecated-API usage, direct non-released table access with successor hints). Informational — NOT counted in cloudBlockerCount or score.",
+        "Released-API observations from the bundled SAP Cloudification snapshot (deprecated-API usage, direct non-released table access with successor hints, and which edition/source answered each one). Informational — NOT counted in cloudBlockerCount or score.",
       ),
     releasedApiSnapshotDate: z
       .string()
       .describe("Date of the bundled released-API snapshot the releasedApiFindings reflect."),
+    edition: EDITION_ENUM.describe("SAP edition the released-API findings were checked against."),
     baselineVersion: z.string().describe("The baseline used."),
     scopeNote: z.string().describe("Exactly what this check does and does not cover."),
+    cleanCoreVocabulary: z
+      .object({
+        checks: z.array(z.unknown()).describe("The real ATC checks behind released-API governance (name, edition, note)."),
+        variants: z.array(z.unknown()).describe("The real ATC check variants, current and deprecated-with-successor."),
+      })
+      .describe("SAP's real ATC vocabulary for released-API/Clean Core checks — see docs/atc-vocabulary.json (F04)."),
   },
   annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
   examples: [
@@ -216,9 +262,16 @@ export const checkCloudReadinessTool = defineTool({
         files: [{ source: "REPORT zold.\nWRITE: / 'hi'.\nCALL SCREEN 100." }],
       },
     },
+    {
+      description: "Check readiness against the BTP ABAP environment edition instead of the default (s4hc).",
+      arguments: {
+        files: [{ source: "REPORT zold.\nSELECT SINGLE matnr FROM mara INTO @DATA(lv)." }],
+        edition: "btp",
+      },
+    },
   ],
   handler: (args) => {
-    const report = checkCloudReadiness(args.files, args.baselineVersion);
+    const report = checkCloudReadiness(args.files, args.baselineVersion, args.edition);
     const catLine = report.categories.map((c) => `${c.category}=${c.count}`).join(", ");
     const text =
       `${report.verdict} (score ${report.score}, grade ${report.grade}): ${report.cloudBlockerCount} cloud blocker(s)` +
@@ -564,22 +617,26 @@ export const checkReleasedApiTool = defineTool({
     "Look up ABAP repository objects (DB tables, CDS view entities, function modules, classes, interfaces, …) in " +
     "SAP's published ABAP Cloudification list and report, per object, whether it is a 'released' API (safe to use in " +
     "ABAP Cloud / Clean Core), 'deprecated' (released but being retired), or 'not-released' (a classic/internal object " +
-    "that is not a public API — e.g. most classic DDIC tables) — with a curated CDS successor hint for common tables. " +
-    `This reflects SAP's official Cloudification list as bundled in this package (snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}); ` +
-    "it ships offline with the server. " +
+    "that is not a public API — e.g. most classic DDIC tables) — with SAP's own successor(s) when the snapshot has " +
+    "any, a curated CDS successor hint otherwise, and a classicAPI/noAPI/internalAPI classification where SAP " +
+    "publishes one. " +
+    `This reflects SAP's official per-edition Cloudification lists as bundled in this package (default edition ` +
+    `"${DEFAULT_EDITION}", snapshot ${RELEASED_API_SNAPSHOTS[DEFAULT_EDITION].snapshotDate}); it ships offline with the server. ` +
     "Use this when you need to know if your code may reference a given object in ABAP Cloud, or which released CDS view " +
     "to use instead of a classic table. This explicit lookup complements check_cloud_readiness's limited, " +
     "source-extracted released-API observations and can check objects that do not appear in the supplied source. " +
-    "It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — a " +
-    `system's own released-API list (ATC check API_RELEASE_STATE_CHECK / SAP_CP_READINESS) remains authoritative; treat ` +
+    "It does not connect to any SAP system, does not run ATC, and is only as current as the bundled snapshot — " +
+    `${ATC_AUTHORITY_NOTE}; treat ` +
     "an 'absent from the list' result as 'not-released as of the snapshot', not as proof. " +
     'Example: check_released_api({ "objects": ["MARA", "I_Product", "BAPI_MATERIAL_GET_DETAIL"] }).',
   inputSchema: {
     objects: objectRefField,
+    edition: editionField,
   },
   outputSchema: {
     snapshotDate: z.string().describe("Date of the bundled SAP Cloudification snapshot these results reflect."),
     source: z.string().describe("URL of the SAP Apache-2.0 source the snapshot was built from."),
+    edition: EDITION_ENUM.describe("SAP edition these results were checked against."),
     results: z.array(
       z.object({
         name: z.string().describe("The object name as queried."),
@@ -602,7 +659,18 @@ export const checkReleasedApiTool = defineTool({
         successor: z
           .string()
           .optional()
-          .describe("Curated released CDS view-entity successor for a classic table, when one is known."),
+          .describe("Released successor for a deprecated/classic object, when one is known — SAP's own, or the curated fallback (see successorSource)."),
+        successors: z
+          .array(z.object({ objectType: z.string(), name: z.string() }))
+          .optional()
+          .describe("Every SAP-published successor object for this record (there can be more than one), when the snapshot carries any."),
+        successorSource: z
+          .enum(["sap", "curated", "none"])
+          .describe("Where `successor` came from: SAP's own snapshot data, the curated table-successors fallback, or none available."),
+        classification: z
+          .enum(["classicAPI", "noAPI", "internalAPI"])
+          .optional()
+          .describe("SAP's classicAPI/noAPI/internalAPI classification for this object, from objectClassifications_SAP.json, when recorded."),
       }),
     ),
   },
@@ -616,13 +684,18 @@ export const checkReleasedApiTool = defineTool({
       description: "Disambiguate a name that exists under more than one object type.",
       arguments: { objects: [{ name: "I_ProcurementProjectTP", type: "CDS_STOB" }] },
     },
+    {
+      description: "Check against the SAP BTP ABAP environment edition instead of the default (s4hc).",
+      arguments: { objects: ["MARA"], edition: "btp" },
+    },
   ],
   handler: (args) => {
     const results = args.objects.map((ref) => {
       const name = typeof ref === "string" ? ref : ref.name;
       const type = typeof ref === "string" ? undefined : ref.type;
-      const hit = lookupReleased(name, type);
-      const successor = suggestSuccessor(name);
+      const hit = lookupReleased(name, type, args.edition);
+      // hit.successorSource already encodes the priority (curated wins when present).
+      const successor = hit.successorSource === "curated" ? suggestSuccessor(name) : hit.successors?.[0]?.name;
       return {
         name: hit.name,
         objectType: hit.objectType,
@@ -630,20 +703,25 @@ export const checkReleasedApiTool = defineTool({
         recorded: hit.recorded,
         applicationComponent: hit.applicationComponent,
         ...(successor !== undefined ? { successor } : {}),
+        ...(hit.successors !== undefined ? { successors: hit.successors } : {}),
+        successorSource: hit.successorSource,
+        ...(hit.classification !== undefined ? { classification: hit.classification } : {}),
       };
     });
+    const snapshot = RELEASED_API_SNAPSHOTS[args.edition];
     const text = results
       .map((r) => {
-        const tail = r.successor !== undefined ? ` → use ${r.successor}` : "";
+        const tail = r.successor !== undefined ? ` → use ${r.successor} (${r.successorSource})` : "";
         const provenance = r.recorded ? "" : " (not in snapshot)";
         return `${r.name}: ${r.state}${r.objectType !== undefined ? ` (${r.objectType})` : ""}${provenance}${tail}`;
       })
       .join("\n");
     return {
-      content: [{ type: "text", text: `Snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}\n${text}` }],
+      content: [{ type: "text", text: `Snapshot ${snapshot.snapshotDate} (${args.edition})\n${text}` }],
       structuredContent: {
-        snapshotDate: RELEASED_API_SNAPSHOT.snapshotDate,
-        source: RELEASED_API_SNAPSHOT.source,
+        snapshotDate: snapshot.snapshotDate,
+        source: snapshot.source,
+        edition: args.edition,
         results,
       },
     };
@@ -1091,6 +1169,9 @@ export const ALL_TOOLS: readonly AnyToolSpec[] = [
   explainAbapRule,
   formatAbapTool,
   getAbapOutline,
+  ...KNOWLEDGE_TOOLS,
+  ...AISDK_TOOLS,
+  ...AGENT_RULES_TOOLS,
 ];
 
 export const tools = ALL_TOOLS;

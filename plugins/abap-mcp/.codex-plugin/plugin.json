@@ -1,7 +1,7 @@
 {
   "name": "abap-mcp",
-  "version": "0.6.0",
-  "description": "Offline ABAP analysis, ABAP Cloud readiness, released-API guidance, migration planning, and RAP scaffolding for Codex.",
+  "version": "0.11.0",
+  "description": "Offline ABAP analysis, ABAP Cloud readiness with edition-aware released-API data, a bundled 2025\u20132026 ABAP Cloud/RAP knowledge base, RAP and ABAP-AI-SDK scaffolding, migration planning, and an opt-in offline ABAP Unit runner for Codex.",
   "author": {
     "name": "Akshay Palimkar",
     "url": "https://github.com/palimkarakshay"
@@ -14,7 +14,10 @@
     "sap",
     "rap",
     "clean-core",
-    "static-analysis"
+    "static-analysis",
+    "knowledge-base",
+    "abap-ai-sdk",
+    "unit-testing"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",

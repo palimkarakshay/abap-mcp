@@ -100,7 +100,7 @@ In your assistant's chat (Copilot **Agent mode** / Claude Code), ask:
 
 > list your ABAP tools
 
-You should see thirteen, `lint_abap` through `get_abap_outline`. Then try it on real code:
+You should see seventeen, `lint_abap` through `search_sap_knowledge` (plus `run_abap_unit` when you start the server with `ABAP_MCP_ENABLE_RUN=1`). Then try it on real code:
 
 > Here's one of my classes — lint it against ABAP Cloud and explain the worst finding like I'm
 > new to ABAP.

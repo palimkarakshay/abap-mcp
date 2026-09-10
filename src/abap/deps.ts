@@ -17,7 +17,8 @@
 import type { AbapSource, AbapVersion } from "./engine.js";
 import { extractObjectReferences, inferFilename } from "./engine.js";
 import { outlineAbap } from "./outline.js";
-import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./released.js";
+import type { ReleasedEdition, SuccessorSource } from "./released.js";
+import { DEFAULT_EDITION, lookupReleased, RELEASED_API_SNAPSHOTS, suggestSuccessor } from "./released.js";
 
 export interface DependencyNode {
   /** Object name, upper-cased (class, interface, program, table, function module). */
@@ -28,8 +29,10 @@ export interface DependencyNode {
   provided: boolean;
   /** Released-API state for non-provided DDIC/API targets, from the bundled snapshot. */
   releasedState?: "released" | "deprecated" | "not-released";
-  /** Curated released CDS successor, when known for a classic table. */
+  /** Released CDS successor, when known for a classic table (SAP's own data, or the curated fallback). */
   successor?: string;
+  /** Where `successor` (if any) came from: SAP's own snapshot, the curated fallback map, or none available. */
+  successorSource?: SuccessorSource;
 }
 
 export interface DependencyEdge {
@@ -45,6 +48,8 @@ export interface DependencyGraph {
   /** Mermaid flowchart of the graph (when requested). */
   mermaid?: string;
   releasedApiSnapshotDate: string;
+  /** SAP edition the released-API states were checked against. */
+  edition: ReleasedEdition;
   scopeNote: string;
 }
 
@@ -70,6 +75,7 @@ export function getObjectDependencies(
   files: AbapSource[],
   abapVersion: AbapVersion = "v758",
   mermaid = false,
+  edition: ReleasedEdition = DEFAULT_EDITION,
 ): DependencyGraph {
   const named = files.map((f) => ({ ...f, filename: inferFilename(f.source, f.filename) }));
   const outlines = outlineAbap(named);
@@ -122,9 +128,13 @@ export function getObjectDependencies(
     const from = objectNameOf(ref.file);
     const target = ref.name.toUpperCase();
     if (!nodes.has(target)) {
-      let hit = lookupReleased(target, ref.objectType);
-      if (!hit.recorded && ref.objectType === "TABL") hit = lookupReleased(target, "CDS_STOB");
-      const successor = ref.objectType === "TABL" ? suggestSuccessor(target) : undefined;
+      let hit = lookupReleased(target, ref.objectType, edition);
+      if (!hit.recorded && ref.objectType === "TABL") hit = lookupReleased(target, "CDS_STOB", edition);
+      // Curated table-successors.json wins when it has an entry (table names
+      // only); SAP's own successors[] is the fallback — hit.successorSource
+      // says which one answered (mirrors lookupReleased's own priority).
+      const curatedSuccessor = ref.objectType === "TABL" ? suggestSuccessor(target) : undefined;
+      const successor = hit.successorSource === "curated" ? curatedSuccessor : hit.successors?.[0]?.name;
       ensureNode({
         name: target,
         type: ref.objectType === "FUNC" ? "function-module" : "table",
@@ -133,7 +143,7 @@ export function getObjectDependencies(
         // the list (every Z/Y object, locals the extractor misreads) is NOT
         // evidence of a problem, same discipline as readiness.
         ...(hit.recorded ? { releasedState: hit.state } : {}),
-        ...(successor !== undefined ? { successor } : {}),
+        ...(successor !== undefined ? { successor, successorSource: hit.successorSource } : {}),
       });
     }
     addEdge(from, target, ref.objectType === "FUNC" ? "call-function" : "db-access");
@@ -154,7 +164,8 @@ export function getObjectDependencies(
   const graph: DependencyGraph = {
     nodes: [...nodes.values()].sort((a, b) => a.name.localeCompare(b.name)),
     edges: edges.sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to)),
-    releasedApiSnapshotDate: RELEASED_API_SNAPSHOT.snapshotDate,
+    releasedApiSnapshotDate: RELEASED_API_SNAPSHOTS[edition].snapshotDate,
+    edition,
     scopeNote: SCOPE_NOTE,
   };
   if (mermaid) graph.mermaid = toMermaid(graph);

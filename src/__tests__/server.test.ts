@@ -28,26 +28,94 @@ describe("MCP server wire", () => {
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("check_cloud_readiness");
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("cannot read workspace files");
     expect(SERVER_INSTRUCTIONS).toContain("do not connect to SAP or run ATC");
+    expect(SERVER_INSTRUCTIONS).toContain("explain_abap_release");
+    expect(SERVER_INSTRUCTIONS).toContain("run_abap_unit");
   });
 
-  it("lists all thirteen tools", async () => {
+  const CORE_TOOLS = [
+    "check_cloud_readiness",
+    "check_released_api",
+    "compare_abap",
+    "explain_abap_release",
+    "explain_abap_rule",
+    "fix_abap",
+    "format_abap",
+    "get_abap_agent_rules",
+    "get_abap_outline",
+    "get_object_dependencies",
+    "lint_abap",
+    "list_abap_rules",
+    "plan_cloud_migration",
+    "scaffold_abap_ai_sdk",
+    "scaffold_abap_unit",
+    "scaffold_rap_bo",
+    "search_sap_knowledge",
+  ];
+
+  it("lists the seventeen offline tools by default (run_abap_unit stays opt-in)", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([
-      "check_cloud_readiness",
-      "check_released_api",
-      "compare_abap",
-      "explain_abap_rule",
-      "fix_abap",
-      "format_abap",
-      "get_abap_outline",
-      "get_object_dependencies",
-      "lint_abap",
-      "list_abap_rules",
-      "plan_cloud_migration",
-      "scaffold_abap_unit",
-      "scaffold_rap_bo",
-    ]);
+    expect(tools.map((t) => t.name).sort()).toEqual(CORE_TOOLS);
+  });
+
+  it("adds run_abap_unit only when ABAP_MCP_ENABLE_RUN=1 is set at build time", async () => {
+    const prev = process.env["ABAP_MCP_ENABLE_RUN"];
+    process.env["ABAP_MCP_ENABLE_RUN"] = "1";
+    try {
+      const client = await connectedClient();
+      const { tools } = await client.listTools();
+      expect(tools.map((t) => t.name).sort()).toEqual([...CORE_TOOLS, "run_abap_unit"].sort());
+    } finally {
+      if (prev === undefined) delete process.env["ABAP_MCP_ENABLE_RUN"];
+      else process.env["ABAP_MCP_ENABLE_RUN"] = prev;
+    }
+  });
+
+  it("serves the bundled knowledge as resources", async () => {
+    const client = await connectedClient();
+    const { resources } = await client.listResources();
+    const uris = resources.map((r) => r.uri);
+    expect(uris.some((u) => u.startsWith("abap-mcp://knowledge/"))).toBe(true);
+    const first = resources.find((r) => r.uri.startsWith("abap-mcp://knowledge/"))!;
+    const read = await client.readResource({ uri: first.uri });
+    expect(read.contents.length).toBeGreaterThan(0);
+  });
+
+  it("explain_abap_release and search_sap_knowledge answer over the wire", async () => {
+    const client = await connectedClient();
+    const rel = (await client.callTool({
+      name: "explain_abap_release",
+      arguments: { sinceRelease: "2605", kind: "rap" },
+    })) as { isError?: boolean; structuredContent?: { deltas: { release: string }[] } };
+    expect(rel.isError ?? false).toBe(false);
+    expect(rel.structuredContent!.deltas.length).toBeGreaterThan(0);
+    const kb = (await client.callTool({
+      name: "search_sap_knowledge",
+      arguments: { query: "sap-abap-1 system prompt" },
+    })) as { isError?: boolean; structuredContent?: { hits: { id: string }[] } };
+    expect(kb.isError ?? false).toBe(false);
+    expect(kb.structuredContent!.hits.length).toBeGreaterThan(0);
+  });
+
+  it("scaffold_abap_ai_sdk returns abaplint-syntax validated files over the wire", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "scaffold_abap_ai_sdk",
+      arguments: { scenarioName: "ZDEMO_AI", interaction: "function-calling" },
+    })) as { isError?: boolean; structuredContent?: { files: { validated: string }[]; validationIssues: unknown[] } };
+    expect(result.isError ?? false).toBe(false);
+    expect(result.structuredContent!.files[0]!.validated).toBe("abaplint-syntax");
+    expect(result.structuredContent!.validationIssues).toEqual([]);
+  });
+
+  it("errors carry the {kind, hint, next} contract", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "explain_abap_rule",
+      arguments: { rule: "no_such_rule_xyz" },
+    })) as { isError?: boolean; content: { type: string; text: string }[] };
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toMatch(/^not_found: /);
   });
 
   it("fix_abap returns machine-corrected source over the wire", async () => {

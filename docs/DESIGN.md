@@ -66,7 +66,12 @@ formula (`100 − 5×blockers`, banded verdicts) — a conversation starter, not
 
 **Honesty requirement:** every report carries a scope note. The objective *score* stays
 language-level; the released-API half is covered separately and conservatively (decision 11),
-and a target system's ATC (`API_RELEASE_STATE_CHECK` / `SAP_CP_READINESS`) remains authoritative.
+and a target system's own ATC check (`"Usage of Released APIs (Cloudification Repository)"` for
+SAP Cloud ERP Public Edition / `"Usage of APIs (Cloudification Repository)"` for Private Edition &
+on-prem, via check variants such as `ABAP_CLEAN_CORE_DEVELOPMENT` / `ABAP_CLEAN_CORE_READINESS`)
+remains authoritative — the real vocabulary is curated in `src/data/atc-vocabulary.json` and
+exposed on every readiness report as `cleanCoreVocabulary`; our own `grade` is blocker density
+(`gradeMeaning: "blocker-density"`), never to be confused with SAP's Clean Core Level A–D.
 A tool that overstated its verdict would be worse than no tool.
 
 ## 5. The scaffolder validates its own output through the analyzer
@@ -214,3 +219,133 @@ on every call).
 Text out (a Mermaid classDiagram), rendered by whatever already renders Mermaid — no image
 generation, no new dependency, nothing leaves the no-network envelope. Identifiers are
 sanitized (`~`, `/`, `.` → `_`) because Mermaid is stricter than ABAP about names.
+
+## 16. Executing ABAP Unit offline (supersedes the "no run ABAP" stance in §10) — 2026-09-10
+
+§10 rejected "run ABAP" as *impossible offline*. That was true when it was written and is no
+longer true. **The stance is superseded, not deleted** — §10 stays on the record as the reasoning
+of its date, and this section states what changed.
+
+**What changed.** `@abaplint/transpiler` + `@abaplint/runtime` (MIT) matured into a working
+ABAP → JavaScript compiler with an ABAP kernel written in ABAP itself, `open-abap-core`
+(MIT, 706 sources), including `cl_abap_unit_assert` and a `KERNEL_UNIT_RUNNER` that returns a
+**structured** per-method result table (class, test class, method, status, expected, actual,
+message, runtime, JS location, console). abaplint's own repositories — and SAP's own open-source
+ABAP projects — run their test suites this way in CI. A measured spike on the target hardware:
+parse 1.3 s, transpile 2.2 s, execute 0.4 s. That is inside an agent's patience.
+
+**Why it matters more than another lens on static text.** TH Köln's ABAP benchmark (arXiv
+2601.15188, 180 tasks, create → activate → ABAP Unit, ≤5 feedback rounds) moves Claude Opus 4.5
+from 31.6% to 78.7% and GPT-5 from 19.3% to 77.1% *purely* by feeding execution results back into
+the loop. abap-mcp already shipped the static half of that loop; `run_abap_unit` is the
+executable half, and it is the only one that exists without a system and credentials.
+
+**What stays exactly as true as it was in §10.**
+- **It is not SAP's kernel.** It is the open-abap kernel on Node. No database (any ABAP SQL
+  aborts the method), no CDS, no EML/RAP runtime, no AMDP, no authority checks, no locks, no
+  ATC, no activation. Constructs in that list are detected in the AST and returned in
+  `unsupported` — a green run must never be able to hide them.
+- **A green run is evidence about pure logic, never proof of system behavior.** Every result
+  carries `RUN_SCOPE_NOTE` verbatim, and the honest static lint at the caller's target ABAP
+  version travels next to the run, produced by the same `runAbaplint` every other tool uses.
+- **No network, in either direction.** The library is a package-bundled asset
+  (`src/data/open-abap-core.json`, 1.3 MB / 178 KB gzipped, built by the dev-only
+  `scripts/build-open-abap-lib.mjs` — the second script in the repo that may touch the network,
+  and like the first it never runs at serve time).
+- **No user filesystem.** The only path the engine touches is a `mkdtemp` directory it creates
+  under `os.tmpdir()` and removes in a `finally`. Sources come in as text, as always.
+
+**The execution boundary, deliberately narrow.** The child is started with `execFile` (never a
+shell) on `process.execPath`, in the server-owned temp directory, with a scrubbed environment
+(`PATH` only — the caller's ABAP must not see this process's configuration), a hard timeout
+(20 s default, 60 s cap) with `SIGKILL`, and a bounded output buffer. On a timeout or a crash,
+every method that had not reported is returned as `error` — silence is never read as a pass.
+Temp paths are stripped from every message before it leaves the module, and nothing is logged.
+
+**Opt-in on MCP, always on in the CLI.** Executing transpiled code is a different trust decision
+from parsing text, so the MCP surface gates the tool behind `ABAP_MCP_ENABLE_RUN=1`
+(`RUN_TOOLS_ENABLED`); a developer who runs our binary has already made that decision, so
+`abap-mcp unittest --run` is always available and exits 1 on any failure — the CI gate.
+
+**Rejected:** shipping the *transpiled* library (443 KB gzipped and opaque — the ABAP sources are
+smaller, auditable, and let the parse double as the syntax check); caching the parsed registry
+across calls (§8's statelessness is worth 1.3 s); running the tests in-process (a caller's endless
+loop would take the server with it); Node's experimental permission model (it would break Node 20,
+which `engines` still supports); claiming ATC or activation coverage of any kind.
+
+## 17. Bundled knowledge base + the licensing boundary — 2026-09-10
+
+`explain_abap_release` / `search_sap_knowledge` needed dated SAP facts (release deltas, Clean Core
+governance, SAP-AI options) an agent can consult before writing ABAP — the same problem decision 11
+solved for released-API state, generalized to prose. **Bundleable:** SAP's own Apache-2.0 GitHub
+data (`SAP/abap-atc-cr-cv-s4hc`) and CC-BY-4.0 documentation excerpts (`SAP-docs/sap-artificial-
+intelligence`), attributed. **Not bundleable:** help.sap.com prose, community.sap.com blog text,
+SAP Notes — their licence doesn't permit redistribution. The line held by writing **abap-mcp's own
+original summary** of every fact, citing the source URL rather than copying its wording, with a
+`confirmed`/`reported` confidence flag for how independently a fact was checked. `MANIFEST.json`
+records curation date, licence and every source URL per bundled file — decision 11's provenance
+discipline, now applied to prose.
+
+**Rejected:** copying help.sap.com text with attribution (attribution doesn't grant redistribution
+rights); a live doc-search tool (violates the offline invariant, decision 1's rejected lane).
+
+## 18. Edition-aware released-API data + SAP's own successors supersede the curated map — 2026-09-10
+
+Decision 11 shipped one snapshot and a 30-table hand-curated successor map. Two gaps: SAP publishes
+**three** edition-specific lists (Public Edition `objectReleaseInfoLatest`, BTP `_BTPLatest`,
+Private Cloud `_PCELatest`) with materially different release states per object, and the upstream
+data already carries `successors[]` for most objects — the curated map was redundant wherever SAP
+already answered. `check_released_api` / readiness / deps / the CLI now take an `edition` parameter
+(`s4hc` default, `btp`, `pce`); each record carries `successorSource: "sap" | "curated" | "none"`
+so a caller can tell SAP's guidance from abap-mcp's fallback. `table-successors.json` **stays**,
+demoted to a fallback used only when `successors[]` is absent. `api-classifications.json`
+(classicAPI/noAPI/internalAPI, same source repo) rides along on the same `edition`.
+
+**Rejected:** dropping the curated map (still needed where SAP's data doesn't cover it); one
+merged cross-edition file (editions genuinely disagree on release state).
+
+## 19. `scaffold_abap_ai_sdk` validated against abap-mcp's own stubs — the fourth label — 2026-09-10
+
+`scaffold_rap_bo` validates against abaplint's real parser (`"abaplint"`); BDEF/SRVD templates are
+golden-tested only (`"template"`, decision 5). The ABAP AI SDK scaffolder needed a third answer:
+it parses fine, but only because abap-mcp *also* ships its own declarations of the referenced
+`IF_AIC_*`/`CL_AIC_*`/`CX_AIC_*` types (`src/data/aic-stubs/*.abap`) — written from SAP's docs, not
+SAP source, not guaranteed to match SAP's real signatures exactly. Labelling that `"abaplint"`
+would overclaim; the new label, `validated: "abaplint-syntax"`, says precisely what was checked:
+the ABAP parses against *our* stand-in types. The upstream SAP sample for `function-calling` has a
+known bug (an undeclared `tool_calls` table used before declaration); the golden template fixes
+it, so the scaffold is also more correct than the source it studied.
+
+**Rejected:** claiming `"abaplint"` (implies parity with SAP's real API, unverifiable without a
+system); shipping SAP's actual class signatures (not ours to redistribute, and would drift).
+
+## 20. The opt-in online companion, `abap-mcp-genai` — 2026-09-10
+
+Every other decision in this log defends "zero outbound network calls" as a hard invariant.
+SAP-ABAP-1 (the fine-tuned explanation model, reachable only through a tenant's own Generative AI
+Hub orchestration service) breaks that invariant by definition — there is no offline version.
+Bolting it onto `abap-mcp` behind an env flag would make "does my source leave this machine" depend
+on a runtime setting nobody reliably audits before pasting production code. A **separate binary**
+(`abap-mcp-genai`, `src/genai.ts` + `src/genai/`) makes the answer visible in the MCP config
+itself: if it isn't listed, nothing here ever calls out. It speaks Orchestration **V2** only (V1
+retires 2026-10-31), authenticates with the caller's own XSUAA client-credentials grant against
+their own `AICORE_SERVICE_KEY`, and sends only two things over the wire: the source text passed to
+`explain_with_sap_abap_1`, and no source at all for the metadata-only `list_genai_hub_models`.
+
+**Rejected:** a flag on the default server (audit-hostile, above); calling a shared/vendor-hosted
+endpoint (every caller's ABAP source would transit infrastructure abap-mcp's author controls).
+
+## 21. Agent-ergonomic error contract — 2026-09-10
+
+Errors used to be a bare message string. An agent that gets `"invalid_input: …"` with nothing else
+either retries blindly with the same bad arguments or gives up and answers from memory — both worse
+than the tool call never having happened. Every thrown `McpToolError` now carries a machine-
+readable `kind` (the existing error-code enum, aliased as `kind` for the spec-facing name), an
+optional `hint` (one sentence on what to change), and `nextTools` (the right tool to call instead,
+when there is one). `errorResult()` intentionally omits `structuredContent` on errors: the MCP SDK
+validates `structuredContent` against the tool's *success* schema even when `isError: true`, so
+attaching an error shape there gets the whole result rejected by strict clients (OpenClaw, the MCP
+inspector) before the model ever sees the message.
+
+**Rejected:** a separate error `outputSchema` per tool (more surface to keep honest than the fixed
+three-line text contract); silently swallowing `hint`/`nextTools` when absent (empty is signal too).

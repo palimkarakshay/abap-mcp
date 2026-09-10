@@ -294,7 +294,9 @@ export function planCloudMigration(report: ReadinessReport): MigrationPlan {
       findingCount: report.releasedApiFindings.length,
       items,
       exitCriteria:
-        "check_released_api on the listed objects shows only released successors in use; confirm with the target system's ATC (API_RELEASE_STATE_CHECK).",
+        "check_released_api on the listed objects shows only released successors in use; confirm with the target " +
+        'system\'s own ATC check ("Usage of Released APIs (Cloudification Repository)" for Public Edition / ' +
+        '"Usage of APIs (Cloudification Repository)" for Private Edition & on-prem).',
     });
   }
 

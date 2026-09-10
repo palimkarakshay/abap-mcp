@@ -12,6 +12,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The eval grades the FULL exposed surface, including the opt-in runner.
+process.env.ABAP_MCP_ENABLE_RUN = "1";
+
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 

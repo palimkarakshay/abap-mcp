@@ -16,11 +16,15 @@ import { getObjectDependencies } from "./abap/deps.js";
 import { fixAbap } from "./abap/fix.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { planCloudMigration } from "./abap/plan.js";
+import type { UnitRunResult } from "./abap/run.js";
+import { runAbapUnit } from "./abap/run.js";
 import { scaffoldAbapUnit } from "./abap/unittest.js";
 import type { ReadinessReport } from "./abap/readiness.js";
 import { checkCloudReadiness, gradeReadiness, SCOPE_NOTE } from "./abap/readiness.js";
-import { lookupReleased, RELEASED_API_SNAPSHOT, suggestSuccessor } from "./abap/released.js";
+import type { ReleasedEdition } from "./abap/released.js";
+import { DEFAULT_EDITION, lookupReleased, RELEASED_API_SNAPSHOTS, RELEASED_EDITIONS, suggestSuccessor } from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
+import { cmdAgentRules, cmdAisdk, cmdKnowledge, cmdRelease, EXTRA_USAGE } from "./cli-extra.js";
 import type { ScaffoldField } from "./abap/scaffold.js";
 import { scaffoldRapBo } from "./abap/scaffold.js";
 
@@ -98,6 +102,12 @@ function asVersion(v: string | true | undefined, fallback: AbapVersion): AbapVer
   throw new Error(`Unknown ABAP version "${v}". Valid: ${ABAP_VERSIONS.join(", ")}`);
 }
 
+function asEdition(v: string | true | undefined): ReleasedEdition {
+  if (typeof v !== "string") return DEFAULT_EDITION;
+  if ((RELEASED_EDITIONS as readonly string[]).includes(v)) return v as ReleasedEdition;
+  throw new Error(`Unknown edition "${v}". Valid: ${RELEASED_EDITIONS.join(", ")}`);
+}
+
 function asFocus(v: string | true | undefined): FocusTag | undefined {
   if (typeof v !== "string") return undefined;
   const match = FOCUS_TAGS.find((t) => t.toLowerCase() === v.toLowerCase());
@@ -158,6 +168,10 @@ export function mergeReadiness(reports: ReadinessReport[], baseline: AbapVersion
   const broken: ReadinessReport["brokenAtBaseline"] = [];
   const releasedApiFindings: ReadinessReport["releasedApiFindings"] = [];
   let snapshotDate = "";
+  // Per-batch reports were all produced by the same checkCloudReadiness call
+  // site with the same edition, so the first report's edition-derived fields
+  // (edition, scopeNote, cleanCoreVocabulary) apply to the merge as a whole.
+  const first = reports[0];
   for (const r of reports) {
     blockers += r.cloudBlockerCount;
     fileCount += r.fileCount;
@@ -186,14 +200,17 @@ export function mergeReadiness(reports: ReadinessReport[], baseline: AbapVersion
     verdict,
     score,
     grade: gradeReadiness(blockers, fileCount),
+    gradeMeaning: "blocker-density",
     cloudBlockerCount: blockers,
     fileCount,
     categories: [...categories.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: broken,
     releasedApiFindings,
     releasedApiSnapshotDate: snapshotDate,
+    edition: first?.edition ?? DEFAULT_EDITION,
     baselineVersion: baseline,
-    scopeNote: SCOPE_NOTE,
+    scopeNote: first?.scopeNote ?? SCOPE_NOTE,
+    cleanCoreVocabulary: first?.cleanCoreVocabulary ?? { checks: [], variants: [] },
   };
 }
 
@@ -205,7 +222,8 @@ export function cmdReadiness(argv: string[], io: CliIo): number {
     return 2;
   }
   const baseline = asVersion(flags.get("baseline"), "v758");
-  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline));
+  const edition = asEdition(flags.get("edition"));
+  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline, edition));
   const merged = mergeReadiness(reports, baseline);
   if (flags.has("json")) {
     io.out(JSON.stringify({ files: files.length, ...merged }, null, 2));
@@ -235,7 +253,8 @@ export function cmdPlan(argv: string[], io: CliIo): number {
     return 2;
   }
   const baseline = asVersion(flags.get("baseline"), "v758");
-  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline));
+  const edition = asEdition(flags.get("edition"));
+  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline, edition));
   const plan = planCloudMigration(mergeReadiness(reports, baseline));
   if (flags.has("json")) {
     io.out(JSON.stringify(plan, null, 2));
@@ -451,12 +470,86 @@ export function cmdFix(argv: string[], io: CliIo): number {
   return 0;
 }
 
-export function cmdUnittest(argv: string[], io: CliIo): number {
+export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number> {
   const { flags, rest } = parseFlags(argv);
-  const files = collectFiles(rest.length > 0 ? rest : ["."], io);
+  // `--run` is a boolean flag, but parseFlags hands the next bare token to the
+  // preceding flag — so in `unittest --run src/` the path lands there. Take it
+  // back, otherwise the command would silently sweep the whole working tree.
+  const runFlag = flags.get("run");
+  const paths = typeof runFlag === "string" ? [...rest, runFlag] : rest;
+  const files = collectFiles(paths.length > 0 ? paths : ["."], io);
   if (files.length === 0) {
     io.err("No ABAP sources found.");
     return 2;
+  }
+
+  // `--run` EXECUTES the tests offline (transpiled to JavaScript, open-abap
+  // kernel) instead of scaffolding skeletons — the CI gate of the red-green
+  // loop: exit 1 on any failure or error. It is the one asynchronous command,
+  // so it returns a promise the entry point awaits; every other path stays
+  // synchronous.
+  if (flags.has("run")) {
+    return (async (): Promise<number> => {
+      const result = await runAbapUnit(files.slice(0, MAX_FILES), {
+        abapVersion: asVersion(flags.get("abap-version"), "Cloud"),
+        ...(typeof flags.get("only") === "string"
+          ? { only: (flags.get("only") as string).split(",").map((s) => s.trim()).filter((s) => s.length > 0) }
+          : {}),
+        ...(typeof flags.get("timeout-ms") === "string"
+          ? { timeoutMs: Number(flags.get("timeout-ms")) }
+          : {}),
+      });
+      if (flags.has("json")) {
+        io.out(JSON.stringify(result, null, 2));
+        if (!result.available) return 1;
+        return result.failed + result.errored > 0 ? 1 : 0;
+      }
+
+      const STATUS: Record<UnitRunResult["results"][number]["status"], string> = {
+        pass: "PASS ",
+        fail: "FAIL ",
+        error: "ERROR",
+        skipped: "SKIP ",
+      };
+      if (!result.available) {
+        io.err(`Offline execution unavailable (${result.unavailable?.kind ?? "unknown"}): ${result.unavailable?.message ?? ""}`);
+        io.err(result.unavailable?.hint ?? "");
+      }
+      for (const issue of result.transpileIssues) io.err(`transpile ${fmtFinding(issue)}`);
+      for (const u of result.unsupported) io.err(`unsupported ${u.file}: ${u.reason}`);
+      let currentClass = "";
+      for (const r of result.results) {
+        const cls = `${r.className}=>${r.testClassName}`;
+        if (cls !== currentClass) {
+          io.out(`\n${cls}`);
+          currentClass = cls;
+        }
+        const detail =
+          r.status === "fail" && (r.expected !== undefined || r.actual !== undefined)
+            ? `  exp <${r.expected ?? ""}> act <${r.actual ?? ""}>${r.message !== undefined ? ` — ${r.message}` : ""}`
+            : r.message !== undefined
+              ? `  ${r.message}`
+              : "";
+        io.out(`  ${STATUS[r.status]} ${r.methodName.padEnd(32)} ${String(r.runtimeMs).padStart(5)} ms${detail}`);
+        if (r.jsLocation !== undefined && (r.status === "fail" || r.status === "error")) {
+          io.out(`        at ${r.jsLocation}`);
+        }
+      }
+      const total = result.durationMs.parse + result.durationMs.transpile + result.durationMs.execute;
+      io.out(
+        `\n${result.results.length} test method(s): ${result.passed} passed, ${result.failed} failed, ` +
+          `${result.errored} errored, ${result.skipped} skipped in ${(total / 1000).toFixed(1)}s ` +
+          `(parse ${result.durationMs.parse} ms, transpile ${result.durationMs.transpile} ms, run ${result.durationMs.execute} ms)`,
+      );
+      if (result.lint.findings.length > 0) {
+        io.out(
+          `${result.lint.findings.length} static finding(s) at ${result.lint.abapVersion} — see "abap-mcp lint" for the detail.`,
+        );
+      }
+      io.out(`\n${result.scopeNote}`);
+      if (!result.available) return 1;
+      return result.failed + result.errored > 0 ? 1 : 0;
+    })();
   }
   const version = asVersion(flags.get("abap-version"), "v758");
   const result = scaffoldAbapUnit(files.slice(0, MAX_FILES), version);
@@ -500,7 +593,12 @@ export function cmdDeps(argv: string[], io: CliIo): number {
     io.err(`deps is object-level: at most ${MAX_FILES} files per call — narrow the path.`);
     return 2;
   }
-  const graph = getObjectDependencies(files, asVersion(flags.get("abap-version"), "v758"), flags.has("mermaid"));
+  const graph = getObjectDependencies(
+    files,
+    asVersion(flags.get("abap-version"), "v758"),
+    flags.has("mermaid"),
+    asEdition(flags.get("edition")),
+  );
   if (flags.has("mermaid")) {
     io.out(graph.mermaid ?? "");
     return 0;
@@ -673,22 +771,25 @@ export function cmdExplain(argv: string[], io: CliIo): number {
 export function cmdReleased(argv: string[], io: CliIo): number {
   const { flags, rest } = parseFlags(argv);
   if (rest.length === 0) {
-    io.err("Usage: abap-mcp released <object-name…>   [--type TABL|CDS_STOB|FUNC|…] [--json]");
+    io.err("Usage: abap-mcp released <object-name…>   [--type TABL|CDS_STOB|FUNC|…] [--edition s4hc|btp|pce] [--json]");
     return 2;
   }
   const type = typeof flags.get("type") === "string" ? (flags.get("type") as string) : undefined;
+  const edition = asEdition(flags.get("edition"));
   const results = rest.map((name) => {
-    const hit = lookupReleased(name, type);
-    const successor = suggestSuccessor(name);
+    const hit = lookupReleased(name, type, edition);
+    // hit.successorSource already encodes the priority (curated wins when present).
+    const successor = hit.successorSource === "curated" ? suggestSuccessor(name) : hit.successors?.[0]?.name;
     return { ...hit, successor };
   });
+  const snapshot = RELEASED_API_SNAPSHOTS[edition];
   if (flags.has("json")) {
-    io.out(JSON.stringify({ snapshotDate: RELEASED_API_SNAPSHOT.snapshotDate, source: RELEASED_API_SNAPSHOT.source, results }, null, 2));
+    io.out(JSON.stringify({ snapshotDate: snapshot.snapshotDate, source: snapshot.source, edition, results }, null, 2));
     return 0;
   }
-  io.out(`Released-API status (SAP Cloudification snapshot ${RELEASED_API_SNAPSHOT.snapshotDate}):`);
+  io.out(`Released-API status (SAP Cloudification snapshot ${snapshot.snapshotDate}, edition ${edition}):`);
   for (const r of results) {
-    const tail = r.successor !== undefined ? `  → use ${r.successor}` : "";
+    const tail = r.successor !== undefined ? `  → use ${r.successor}${r.successorSource === "sap" ? " (SAP)" : " (curated)"}` : "";
     const provenance = r.recorded ? "" : " (not in snapshot)";
     io.out(`  ${r.name.padEnd(34)} ${r.state.padEnd(13)} ${(r.objectType ?? "").padEnd(9)}${provenance}${tail}`);
   }
@@ -712,20 +813,22 @@ Usage:
   abap-mcp setup [target]        register abap-mcp with your editor (auto-detects; targets: vscode, vscode-insiders, eclipse, claude)
   abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]
   abap-mcp fix [paths…]          apply abaplint's deterministic auto-fixes (keyword case, MOVE→=, …)   [--write] [--abap-version …] [--preset …] [--rules-file …] [--json]
-  abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--fail-below N] [--json]
-  abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--json]
+  abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--edition s4hc|btp|pce] [--fail-below N] [--json]
+  abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--edition s4hc|btp|pce] [--json]
   abap-mcp compare BEFORE AFTER  what a rework changed: findings resolved/introduced, blocker/score/grade movement, structure   [--preset …] [--focus …] [--json]
   abap-mcp scaffold …            generate a RAP managed BO   (--entity --table --key [--fields n:type,…] [--no-draft] [--provided-key] [--out DIR])
   abap-mcp unittest [paths…]     scaffold failing-by-default ABAP Unit test classes for global classes   [--abap-version v758|Cloud] [--out DIR] [--json]
-  abap-mcp deps [paths…]         dependency graph: db/function refs (+released state), inherits/implements, textual   [--mermaid] [--json]
+  abap-mcp unittest --run […]    EXECUTE the ABAP Unit tests offline (transpiled to JS, open-abap kernel — no DB/CDS/EML); exit 1 on any failure   [--only CLASS>METHOD,…] [--timeout-ms 20000] [--abap-version Cloud] [--json]
+  abap-mcp deps [paths…]         dependency graph: db/function refs (+released state), inherits/implements, textual   [--mermaid] [--edition s4hc|btp|pce] [--json]
   abap-mcp outline [paths…]      classes/methods/forms structure   [--mermaid] [--json]
-  abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--json]
+  abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--edition s4hc|btp|pce] [--json]
   abap-mcp explain <rule>        explain an abaplint rule
   abap-mcp rules                 list rules   [--query q] [--tag Security]
+${EXTRA_USAGE}
 
 Exit codes: 0 ok · 1 findings/validation failed · 2 usage error`;
 
-export function runCli(argv: string[], io: CliIo): number | null {
+export function runCli(argv: string[], io: CliIo): number | Promise<number> | null {
   const [cmd, ...rest] = argv;
   switch (cmd) {
     case undefined:
@@ -757,6 +860,14 @@ export function runCli(argv: string[], io: CliIo): number | null {
       return cmdExplain(rest, io);
     case "rules":
       return cmdRules(rest, io);
+    case "release":
+      return cmdRelease(rest, io);
+    case "knowledge":
+      return cmdKnowledge(rest, io);
+    case "aisdk":
+      return cmdAisdk(rest, { ...io, writeFile: (path, content) => { mkdirSync(join(path, ".."), { recursive: true }); writeFileSync(path, content, "utf8"); } });
+    case "agent-rules":
+      return cmdAgentRules(rest, io);
     case "help":
     case "--help":
     case "-h":
