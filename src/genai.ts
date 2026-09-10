@@ -13,8 +13,9 @@
  * process from the offline stdio server, never wired into it.
  * See docs/GENAI.md.
  */
+import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -74,8 +75,43 @@ export async function runGenAiServer(): Promise<void> {
   );
 }
 
-const invokedPath = process.argv[1];
-if (invokedPath !== undefined && import.meta.url === pathToFileURL(resolve(invokedPath)).href) {
+/**
+ * Resolve a path to its canonical on-disk location, falling back to a plain (non-symlink-aware)
+ * absolute resolution if the path does not exist yet or `realpath` fails for any reason (e.g. a
+ * permissions issue) — never throws.
+ */
+function realOrResolvedPath(path: string): string {
+  try {
+    return realpathSync(resolve(path));
+  } catch {
+    return resolve(path);
+  }
+}
+
+/**
+ * True when this module was invoked directly as a script (`node genai.js`, or the
+ * `abap-mcp-genai` bin), false when it was only imported.
+ *
+ * npm installs a package's `bin` entries as **symlinks** on Unix (`node_modules/.bin/abap-mcp-genai`
+ * -> `../abap-mcp/dist/genai.js`), so `process.argv[1]` is the symlink path while `import.meta.url`
+ * is always the physical file the module executed from. Comparing those two paths textually (as a
+ * plain `resolve()` does) never matches for an installed bin — main() silently never runs and the
+ * process exits 0 without starting the server or printing the "not configured" message. Resolving
+ * both sides through `realpath` collapses the symlink before comparing, so the installed bin works
+ * the same as a direct `node dist/genai.js` invocation.
+ */
+export function isDirectInvocation(argv1: string | undefined, importMetaUrl: string): boolean {
+  if (argv1 === undefined) return false;
+  let modulePath: string;
+  try {
+    modulePath = fileURLToPath(importMetaUrl);
+  } catch {
+    return false;
+  }
+  return realOrResolvedPath(argv1) === realOrResolvedPath(modulePath);
+}
+
+if (isDirectInvocation(process.argv[1], import.meta.url)) {
   runGenAiServer().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`${GENAI_SERVER_NAME} fatal: ${message}`);

@@ -140,6 +140,9 @@ export const runAbapUnitTool = defineTool({
         execute: z.number().describe("The subprocess."),
       })
       .describe("Where the time went."),
+    sandbox: z
+      .enum(["node-permission", "none"])
+      .describe('"node-permission" when the subprocess ran under Node\'s permission model (Node ≥ 22: read-only access to the run\'s temp dir and the runtime package only); "none" on older Node.'),
     scopeNote: z.string().describe("The standing honesty label: open-abap kernel, not SAP's."),
   },
   annotations: {

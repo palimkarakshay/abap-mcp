@@ -848,6 +848,7 @@ export const planCloudMigrationTool = defineTool({
     baselineVersion: VERSION_ENUM.default("v758").describe(
       "Classic ABAP version the code runs on today; used to separate broken-anyway code (phase: repair the baseline) from real migration work.",
     ),
+    edition: editionField,
   },
   outputSchema: {
     summary: z
@@ -894,9 +895,16 @@ export const planCloudMigrationTool = defineTool({
         ],
       },
     },
+    {
+      description: "Plan against the SAP Cloud ERP Private Edition / on-premise edition instead of the default (s4hc).",
+      arguments: {
+        files: [{ source: "REPORT zold.\nSELECT SINGLE matnr FROM mara INTO @DATA(lv)." }],
+        edition: "pce",
+      },
+    },
   ],
   handler: (args) => {
-    const plan = planCloudMigration(checkCloudReadiness(args.files, args.baselineVersion));
+    const plan = planCloudMigration(checkCloudReadiness(args.files, args.baselineVersion, args.edition));
     const s = plan.summary;
     const lines = [
       `${s.cloudBlockerCount} blocker(s) (score ${s.score}, grade ${s.grade}) → ${s.workItemCount} work item(s) in ${s.phaseCount} phase(s); effort ${s.estimatedEffort}`,
@@ -1001,6 +1009,7 @@ export const getObjectDependenciesTool = defineTool({
       .boolean()
       .default(false)
       .describe("Also return a Mermaid flowchart (graph LR) of the dependency graph for instant visualization."),
+    edition: editionField,
   },
   outputSchema: {
     nodes: z.array(
@@ -1026,6 +1035,7 @@ export const getObjectDependenciesTool = defineTool({
     ),
     mermaid: z.string().optional().describe("Mermaid flowchart when requested."),
     releasedApiSnapshotDate: z.string().describe("Date of the bundled released-API snapshot behind the annotations."),
+    edition: EDITION_ENUM.describe("SAP edition the nodes' released-API states were checked against."),
     scopeNote: z.string().describe("Exactly what the graph can and cannot claim."),
   },
   annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
@@ -1043,9 +1053,16 @@ export const getObjectDependenciesTool = defineTool({
         mermaid: true,
       },
     },
+    {
+      description: "Graph against the SAP BTP ABAP environment edition instead of the default (s4hc).",
+      arguments: {
+        files: [{ source: "REPORT zold.\nSELECT SINGLE matnr FROM mara INTO @DATA(lv)." }],
+        edition: "btp",
+      },
+    },
   ],
   handler: (args) => {
-    const graph = getObjectDependencies(args.files, args.abapVersion, args.mermaid);
+    const graph = getObjectDependencies(args.files, args.abapVersion, args.mermaid, args.edition);
     const flagged = graph.nodes.filter((n) => n.releasedState !== undefined && n.releasedState !== "released");
     const text =
       `${graph.nodes.length} node(s), ${graph.edges.length} edge(s)` +

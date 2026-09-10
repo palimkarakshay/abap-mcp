@@ -6,13 +6,17 @@
  * therefore carries an explicit budget: the point is not only that the result
  * is right but that the loop stays fast enough for an agent to sit in.
  */
-import { readdirSync } from "node:fs";
+import { mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, beforeAll } from "vitest";
 import type { ZodType } from "zod";
 
 import type { UnitRunResult } from "../abap/run.js";
 import { filterRunnerScript, RUN_SCOPE_NOTE, runAbapUnit, TEMP_DIR_PREFIX } from "../abap/run.js";
+import type { CliIo } from "../cli-commands.js";
+import { cmdUnittest } from "../cli-commands.js";
+import { McpToolError } from "../errors.js";
 import { RUN_TOOLS, RUN_TOOLS_ENABLED } from "../tools/run.tools.js";
 
 /** Wall-clock budget for one full parse → transpile → execute cycle on CI-class hardware. */
@@ -174,6 +178,11 @@ describe("runAbapUnit — pass / fail / error", () => {
     expect(result.transpileIssues).toHaveLength(0);
   });
 
+  it("runs the child under Node's permission model on Node 22+", () => {
+    const nodeMajor = Number(process.versions.node.split(".")[0]);
+    expect(result.sandbox).toBe(nodeMajor >= 22 ? "node-permission" : "none");
+  });
+
   it("stays inside the wall-clock budget for a single run", () => {
     expect(elapsed).toBeLessThan(SINGLE_RUN_BUDGET_MS);
     expect(result.durationMs.parse).toBeGreaterThan(0);
@@ -289,6 +298,134 @@ describe("runAbapUnit — only filter", () => {
     expect(filtered).toContain("ADD_WORKS");
     expect(filtered).not.toContain("OTHER");
   });
+});
+
+// `WRITE '@KERNEL ...'.` is @abaplint/transpiler's own raw-JavaScript escape hatch (see
+// KERNEL_DIRECTIVE_RE in src/abap/run.ts) — the string after "@KERNEL " is emitted verbatim as
+// JavaScript into the module the child executes. This must never reach the transpiler.
+const KERNEL_INJECTION = `CLASS zcl_kernel DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_kernel IMPLEMENTATION.
+  METHOD run.
+    WRITE '@KERNEL require("node:fs").writeFileSync("/tmp/abap-mcp-pwned", "x")'.
+  ENDMETHOD.
+ENDCLASS.`;
+
+describe("runAbapUnit — @KERNEL rejection", () => {
+  it("rejects an @KERNEL directive before any transpile, as a structured 'unsupported' error", async () => {
+    const dirsBefore = tempDirCount();
+    let caught: unknown;
+    try {
+      await runAbapUnit([{ filename: "zcl_kernel.clas.abap", source: KERNEL_INJECTION }]);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(McpToolError);
+    const err = caught as McpToolError;
+    expect(err.kind).toBe("unsupported");
+    expect(err.message).toContain("@KERNEL");
+    expect(err.hint).toMatch(/remove @KERNEL directives/);
+    expect(err.nextTools).toContain("lint_abap");
+    // No temp dir was ever created — the rejection happens before mkdtempSync.
+    expect(tempDirCount()).toBe(dirsBefore);
+  });
+
+  it("matches case-insensitively, wherever in the file list the directive lands", async () => {
+    const lowercased = KERNEL_INJECTION.replace("@KERNEL", "@kernel");
+    await expect(
+      runAbapUnit([
+        { filename: "zcl_calc.clas.abap", source: CALC },
+        { filename: "zcl_kernel.clas.abap", source: lowercased },
+      ]),
+    ).rejects.toMatchObject({ kind: "unsupported" });
+  });
+});
+
+describe("cmdUnittest --run — CLI-level guards", () => {
+  function cliIo(): { out: string[]; err: string[]; io: CliIo } {
+    const out: string[] = [];
+    const err: string[] = [];
+    return { out, err, io: { out: (s) => out.push(s), err: (s) => err.push(s) } };
+  }
+
+  function tinyAbapDir(fileCount: number): string {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-cli-unittest-"));
+    for (let i = 0; i < fileCount; i++) {
+      const name = `zcl_x${String(i).padStart(3, "0")}`;
+      writeFileSync(
+        join(dir, `${name}.clas.abap`),
+        `CLASS ${name} DEFINITION PUBLIC FINAL CREATE PUBLIC.\nENDCLASS.\nCLASS ${name} IMPLEMENTATION.\nENDCLASS.`,
+      );
+    }
+    return dir;
+  }
+
+  it("rejects more than 32 files with exit 2 instead of silently truncating", async () => {
+    const dir = tinyAbapDir(34);
+    const { out, err, io } = cliIo();
+    const code = await cmdUnittest(["--run", dir], io);
+    expect(code).toBe(2);
+    expect(err.join("\n")).toMatch(/34 files exceed the runner limit of 32/);
+    expect(out).toHaveLength(0);
+  });
+
+  it("accepts exactly 32 files (the boundary is not off-by-one)", async () => {
+    const dir = tinyAbapDir(32);
+    const { err, io } = cliIo();
+    const code = await cmdUnittest(["--run", dir], io);
+    expect(err.join("\n")).not.toMatch(/exceed the runner limit/);
+    // 32 classes with no FOR TESTING methods: nothing to run, but the file-count
+    // guard itself must not be the thing that rejects it.
+    expect(code).toBe(1);
+  }, 30_000);
+
+  it("fails instead of exiting 0 when a malformed test include yields zero discovered methods", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-cli-unittest-broken-"));
+    writeFileSync(
+      join(dir, "zcl_broken.clas.testclasses.abap"),
+      // Missing the period after "PRIVATE SECTION" — a genuine parser error.
+      `CLASS ltcl_broken DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.\n` +
+        `  PRIVATE SECTION\n` +
+        `    METHODS whatever FOR TESTING.\n` +
+        `ENDCLASS.\n` +
+        `CLASS ltcl_broken IMPLEMENTATION.\n` +
+        `  METHOD whatever.\n` +
+        `  ENDMETHOD.\n` +
+        `ENDCLASS.`,
+    );
+    const { out, err, io } = cliIo();
+    const code = await cmdUnittest(["--run", dir], io);
+    expect(code).toBe(1);
+    expect(err.join("\n")).toMatch(/no test methods found/);
+    expect(err.join("\n")).toMatch(/parser_error|structure/);
+    expect(out.join("\n")).toMatch(/0 test method\(s\)/);
+  }, 30_000);
+
+  it("fails instead of exiting 0 when the input has no test methods at all", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-cli-unittest-notests-"));
+    writeFileSync(
+      join(dir, "zcl_plain.clas.abap"),
+      "CLASS zcl_plain DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS foo.\nENDCLASS.\nCLASS zcl_plain IMPLEMENTATION.\n  METHOD foo.\n  ENDMETHOD.\nENDCLASS.",
+    );
+    const { err, io } = cliIo();
+    const code = await cmdUnittest(["--run", dir, "--json"], io);
+    expect(code).toBe(1);
+    expect(err.join("\n")).toBe("");
+  }, 30_000);
+
+  it("rejects an @KERNEL submission at the CLI too, with exit 1 and the structured hint", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-cli-unittest-kernel-"));
+    writeFileSync(join(dir, "zcl_kernel.clas.abap"), KERNEL_INJECTION);
+    const { out, err, io } = cliIo();
+    const code = await cmdUnittest(["--run", dir], io);
+    expect(code).toBe(1);
+    expect(err.join("\n")).toMatch(/^unsupported:/m);
+    expect(err.join("\n")).toContain("@KERNEL");
+    expect(err.join("\n")).toMatch(/hint: remove @KERNEL directives/);
+    expect(out).toHaveLength(0);
+  }, 30_000);
 });
 
 describe("run_abap_unit tool description rubric (mcp-kit discipline)", () => {

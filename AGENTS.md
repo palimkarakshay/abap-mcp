@@ -12,7 +12,7 @@ invariants). The default stdio server makes no outbound network calls; the opt-i
 line: **SAP**. **Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm package `abap-mcp`
 (bins: `abap-mcp`, `abap-mcp-http`, `abap-mcp-genai`; library).
 
-## Package manager: npm — Node >= 20
+## Package manager: npm — Node >= 22
 
 ## Commands (authoritative)
 - `npm install`
@@ -89,6 +89,11 @@ line: **SAP**. **Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm p
 - **Only `run_abap_unit` executes code**, and only when opted in (`ABAP_MCP_ENABLE_RUN=1`); the
   CLI's `unittest --run` always has it. It runs in a subprocess (`execFile`, never a shell) inside
   a `mkdtemp` **server-owned** temp dir, scrubbed env, hard timeout+SIGKILL — never a user path.
+  Every source is scanned for `WRITE '@KERNEL ...'.` before transpiling and the whole run is
+  refused if found (the transpiler emits the text after `@KERNEL` as raw JavaScript); on Node
+  22+ the child additionally runs under Node's `--permission` model (fs read pinned to the temp
+  dir + the open-abap runtime's own packages, fs write pinned to the temp dir, no child
+  processes, no worker threads — see `sandbox` on `UnitRunResult`).
 - **`abap-mcp-genai` is the only networked entry** — a wholly separate binary/process
   (`src/genai.ts`) that `src/server.ts` never imports; the default server's "zero outbound network
   calls" invariant is unaffected by its existence. Package-bundled assets (abaplint's own data,

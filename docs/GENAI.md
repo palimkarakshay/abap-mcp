@@ -135,13 +135,16 @@ see the attribution comment in `src/genai/tools.ts`).
 
 ## 5. Registering it with Claude Code / Codex
 
-The `abap-mcp-genai` bin ships with the package, so registration mirrors the
-offline server (`docs/COOKBOOK.md` §1), with the service key supplied as an environment variable
-rather than left to the process's ambient environment:
+The `abap-mcp-genai` bin ships **inside the `abap-mcp` package** — there is no separate
+`abap-mcp-genai` package on npm, so `npx -y abap-mcp-genai` fails (npx would look for a package
+named `abap-mcp-genai`, which doesn't exist). Tell npx which package to fetch and which of its
+bins to run with `--package abap-mcp abap-mcp-genai`; registration otherwise mirrors the offline
+server (`docs/COOKBOOK.md` §1), with the service key supplied as an environment variable rather
+than left to the process's ambient environment:
 
 ```bash
 # Claude Code (global) — the service key stays in your shell/secret manager, not in the command
-claude mcp add abap-mcp-genai --env AICORE_SERVICE_KEY_FILE=/path/to/service-key.json -- npx -y abap-mcp-genai
+claude mcp add abap-mcp-genai -e AICORE_SERVICE_KEY_FILE=/path/to/service-key.json -- npx -y --package abap-mcp abap-mcp-genai
 ```
 
 ```json
@@ -151,7 +154,7 @@ claude mcp add abap-mcp-genai --env AICORE_SERVICE_KEY_FILE=/path/to/service-key
     "abap-mcp": { "command": "npx", "args": ["-y", "abap-mcp"] },
     "abap-mcp-genai": {
       "command": "npx",
-      "args": ["-y", "abap-mcp-genai"],
+      "args": ["-y", "--package", "abap-mcp", "abap-mcp-genai"],
       "env": { "AICORE_SERVICE_KEY_FILE": "/path/to/service-key.json" }
     }
   }
@@ -160,7 +163,7 @@ claude mcp add abap-mcp-genai --env AICORE_SERVICE_KEY_FILE=/path/to/service-key
 
 ```bash
 # Codex CLI
-codex mcp add abap-mcp-genai --env AICORE_SERVICE_KEY_FILE=/path/to/service-key.json -- npx -y abap-mcp-genai
+codex mcp add abap-mcp-genai --env AICORE_SERVICE_KEY_FILE=/path/to/service-key.json -- npx -y --package abap-mcp abap-mcp-genai
 ```
 
 Prefer `AICORE_SERVICE_KEY_FILE` over inlining `AICORE_SERVICE_KEY` in a committed config file —

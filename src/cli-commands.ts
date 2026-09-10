@@ -10,6 +10,7 @@ import { readdirSync, readFileSync, realpathSync, statSync, writeFileSync, mkdir
 import { basename, extname, join } from "node:path";
 
 import { compareAbap } from "./abap/compare.js";
+import { McpToolError } from "./errors.js";
 import type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
 import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILE_CHARS, MAX_FILES, runAbaplint } from "./abap/engine.js";
 import { getObjectDependencies } from "./abap/deps.js";
@@ -489,19 +490,51 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
   // so it returns a promise the entry point awaits; every other path stays
   // synchronous.
   if (flags.has("run")) {
+    // Never truncate a caller's file list to fit the runner cap — a dropped file
+    // is a dropped test, and a dropped test that would have failed is a false
+    // green with exit 0. Reject and say so instead.
+    if (files.length > MAX_FILES) {
+      io.err(
+        `error: ${files.length} files exceed the runner limit of ${MAX_FILES} per run — split the directory or pass explicit files`,
+      );
+      return 2;
+    }
     return (async (): Promise<number> => {
-      const result = await runAbapUnit(files.slice(0, MAX_FILES), {
-        abapVersion: asVersion(flags.get("abap-version"), "Cloud"),
-        ...(typeof flags.get("only") === "string"
-          ? { only: (flags.get("only") as string).split(",").map((s) => s.trim()).filter((s) => s.length > 0) }
-          : {}),
-        ...(typeof flags.get("timeout-ms") === "string"
-          ? { timeoutMs: Number(flags.get("timeout-ms")) }
-          : {}),
-      });
+      let result: UnitRunResult;
+      try {
+        result = await runAbapUnit(files, {
+          abapVersion: asVersion(flags.get("abap-version"), "Cloud"),
+          ...(typeof flags.get("only") === "string"
+            ? { only: (flags.get("only") as string).split(",").map((s) => s.trim()).filter((s) => s.length > 0) }
+            : {}),
+          ...(typeof flags.get("timeout-ms") === "string"
+            ? { timeoutMs: Number(flags.get("timeout-ms")) }
+            : {}),
+        });
+      } catch (err) {
+        // runAbapUnit throws (rather than an `available:false` result) for input it refuses to
+        // even attempt — e.g. an `@KERNEL` directive. Same {kind, hint, nextTools} contract
+        // errorResult() gives MCP callers, rendered for a terminal instead.
+        const e =
+          err instanceof McpToolError ? err : new McpToolError("internal", err instanceof Error ? err.message : String(err));
+        if (flags.has("json")) {
+          io.out(JSON.stringify({ error: { kind: e.kind, message: e.message, hint: e.hint, nextTools: e.nextTools } }, null, 2));
+        } else {
+          io.err(`${e.kind}: ${e.message}`);
+          if (e.hint !== undefined) io.err(`hint: ${e.hint}`);
+          if (e.nextTools.length > 0) io.err(`next: ${e.nextTools.join(", ")}`);
+        }
+        return 1;
+      }
+      // Zero methods discovered — whether because the input holds no FOR TESTING
+      // method at all, or a parse/transpile problem (see transpileIssues below)
+      // kept the registry from ever finding one — must never read as a quiet
+      // pass: there is nothing here for "0 failed, 0 errored" to be honest about.
+      const noMethodsFound = result.available && result.results.length === 0;
       if (flags.has("json")) {
         io.out(JSON.stringify(result, null, 2));
         if (!result.available) return 1;
+        if (noMethodsFound) return 1;
         return result.failed + result.errored > 0 ? 1 : 0;
       }
 
@@ -535,6 +568,9 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
           io.out(`        at ${r.jsLocation}`);
         }
       }
+      if (noMethodsFound) {
+        io.err("no test methods found — nothing to run (see the transpile/unsupported issues above, if any).");
+      }
       const total = result.durationMs.parse + result.durationMs.transpile + result.durationMs.execute;
       io.out(
         `\n${result.results.length} test method(s): ${result.passed} passed, ${result.failed} failed, ` +
@@ -548,6 +584,7 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
       }
       io.out(`\n${result.scopeNote}`);
       if (!result.available) return 1;
+      if (noMethodsFound) return 1;
       return result.failed + result.errored > 0 ? 1 : 0;
     })();
   }
@@ -818,7 +855,7 @@ Usage:
   abap-mcp compare BEFORE AFTER  what a rework changed: findings resolved/introduced, blocker/score/grade movement, structure   [--preset …] [--focus …] [--json]
   abap-mcp scaffold …            generate a RAP managed BO   (--entity --table --key [--fields n:type,…] [--no-draft] [--provided-key] [--out DIR])
   abap-mcp unittest [paths…]     scaffold failing-by-default ABAP Unit test classes for global classes   [--abap-version v758|Cloud] [--out DIR] [--json]
-  abap-mcp unittest --run […]    EXECUTE the ABAP Unit tests offline (transpiled to JS, open-abap kernel — no DB/CDS/EML); exit 1 on any failure   [--only CLASS>METHOD,…] [--timeout-ms 20000] [--abap-version Cloud] [--json]
+  abap-mcp unittest --run […]    EXECUTE the ABAP Unit tests offline (transpiled to JS, open-abap kernel, Node-permission-sandboxed on Node 22+ — no DB/CDS/EML, no @KERNEL); max 32 files (exit 2 above that), exit 1 on any failure/error or zero test methods found   [--only CLASS>METHOD,…] [--timeout-ms 20000] [--abap-version Cloud] [--json]
   abap-mcp deps [paths…]         dependency graph: db/function refs (+released state), inherits/implements, textual   [--mermaid] [--edition s4hc|btp|pce] [--json]
   abap-mcp outline [paths…]      classes/methods/forms structure   [--mermaid] [--json]
   abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--edition s4hc|btp|pce] [--json]
@@ -865,7 +902,14 @@ export function runCli(argv: string[], io: CliIo): number | Promise<number> | nu
     case "knowledge":
       return cmdKnowledge(rest, io);
     case "aisdk":
-      return cmdAisdk(rest, { ...io, writeFile: (path, content) => { mkdirSync(join(path, ".."), { recursive: true }); writeFileSync(path, content, "utf8"); } });
+      return cmdAisdk(rest, {
+        ...io,
+        writeFile: (path, content) => {
+          mkdirSync(join(path, ".."), { recursive: true });
+          writeFileSync(path, content, "utf8");
+        },
+        exists: existsSync,
+      });
     case "agent-rules":
       return cmdAgentRules(rest, io);
     case "help":

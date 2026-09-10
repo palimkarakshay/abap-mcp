@@ -52,7 +52,7 @@ layer:
 
 ## Install — 60 seconds
 
-The only requirement is [Node.js 20+](https://nodejs.org). No SAP system, no credentials, no
+The only requirement is [Node.js 22+](https://nodejs.org). No SAP system, no credentials, no
 API keys. **New to AI tooling (or ABAP)?** Follow the from-zero walkthrough in
 **[docs/INSTALL.md](docs/INSTALL.md)** — or let the installer do it:
 

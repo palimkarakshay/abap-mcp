@@ -120,7 +120,7 @@ or, pointed at a checked-out abapGit repo:
 
 | Symptom | Fix |
 | --- | --- |
-| `node: command not found` / `npx` not recognized | Install Node.js LTS from [nodejs.org](https://nodejs.org), then **reopen** the terminal/editor. |
+| `node: command not found` / `npx` not recognized | Install Node.js LTS (22 or newer) from [nodejs.org](https://nodejs.org), then **reopen** the terminal/editor. |
 | The tools don't appear in chat | Make sure chat is in **Agent** mode (not plain Ask), then restart the editor once. In VS Code, run **MCP: List Servers** from the Command Palette — abap-mcp should be listed. |
 | First call is slow | Normal: `npx` downloads the package on first use (~seconds). After that it's cached. |
 | Corporate proxy blocks `npx` | Install once instead: `npm install -g abap-mcp`, and use `"command": "abap-mcp"` with `"args": []` in the config. |

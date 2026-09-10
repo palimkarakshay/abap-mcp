@@ -25,15 +25,16 @@
  *  - no source text is ever logged; results are returned, not printed.
  */
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 import * as abaplint from "@abaplint/core";
 
+import { toolError } from "../errors.js";
 import type { AbapSource, AbapVersion, Finding } from "./engine.js";
 import { boundFiles, runAbaplint } from "./engine.js";
 
@@ -44,7 +45,11 @@ export const RUN_SCOPE_NOTE =
   "ABAP transpiled to JavaScript by @abaplint/transpiler and executed on Node against the open-abap " +
   "kernel — not the SAP ABAP kernel. No database, no CDS, no EML/RAP runtime, no AMDP, no authority " +
   "checks, no locks. A green run is evidence the pure logic works; ABAP Unit on a real system remains " +
-  "authoritative.";
+  "authoritative. `@KERNEL` directives (raw JavaScript injection) are rejected before anything is " +
+  "transpiled. On Node 22+ the child additionally runs under Node's permission model — filesystem reads " +
+  "limited to the run's temp dir and the open-abap runtime's own packages, writes limited to the temp " +
+  "dir, no child processes, no worker threads (see `sandbox` on the result); on older Node it runs " +
+  "unsandboxed.";
 
 export const RUN_DEFAULT_TIMEOUT_MS = 20_000;
 export const RUN_MAX_TIMEOUT_MS = 60_000;
@@ -56,6 +61,19 @@ const MAX_CHILD_OUTPUT_BYTES = 4_000_000;
 const MAX_MESSAGE_CHARS = 2_000;
 /** open-abap is the transpiler's own language level; the caller's level is linted separately. */
 const LIB_SYNTAX_VERSION = "open-abap";
+
+/**
+ * `WRITE '@KERNEL ...'.` is @abaplint/transpiler's own escape hatch: the text after `@KERNEL `
+ * is emitted **verbatim as JavaScript** into the module the child executes (see
+ * `WriteTranspiler.transpile` in @abaplint/transpiler) — `import("node:fs")`, sockets, spawning
+ * processes, all reachable from submitted "ABAP". Matched case-insensitively and rejected
+ * outright, before any file is added to the registry: there is no safe partial-transpile here.
+ */
+const KERNEL_DIRECTIVE_RE = /@KERNEL/i;
+
+/** Node major version this process runs on; `--permission` needs 22+ to cover every flag we use. */
+const NODE_MAJOR = Number(process.versions.node.split(".")[0]);
+const NODE_PERMISSION_MODEL_AVAILABLE = Number.isFinite(NODE_MAJOR) && NODE_MAJOR >= 22;
 
 export type UnitStatus = "pass" | "fail" | "error" | "skipped";
 
@@ -103,6 +121,13 @@ export interface UnitRunResult {
   transpileIssues: Finding[];
   durationMs: { parse: number; transpile: number; execute: number };
   scopeNote: string;
+  /**
+   * Whether the child process ran under Node's permission model.
+   * "node-permission" on Node >= 22 (fs read pinned to the temp dir + the open-abap runtime's own
+   * packages, fs write pinned to the temp dir, no child processes, no worker threads); "none" on
+   * older Node, where the child runs with this process's own filesystem/process privileges.
+   */
+  sandbox: "node-permission" | "none";
 }
 
 export interface RunAbapUnitOptions {
@@ -407,11 +432,97 @@ function isTranspilable(filename: string): boolean {
   return filename.endsWith(".abap");
 }
 
+/**
+ * Walk up from a resolved module entry file to the directory holding that
+ * package's own `package.json` (matched by `name`, so a nested/hoisted layout
+ * both resolve correctly) — falls back to the entry's own directory if no
+ * matching `package.json` turns up before a `node_modules` boundary.
+ */
+function packageRootFromEntry(entry: string, specifier: string): string {
+  let dir = dirname(entry);
+  for (;;) {
+    const pkgJsonPath = join(dir, "package.json");
+    if (existsSync(pkgJsonPath)) {
+      try {
+        if ((JSON.parse(readFileSync(pkgJsonPath, "utf8")) as { name?: string }).name === specifier) {
+          return dir;
+        }
+      } catch {
+        // Unreadable/invalid package.json at this level — keep climbing.
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir || dir.endsWith("node_modules")) return dirname(entry);
+    dir = parent;
+  }
+}
+
+let cachedRuntimeReadDirs: string[] | undefined;
+
+/**
+ * Directories the sandboxed child needs `--allow-fs-read` for: @abaplint/runtime's own package
+ * plus its full runtime dependency graph, discovered by walking `dependencies` in each
+ * `package.json` rather than a hand-maintained list — a spike run against the pass/fail fixtures
+ * found the child actually touches @abaplint/runtime + temporal-polyfill + temporal-utils (the
+ * Temporal shim the runtime's date/time handling pulls in); @abaplint/core is a parse/transpile-
+ * time dependency of THIS process and is never imported by the generated init.mjs/index.mjs, so
+ * it is deliberately not on the list. Walking the graph (instead of hardcoding those three)
+ * means a future @abaplint/runtime dependency bump can't silently punch a hole in — or break —
+ * the sandbox; a package this can't resolve is simply not readable by the child (fail-closed).
+ */
+function runtimeReadDirs(): string[] {
+  if (cachedRuntimeReadDirs !== undefined) return cachedRuntimeReadDirs;
+  const dirs = new Set<string>();
+  const seen = new Set<string>();
+  const visit = (specifier: string, fromFile: string): void => {
+    if (seen.has(specifier)) return;
+    seen.add(specifier);
+    let entry: string;
+    try {
+      entry = createRequire(fromFile).resolve(specifier);
+    } catch {
+      return; // optional/type-only dependency not actually installed — nothing to allow
+    }
+    const root = packageRootFromEntry(entry, specifier);
+    dirs.add(root);
+    let deps: Record<string, string> = {};
+    try {
+      deps = (JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { dependencies?: Record<string, string> })
+        .dependencies ?? {};
+    } catch {
+      // No readable dependencies field — this package is a leaf as far as we know.
+    }
+    for (const dep of Object.keys(deps)) visit(dep, join(root, "noop.js"));
+  };
+  visit("@abaplint/runtime", import.meta.url);
+  cachedRuntimeReadDirs = [...dirs];
+  return cachedRuntimeReadDirs;
+}
+
 export async function runAbapUnit(
   files: AbapSource[],
   opts: RunAbapUnitOptions = {},
 ): Promise<UnitRunResult> {
   const bounded = boundFiles(files);
+
+  // Reject @KERNEL injection before ANYTHING else — before the honest lint, before a single file
+  // reaches the registry, before any temp dir exists. See KERNEL_DIRECTIVE_RE for why: this is
+  // not a false positive to apologize for, it is the whole point of running untrusted "ABAP".
+  for (const f of bounded) {
+    if (KERNEL_DIRECTIVE_RE.test(f.source)) {
+      throw toolError(
+        "unsupported",
+        `${f.filename} contains an "@KERNEL" directive. @abaplint/transpiler emits the text after ` +
+          `"@KERNEL " verbatim as JavaScript into the executed module — the offline runner refuses ` +
+          `to transpile or execute any submission containing it, in whole or in part.`,
+        {
+          hint: "remove @KERNEL directives; the offline runner executes only transpiled ABAP",
+          nextTools: ["lint_abap"],
+        },
+      );
+    }
+  }
+
   const abapVersion: AbapVersion = opts.abapVersion ?? "Cloud";
   const timeoutMs = clampTimeout(opts.timeoutMs);
 
@@ -431,6 +542,7 @@ export async function runAbapUnit(
     transpileIssues: [],
     durationMs: { parse: 0, transpile: 0, execute: 0 },
     scopeNote: RUN_SCOPE_NOTE,
+    sandbox: NODE_PERMISSION_MODEL_AVAILABLE ? "node-permission" : "none",
   };
 
   const unavailable = (kind: UnitRunUnavailable["kind"], message: string, hint: string): UnitRunResult => {
@@ -595,11 +707,28 @@ export async function runAbapUnit(
     const runner = join(dir, "index.mjs");
     writeFileSync(runner, filterRunnerScript(output.unitTestScriptOpen, selected));
 
+    // On Node 22+, defence in depth beyond the @KERNEL rejection above: run the transpiled
+    // JavaScript under Node's own permission model. Reads are pinned to this run's temp dir plus
+    // the open-abap runtime's own packages (runtimeReadDirs — resolved from the actual
+    // dependency graph, not guessed), writes to the temp dir only (the runner writes
+    // output.json there), and child processes / worker threads are never granted — nothing else
+    // this process can reach is reachable from inside the sandbox. On older Node the flag does
+    // not exist, so the child runs with this process's ordinary privileges (see `sandbox` on the
+    // result).
+    const permissionArgs = NODE_PERMISSION_MODEL_AVAILABLE
+      ? [
+          "--permission",
+          `--allow-fs-read=${dir}/*`,
+          ...runtimeReadDirs().map((d) => `--allow-fs-read=${d}/*`),
+          `--allow-fs-write=${dir}/*`,
+        ]
+      : [];
+
     const executeStart = Date.now();
     let timedOut = false;
     let childError = "";
     try {
-      await execFileAsync(process.execPath, [runner], {
+      await execFileAsync(process.execPath, [...permissionArgs, runner], {
         cwd: dir,
         timeout: timeoutMs,
         killSignal: "SIGKILL",

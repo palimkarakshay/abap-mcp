@@ -84,6 +84,8 @@ variables, and the privacy contract are in [docs/GENAI.md](GENAI.md); read it be
 
 ## Upgrade notes
 
+- **Node.js 22 or newer is now required** (`engines.node >= 22`): `@abaplint/core` 2.120.48 and the transpiler declare a Node 22 floor, and the offline runner uses Node's permission model to sandbox the test subprocess on Node ≥ 22.
+
 - `@abaplint/core` bumped `^2.120.13` → `^2.120.48`. Two new dependencies, pinned exactly (not
   `^`, matching this project's non-semver-upstream policy): `@abaplint/runtime` and
   `@abaplint/transpiler`, both `2.13.82` — required by `run_abap_unit`.

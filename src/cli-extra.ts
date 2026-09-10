@@ -16,7 +16,17 @@ export interface ExtraCliIo {
   out: (s: string) => void;
   err: (s: string) => void;
   writeFile?: (path: string, content: string) => void;
+  /** Existence check for --out overwrite guarding (mirrors cmdScaffold/cmdUnittest in cli-commands.ts). */
+  exists?: (path: string) => boolean;
 }
+
+// Flags that never take a value — without this list, a boolean flag directly
+// followed by a positional (`knowledge --json "clean core level C"`, `release
+// --json rap`) would swallow that positional as its own value, leaving the
+// command with no topic/question and a usage error. Every other recognized
+// flag here (since/kind/product/limit/area/scenario/interaction/class/prefix/
+// out/target/paired/edition) takes a value.
+const BOOLEAN_FLAGS = new Set(["json", "test", "run", "force"]);
 
 function flagsOf(argv: string[]): { flags: Map<string, string | true>; rest: string[] } {
   const flags = new Map<string, string | true>();
@@ -24,11 +34,12 @@ function flagsOf(argv: string[]): { flags: Map<string, string | true>; rest: str
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a.startsWith("--")) {
+      const key = a.slice(2);
       const next = argv[i + 1];
-      if (next !== undefined && !next.startsWith("--")) {
-        flags.set(a.slice(2), next);
+      if (!BOOLEAN_FLAGS.has(key) && next !== undefined && !next.startsWith("--")) {
+        flags.set(key, next);
         i++;
-      } else flags.set(a.slice(2), true);
+      } else flags.set(key, true);
     } else rest.push(a);
   }
   return { flags, rest };
@@ -88,13 +99,13 @@ export function cmdKnowledge(argv: string[], io: ExtraCliIo): number {
   return 0;
 }
 
-/** `abap-mcp aisdk --scenario ZDEMO_AI --interaction function-calling [--class ZCL_X] [--prefix Y] [--test] [--out DIR] [--json]` */
+/** `abap-mcp aisdk --scenario ZDEMO_AI --interaction function-calling [--class ZCL_X] [--prefix Y] [--test] [--out DIR] [--force] [--json]` */
 export function cmdAisdk(argv: string[], io: ExtraCliIo): number {
   const { flags } = flagsOf(argv);
   const scenario = str(flags.get("scenario"));
   const interaction = (str(flags.get("interaction")) ?? "string") as AisdkInteraction;
   if (scenario === undefined) {
-    io.err("usage: abap-mcp aisdk --scenario <ISLM scenario> [--interaction string|messages|prompt-template|function-calling|structured-output|streaming|orchestration] [--class NAME] [--prefix Z|Y] [--test] [--out DIR] [--json]");
+    io.err("usage: abap-mcp aisdk --scenario <ISLM scenario> [--interaction string|messages|prompt-template|function-calling|structured-output|streaming|orchestration] [--class NAME] [--prefix Z|Y] [--test] [--out DIR] [--force] [--json]");
     return 2;
   }
   const prefix = str(flags.get("prefix"));
@@ -110,9 +121,27 @@ export function cmdAisdk(argv: string[], io: ExtraCliIo): number {
     return result.validationIssues.length > 0 ? 1 : 0;
   }
   const outDir = str(flags.get("out"));
+  let overwriteBlocked = false;
   if (outDir !== undefined && io.writeFile !== undefined) {
-    for (const f of result.files) io.writeFile(`${outDir}/${f.filename}`, f.content);
-    io.out(`wrote ${result.files.length} file(s) to ${outDir}`);
+    // Guard existing files the same way cmdScaffold/cmdUnittest do in
+    // cli-commands.ts: refuse to clobber without --force, report every file
+    // that was skipped (not just the first), and let the caller retry with
+    // --force once they have seen the whole list.
+    const skipped: string[] = [];
+    for (const f of result.files) {
+      const target = `${outDir}/${f.filename}`;
+      if (io.exists?.(target) === true && !flags.has("force")) {
+        skipped.push(target);
+        continue;
+      }
+      io.writeFile(target, f.content);
+    }
+    const writtenCount = result.files.length - skipped.length;
+    if (writtenCount > 0) io.out(`wrote ${writtenCount} file(s) to ${outDir}`);
+    if (skipped.length > 0) {
+      overwriteBlocked = true;
+      io.err(`refusing to overwrite ${skipped.length} existing file(s) (use --force): ${skipped.join(", ")}`);
+    }
   } else {
     for (const f of result.files) {
       io.out(`\n===== ${f.filename}  [validated: ${f.validated}] =====`);
@@ -125,9 +154,8 @@ export function cmdAisdk(argv: string[], io: ExtraCliIo): number {
   io.out(`\n${result.scopeNote}`);
   if (result.validationIssues.length > 0) {
     io.err(`WARNING: ${result.validationIssues.length} abaplint finding(s) on generated code`);
-    return 1;
   }
-  return 0;
+  return overwriteBlocked || result.validationIssues.length > 0 ? 1 : 0;
 }
 
 /** `abap-mcp agent-rules [--target Cloud|classic] [--paired sap-adt-mcp,abap-adt-mcp] [--run] [--prefix Z] [--edition s4hc|btp|pce]` */

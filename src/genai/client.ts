@@ -32,7 +32,7 @@
  */
 import { readFileSync } from "node:fs";
 
-import { toolError, invalidInput } from "../errors.js";
+import { toolError, invalidInput, McpToolError } from "../errors.js";
 
 // ---------------------------------------------------------------------------
 // Config / service key
@@ -163,6 +163,42 @@ interface FetchJsonResult {
   json: unknown;
 }
 
+/**
+ * Race `promise` against `signal` firing "abort", rejecting with `onAbort()` the moment abort
+ * fires even if `promise` itself never settles. Needed because an `AbortSignal` passed to `fetch()`
+ * is only guaranteed to interrupt the request while it's in flight — once headers have arrived,
+ * some `fetch` implementations (and test doubles) leave a stalled body read (`response.text()` /
+ * `.json()`) unaffected by a later `controller.abort()`. Racing explicitly bounds every await by
+ * the same deadline regardless of where in the request/response cycle it stalls.
+ */
+function raceWithAbort<T>(promise: Promise<T>, signal: AbortSignal, onAbort: () => Error): Promise<T> {
+  if (signal.aborted) return Promise.reject(onAbort());
+  return new Promise<T>((resolveRace, rejectRace) => {
+    const onAbortEvent = (): void => rejectRace(onAbort());
+    signal.addEventListener("abort", onAbortEvent, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbortEvent);
+        resolveRace(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", onAbortEvent);
+        rejectRace(error as Error);
+      },
+    );
+  });
+}
+
+/**
+ * Fetch `url` and fully read its body as JSON, both bounded by one `timeoutMs` deadline.
+ *
+ * The AbortController stays active — and its timer stays running — for the ENTIRE call, including
+ * the `response.text()` read: the earlier version cleared the timer as soon as `fetch()` resolved
+ * (i.e. once headers arrived), so a connection that stalled while streaming the body could hang
+ * forever instead of timing out. Both the initial request and the body read are additionally
+ * raced against the same abort signal via `raceWithAbort`, so a body promise that never settles on
+ * its own is still bounded.
+ */
 async function fetchJson(
   fetchImpl: FetchLike,
   url: string,
@@ -172,33 +208,36 @@ async function fetchJson(
 ): Promise<FetchJsonResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let response: Response;
+  const timeoutError = (): McpToolError => toolError("timeout", `Timed out after ${timeoutMs}ms while ${context}.`);
+
   try {
-    response = await fetchImpl(url, { ...init, signal: controller.signal });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw toolError("timeout", `Timed out after ${timeoutMs}ms while ${context}.`);
+    let response: Response;
+    try {
+      response = await fetchImpl(url, { ...init, signal: controller.signal });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") throw timeoutError();
+      throw toolError("network", `Network error while ${context} — could not reach SAP AI Core.`);
     }
-    throw toolError("network", `Network error while ${context} — could not reach SAP AI Core.`);
+
+    let text = "";
+    try {
+      text = await raceWithAbort(response.text(), controller.signal, timeoutError);
+    } catch (error) {
+      if (error instanceof McpToolError) throw error;
+      text = "";
+    }
+    let json: unknown;
+    if (text.length > 0) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        json = undefined;
+      }
+    }
+    return { status: response.status, json };
   } finally {
     clearTimeout(timer);
   }
-
-  let text = "";
-  try {
-    text = await response.text();
-  } catch {
-    text = "";
-  }
-  let json: unknown;
-  if (text.length > 0) {
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = undefined;
-    }
-  }
-  return { status: response.status, json };
 }
 
 /** Map an SAP AI Core HTTP status to the agent-ergonomic error kind (never throws on 2xx). */
@@ -399,6 +438,15 @@ export class GenAiClient {
    * Resolve the orchestration deployment base URL: the explicit `AICORE_ORCHESTRATION_URL`
    * override if one was configured, otherwise the tenant's default RUNNING orchestration
    * deployment, discovered once and cached in memory for the life of this client.
+   *
+   * Only a deployment recognizable as an orchestration deployment is ever selected — by
+   * `configurationName === "defaultOrchestrationConfig"` (SAP's documented default-deployment
+   * lookup) or by the running deployment object's own `scenarioId === "llm-orchestration"` (the
+   * value SAP's API actually echoes back on a RUNNING orchestration deployment, confirmed against
+   * a live tenant response — SAP's docs elsewhere and inconsistently call the *creation-time*
+   * scenario "orchestration"). If neither matches, this throws `not_configured` instead of falling
+   * back to an arbitrary RUNNING deployment: silently picking an unrelated deployment would send
+   * the caller's ABAP source to whatever service that deployment fronts.
    */
   async resolveOrchestrationUrl(): Promise<string> {
     if (this.explicitOrchestrationUrl !== undefined) return this.explicitOrchestrationUrl;
@@ -423,16 +471,17 @@ export class GenAiClient {
     );
     const preferred =
       running.find((entry) => entry["configurationName"] === "defaultOrchestrationConfig") ??
-      running.find((entry) => entry["scenarioId"] === "llm-orchestration") ??
-      running[0];
+      running.find((entry) => entry["scenarioId"] === "llm-orchestration");
     if (preferred === undefined) {
       throw toolError(
         "not_configured",
-        `No RUNNING orchestration deployment was found in AI Resource Group "${this.resourceGroup}".`,
+        `No orchestration deployment was found among the ${running.length} RUNNING deployment(s) in AI ` +
+          `Resource Group "${this.resourceGroup}" (none had configurationName "defaultOrchestrationConfig" or ` +
+          `scenarioId "llm-orchestration" — an unrelated RUNNING deployment is never selected automatically).`,
         {
           hint:
-            "Create one (SAP Help: \"Create a Deployment for Orchestration\") or set AICORE_ORCHESTRATION_URL " +
-            "to an existing orchestration deployment's URL.",
+            "Create an orchestration deployment (SAP Help: \"Create a Deployment for Orchestration\") or set " +
+            "AICORE_ORCHESTRATION_URL to an existing orchestration deployment's URL.",
         },
       );
     }

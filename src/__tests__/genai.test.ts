@@ -6,9 +6,10 @@
  * parse, and error shaping (401 -> auth, 429 -> rate_limit, network failure -> network, missing
  * service key -> not_configured).
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -16,10 +17,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { ZodType } from "zod";
 
 import { McpToolError } from "../errors.js";
-import { buildGenAiServer, GENAI_SERVER_INSTRUCTIONS } from "../genai.js";
+import { buildGenAiServer, GENAI_SERVER_INSTRUCTIONS, isDirectInvocation } from "../genai.js";
 import {
   GenAiClient,
   loadServiceKeyFromEnv,
+  resolveConfigFromEnv,
   type GenAiServiceKey,
 } from "../genai/client.js";
 import { explainWithSapAbap1, GENAI_TOOLS, listGenaiHubModels } from "../genai/tools.js";
@@ -75,6 +77,34 @@ const DEPLOYMENTS_RESPONSE = {
       configurationName: "defaultOrchestrationConfig",
       scenarioId: "llm-orchestration",
       deploymentUrl: "https://orch.example.hana.ondemand.com/",
+    },
+  ],
+};
+
+/** A RUNNING deployment that has nothing to do with orchestration (P2 fix regression fixture). */
+const UNRELATED_DEPLOYMENT_RESPONSE = {
+  count: 1,
+  resources: [
+    {
+      id: "d3",
+      status: "RUNNING",
+      configurationName: "some-other-apps-config",
+      scenarioId: "foundation-models",
+      deploymentUrl: "https://unrelated.example.hana.ondemand.com/",
+    },
+  ],
+};
+
+/** A RUNNING orchestration deployment recognizable only by scenarioId, not the default name. */
+const CUSTOM_NAMED_ORCHESTRATION_DEPLOYMENT_RESPONSE = {
+  count: 1,
+  resources: [
+    {
+      id: "d4",
+      status: "RUNNING",
+      configurationName: "custom-orchestration-config",
+      scenarioId: "llm-orchestration",
+      deploymentUrl: "https://custom-orch.example.hana.ondemand.com/",
     },
   ],
 };
@@ -189,6 +219,69 @@ describe("abap-mcp-genai MCP server wire", () => {
 
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(["explain_with_sap_abap_1", "list_genai_hub_models"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isDirectInvocation — the npm-symlink-bin safety fix (P1)
+//
+// npm installs `bin` entries as symlinks on Unix (node_modules/.bin/abap-mcp-genai ->
+// .../dist/genai.js), so process.argv[1] is the symlink path while import.meta.url is always the
+// physical file. These tests exercise the real filesystem (mkdtemp + symlinkSync) rather than
+// mocking fs, so a regression to the old plain-resolve() comparison shows up here exactly as it
+// would for the installed bin.
+// ---------------------------------------------------------------------------
+
+describe("isDirectInvocation (npm symlink bin safety, P1 fix)", () => {
+  const tmpDirs: string[] = [];
+  afterEach(() => {
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  it("returns true for a plain direct invocation (node dist/genai.js)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-genai-direct-"));
+    tmpDirs.push(dir);
+    const file = join(dir, "genai.js");
+    writeFileSync(file, "", "utf8");
+
+    expect(isDirectInvocation(file, pathToFileURL(file).href)).toBe(true);
+  });
+
+  it("returns true when argv[1] is a symlink to the module file — the installed-bin case", () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-genai-symlink-"));
+    tmpDirs.push(dir);
+    const distDir = join(dir, "dist");
+    const binDir = join(dir, ".bin");
+    mkdirSync(distDir);
+    mkdirSync(binDir);
+    const realFile = join(distDir, "genai.js");
+    writeFileSync(realFile, "", "utf8");
+    const symlinkPath = join(binDir, "abap-mcp-genai");
+    symlinkSync(realFile, symlinkPath);
+
+    // argv[1] is the symlink (what npm actually puts on the PATH); import.meta.url is always the
+    // physical file the runtime loaded. A plain resolve()-based comparison never matches this.
+    expect(isDirectInvocation(symlinkPath, pathToFileURL(realFile).href)).toBe(true);
+  });
+
+  it("returns false when argv[1] points at a different file (imported, not invoked)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-genai-other-"));
+    tmpDirs.push(dir);
+    const moduleFile = join(dir, "genai.js");
+    const otherFile = join(dir, "cli.js");
+    writeFileSync(moduleFile, "", "utf8");
+    writeFileSync(otherFile, "", "utf8");
+
+    expect(isDirectInvocation(otherFile, pathToFileURL(moduleFile).href)).toBe(false);
+  });
+
+  it("returns false when argv[1] is undefined", () => {
+    const dir = mkdtempSync(join(tmpdir(), "abap-mcp-genai-undef-"));
+    tmpDirs.push(dir);
+    const moduleFile = join(dir, "genai.js");
+    writeFileSync(moduleFile, "", "utf8");
+
+    expect(isDirectInvocation(undefined, pathToFileURL(moduleFile).href)).toBe(false);
   });
 });
 
@@ -359,6 +452,95 @@ describe("GenAiClient.resolveOrchestrationUrl", () => {
     } catch (err) {
       expect((err as McpToolError).kind).toBe("not_configured");
     }
+  });
+
+  it("does NOT fall back to an unrelated RUNNING deployment — errors instead (P2 fix)", async () => {
+    const { fetch: fetchImpl } = mockFetchSequence(tokenResponse(), jsonResponse(200, UNRELATED_DEPLOYMENT_RESPONSE));
+    const client = new GenAiClient({ serviceKey: TEST_SERVICE_KEY, fetchImpl });
+
+    try {
+      await client.resolveOrchestrationUrl();
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(McpToolError);
+      expect((err as McpToolError).kind).toBe("not_configured");
+      // Never silently selects the unrelated deployment's URL, and says so.
+      expect((err as McpToolError).message).not.toContain("unrelated.example.hana.ondemand.com");
+      expect((err as McpToolError).message).toContain("RUNNING");
+    }
+  });
+
+  it("selects a RUNNING orchestration deployment by scenarioId even without the default config name (P2 fix)", async () => {
+    const { fetch: fetchImpl } = mockFetchSequence(
+      tokenResponse(),
+      jsonResponse(200, CUSTOM_NAMED_ORCHESTRATION_DEPLOYMENT_RESPONSE),
+    );
+    const client = new GenAiClient({ serviceKey: TEST_SERVICE_KEY, fetchImpl });
+
+    const url = await client.resolveOrchestrationUrl();
+
+    expect(url).toBe("https://custom-orch.example.hana.ondemand.com");
+  });
+
+  it("AICORE_ORCHESTRATION_URL override wins over discovery even if discovery would fail", async () => {
+    // No responses queued at all — if the client ever attempted discovery, mockFetchSequence
+    // would throw "ran out of queued responses" and fail this test.
+    const { fetch: fetchImpl, calls } = mockFetchSequence();
+    const config = resolveConfigFromEnv({
+      AICORE_SERVICE_KEY: JSON.stringify(TEST_SERVICE_KEY),
+      AICORE_ORCHESTRATION_URL: "https://env-override.example.com/",
+    });
+    expect(config.orchestrationUrl).toBe("https://env-override.example.com/");
+
+    const client = new GenAiClient({
+      serviceKey: config.serviceKey,
+      orchestrationUrl: config.orchestrationUrl,
+      fetchImpl,
+    });
+
+    const url = await client.resolveOrchestrationUrl();
+
+    expect(url).toBe("https://env-override.example.com");
+    expect(calls.length).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GenAiClient — request timeout must bound the BODY read too (P2 fix)
+//
+// The pre-fix bug cleared the AbortController's timer as soon as fetch() resolved (i.e. once
+// response headers arrived), so a connection that stalled while streaming the body would hang
+// forever instead of timing out. This response has headers immediately but a body stream that
+// never enqueues or closes, so response.text() never settles on its own — only the fix (racing
+// the body read against the same abort signal) can make this call reject in bounded time.
+// ---------------------------------------------------------------------------
+
+describe("GenAiClient request timeout covers the body read, not just headers (P2 fix)", () => {
+  function hangingBodyResponse(status = 200): Response {
+    const neverSettles = new ReadableStream<Uint8Array>({
+      start() {
+        // Deliberately never enqueue or close: response.text() on this Response never resolves.
+      },
+    });
+    return new Response(neverSettles, { status });
+  }
+
+  it("rejects with kind timeout, within the configured timeout, when the body never resolves", async () => {
+    const { fetch: fetchImpl } = mockFetchSequence(tokenResponse(), hangingBodyResponse());
+    const client = new GenAiClient({ serviceKey: TEST_SERVICE_KEY, requestTimeoutMs: 60, fetchImpl });
+
+    const start = Date.now();
+    try {
+      await client.listModels();
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(McpToolError);
+      expect((err as McpToolError).kind).toBe("timeout");
+    }
+    // Bounded by ~requestTimeoutMs, not by vitest's own (much longer) per-test timeout — proves
+    // the fix actually aborts the stalled body read instead of merely letting the test runner
+    // eventually kill a hung promise.
+    expect(Date.now() - start).toBeLessThan(2000);
   });
 });
 

@@ -303,7 +303,7 @@ so in every result's `scopeNote`. It is **opt-in** on the MCP surface
 ```bash
 claude mcp add abap-mcp --env ABAP_MCP_ENABLE_RUN=1 -- npx -y abap-mcp   # opt in on the MCP surface
 npx abap-mcp unittest --run src/                        # every test class found under src/
-npx abap-mcp unittest --run src/ --only ZCL_CALC>ADD_WORKS --timeout-ms 10000
+npx abap-mcp unittest --run src/ --only "ZCL_CALC>ADD_WORKS" --timeout-ms 10000
 ```
 
 With an assistant: *"Write the failing test first with scaffold_abap_unit, then run_abap_unit

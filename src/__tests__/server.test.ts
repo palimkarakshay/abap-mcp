@@ -242,6 +242,68 @@ describe("MCP server wire", () => {
     expect(migrationFindings).toBe(plan.summary.cloudBlockerCount);
   });
 
+  // I_UnitOfMeasureTechnicalName is deprecated on s4hc/btp but released on pce
+  // in the bundled snapshot (src/data/released-apis.*.json) — a real case of
+  // an object whose released-API state genuinely differs by edition.
+  const UOM_CLASS_SOURCE =
+    "CLASS zcl_uom DEFINITION PUBLIC FINAL CREATE PUBLIC.\n PUBLIC SECTION.\n METHODS load.\nENDCLASS.\n" +
+    "CLASS zcl_uom IMPLEMENTATION.\n METHOD load.\n SELECT SINGLE unitofmeasure FROM I_UnitOfMeasureTechnicalName INTO @DATA(lv).\n ENDMETHOD.\nENDCLASS.";
+
+  it("plan_cloud_migration forwards edition into the released-API phase", async () => {
+    const client = await connectedClient();
+    const files = [{ filename: "zcl_uom.clas.abap", source: UOM_CLASS_SOURCE }];
+
+    const s4hc = (await client.callTool({
+      name: "plan_cloud_migration",
+      arguments: { files },
+    })) as {
+      isError?: boolean;
+      structuredContent?: { phases: { kind: string; items: { locations: { excerpt: string }[] }[] }[] };
+    };
+    expect(s4hc.isError ?? false).toBe(false);
+    const s4hcReleasedApiPhase = s4hc.structuredContent!.phases.find((p) => p.kind === "released-api");
+    expect(s4hcReleasedApiPhase).toBeDefined();
+    expect(
+      s4hcReleasedApiPhase!.items.some((i) => i.locations.some((l) => l.excerpt === "I_UNITOFMEASURETECHNICALNAME")),
+    ).toBe(true);
+
+    const pce = (await client.callTool({
+      name: "plan_cloud_migration",
+      arguments: { files, edition: "pce" },
+    })) as { isError?: boolean; structuredContent?: { phases: { kind: string }[] } };
+    expect(pce.isError ?? false).toBe(false);
+    expect(pce.structuredContent!.phases.some((p) => p.kind === "released-api")).toBe(false);
+  });
+
+  it("get_object_dependencies forwards edition so a node's releasedState differs by edition", async () => {
+    const client = await connectedClient();
+    const files = [{ filename: "zcl_uom.clas.abap", source: UOM_CLASS_SOURCE }];
+
+    const s4hc = (await client.callTool({
+      name: "get_object_dependencies",
+      arguments: { files },
+    })) as {
+      isError?: boolean;
+      structuredContent?: { nodes: { name: string; releasedState?: string }[]; edition?: string };
+    };
+    expect(s4hc.isError ?? false).toBe(false);
+    expect(s4hc.structuredContent!.edition).toBe("s4hc");
+    const s4hcNode = s4hc.structuredContent!.nodes.find((n) => n.name === "I_UNITOFMEASURETECHNICALNAME");
+    expect(s4hcNode?.releasedState).toBe("deprecated");
+
+    const pce = (await client.callTool({
+      name: "get_object_dependencies",
+      arguments: { files, edition: "pce" },
+    })) as {
+      isError?: boolean;
+      structuredContent?: { nodes: { name: string; releasedState?: string }[]; edition?: string };
+    };
+    expect(pce.isError ?? false).toBe(false);
+    expect(pce.structuredContent!.edition).toBe("pce");
+    const pceNode = pce.structuredContent!.nodes.find((n) => n.name === "I_UNITOFMEASURETECHNICALNAME");
+    expect(pceNode?.releasedState).toBe("released");
+  });
+
   it("lists the four guided-workflow prompts and renders one", async () => {
     const client = await connectedClient();
     const { prompts } = await client.listPrompts();

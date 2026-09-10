@@ -273,6 +273,14 @@ across calls (§8's statelessness is worth 1.3 s); running the tests in-process 
 loop would take the server with it); Node's experimental permission model (it would break Node 20,
 which `engines` still supports); claiming ATC or activation coverage of any kind.
 
+**2026-09-10 (post-review hardening).** `WRITE '@KERNEL ...'.` emits raw JavaScript, not
+transpiled ABAP, so every source is now scanned (case-insensitive) and the run refused first.
+The permission-model rejection above no longer holds: `engines.node` moved to `>=22` (matching
+`@abaplint/core@2.120.48`'s own floor), so the child also runs under `--permission` there (temp
+dir + the runtime's dependency graph only, no child processes/workers — `sandbox` on
+`UnitRunResult`; older Node stays unsandboxed). The CLI no longer truncates >32 files or exits 0
+on zero discovered test methods.
+
 ## 17. Bundled knowledge base + the licensing boundary — 2026-09-10
 
 `explain_abap_release` / `search_sap_knowledge` needed dated SAP facts (release deltas, Clean Core
