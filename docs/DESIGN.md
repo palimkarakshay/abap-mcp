@@ -357,3 +357,47 @@ inspector) before the model ever sees the message.
 
 **Rejected:** a separate error `outputSchema` per tool (more surface to keep honest than the fixed
 three-line text contract); silently swallowing `hint`/`nextTools` when absent (empty is signal too).
+
+## 22. A native BDEF/SRVD checker, and a fourth `validated` label — 2026-09-10
+
+`abaplint` does not deep-parse RAP behavior definitions (`behavior_definition.js` is one regex and
+`listEntities()`) and does not parse service definitions at all (`service_definition.js` is a naming
+stub). So every BDEF and SRVD this server ever saw produced **zero findings** — and a caller could
+not tell "clean" from "not parsed". That silence is the honesty problem `check_rap_behavior` exists
+to fix: a tokenizer, a recursive-descent BDL/SDL grammar, and a rule registry of our own
+(`src/abap/rap/`), fed by SAP's published feature tables and keyword documentation plus a 102-file
+corpus of Apache-2.0 SAP sample sources (`evals/rap/fixtures/`).
+
+**The fourth label.** `ScaffoldFile.validated` becomes four-valued: `"abaplint"` (real parser),
+`"abaplint-syntax"` (§19 — our own AIC stubs), `"template"` (golden-tested only), and now
+`"rap-checker"` — parsed by our own BDL/SDL parser at a stamped `grammarVersion` **and** checked
+against the rule set at a stamped `rulesVersion` with zero error/warning findings. It explicitly
+does not claim abaplint parsed it, that SAP's parser would accept it, or that the object would
+activate; `RAP_SCOPE_NOTE` says so on every report, the way `KNOWLEDGE_SCOPE_NOTE` dates the
+knowledge base. The label is never the optimistic default: a file with findings keeps `"template"`
+and the findings surface. `.ddlx.asddlx` stays `"template"` — nothing checks metadata extensions,
+and inventing a claim there would repeat exactly the mistake §5 was written to avoid.
+
+**Two-tier parsing, non-negotiable.** The corpus is a *sample* of BDL, not the language: six legal
+constructs never appear in it and twelve more have no confirmed syntax diagram. A parser built to
+reject what it does not recognise would report legal RAP as broken. So punctuation-level breakage is
+`RAP-PARSE` at severity `error`, and a well-formed statement outside our vocabulary is `RAP000` at
+severity **`info`** with a message that says it is a limit of the checker, not a defect in the file.
+Rules of the form *"X must be declared"* suppress themselves when an unreadable statement could have
+been that X, and `summary.suppressedByUnknown` counts it, so a coverage gap is measurable rather
+than invisible. The same instinct sets the severity policy: only `confidence: "confirmed"` rules may
+be `error`; inferred/community-reported/conflicting ones are capped at `warning` and carry a
+bracketed provenance clause. A test enforces both halves, and a checked-in expectation file pins
+what the rule set produces on SAP's own samples so a false-positive regression fails CI.
+
+**`lint_abap` routes and merges** (`rapCheck`, default `true`; CLI `--no-rap`): the RAP findings come
+back namespaced `rap/RAP026` with abaplint's severity casing, and `rapChecked`/`rapScopeNote` say
+whether the second checker ran. An agent linting an abapGit directory should not have to know to call
+a second tool for the two file types that produce nothing without it.
+
+**Rejected:** folding RAP findings into `check_cloud_readiness` (readiness is `diff(Cloud, baseline)`
+and BDL has no classic dialect to diff — it would repeat the `releasedApiFindings` mistake §4's
+invariant already forbids); making the parser strict enough to reject unknown constructs (see above);
+implementing the catalog rules that need behavior-pool classes, DDIC tables or CDS field types
+(RAP015/RAP027/RAP042/RAP043/RAP055 and the composition-tree set) — a BDEF-only checker can only
+guess there, and a guessed error is worse than no tool.

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-09-10T13:56:16.445Z",
+  "generatedAt": "2026-09-10T19:12:24.599Z",
   "mode": "offline-metadata",
   "summary": {
     "passed": true,
-    "cases": 33,
-    "passingCases": 33,
+    "cases": 35,
+    "passingCases": 35,
     "failingCases": 0,
-    "toolCount": 18,
+    "toolCount": 19,
     "promptCount": 4,
     "abstentionCases": 7,
     "correctAbstentions": 7,
@@ -18,7 +18,7 @@
       "kind": "tool",
       "name": "lint_abap",
       "title": "Lint ABAP source",
-      "description": "Run abaplint static analysis over ABAP, CDS or behavior-definition sources and return structured findings (rule key, message, severity, file/line/column, the offending line, and a docs URL per finding). Use this when you have written or modified ABAP code and want style and correctness feedback before it goes anywhere near a system — it runs entirely offline on the provided text. It does not connect to any SAP system, does not run ATC, and cannot judge whether referenced objects exist unless you provide them in the same call (preset \"style\", the default, skips whole-program checks for that reason; preset \"full\" enables them when you provide every dependency). A focus tag turns a pass into a themed review (performance / security / Clean ABAP style) without hand-picking rules; rule overrides layer a team's own pack on top. For an ABAP-Cloud migration verdict use check_cloud_readiness instead. Example: lint_abap({ \"files\": [ { \"source\": \"REPORT ztest.\\nDATA foo TYPE i.\\nIF foo = 1.\\nENDIF.\" } ] })."
+      "description": "Run abaplint static analysis over ABAP, CDS or behavior-definition sources and return structured findings (rule key, message, severity, file/line/column, the offending line, and a docs URL per finding). Use this when you have written or modified ABAP code and want style and correctness feedback before it goes anywhere near a system — it runs entirely offline on the provided text. It does not connect to any SAP system, does not run ATC, and cannot judge whether referenced objects exist unless you provide them in the same call (preset \"style\", the default, skips whole-program checks for that reason; preset \"full\" enables them when you provide every dependency). A focus tag turns a pass into a themed review (performance / security / Clean ABAP style) without hand-picking rules; rule overrides layer a team's own pack on top. For an ABAP-Cloud migration verdict use check_cloud_readiness instead. When the call contains a .bdef.asbdef or .srvd.srvdsrv file, abap-mcp's own RAP checker also runs over the whole set and its findings are merged in under rap/ rule keys (abaplint does not deep-parse those file types, so without this they would silently produce nothing); set rapCheck:false to opt out, or call check_rap_behavior for the full structured RAP report with hints, confidence and the scope note. Example: lint_abap({ \"files\": [ { \"source\": \"REPORT ztest.\\nDATA foo TYPE i.\\nIF foo = 1.\\nENDIF.\" } ] })."
     },
     {
       "kind": "tool",
@@ -118,6 +118,12 @@
     },
     {
       "kind": "tool",
+      "name": "check_rap_behavior",
+      "title": "Check a RAP behavior/service definition",
+      "description": "Check RAP behavior definitions (.bdef.asbdef) and CDS service definitions (.srvd.srvdsrv) for syntax and structural-consistency defects, offline, using abap-mcp's own BDL/SDL parser — abaplint does not deep-parse either file type (it stores a BDEF behind a single regex and a SRVD not at all), so this is the only static feedback these files get without a system. Reports the draft/etag/lock/authorization/numbering consistency set, strict-mode obligations, action/operation/validation/determination/side-effect coherence, projection 'use' statements against the base BDEF, and service 'expose' sets against the CDS entities you pass in the same call; with abapRelease set, it also flags constructs newer than that release from a bundled, dated copy of SAP's RAP BDL feature table. Use this when you have written or generated a BDEF/SRVD (by hand, from scaffold_rap_bo, or from a model that may have invented RAP syntax) and want it checked before it reaches ADT — and pass the base BDEF and the .ddls.asddls views alongside it, because the cross-file rules only run on files present in the call. It does NOT connect to SAP, does not activate anything, does not run ATC, cannot see DDIC tables, behavior-pool classes or CDS field types, and cannot certify that ADT would accept the file — the grammar is derived from SAP's published feature tables plus a 102-file corpus of Apache-2.0 SAP sample sources, so constructs it does not recognise are reported as info, never as errors. For ABAP classes use lint_abap; for a new BO use scaffold_rap_bo; for what a release added use explain_abap_release. Example: check_rap_behavior({ \"files\": [ { \"filename\": \"zr_travel.bdef.asbdef\", \"source\": \"managed implementation in class zbp_travel unique;\\nstrict ( 2 );\\nwith draft;\\n\\ndefine behavior for ZR_Travel alias Travel\\npersistent table ztravel\\nlock master\\n{ create; }\\n\" } ], \"abapRelease\": \"2508\" })."
+    },
+    {
+      "kind": "tool",
       "name": "run_abap_unit",
       "title": "Run ABAP Unit tests offline",
       "description": "Execute the ABAP Unit tests in the provided sources offline: the code is transpiled to JavaScript by @abaplint/transpiler against the bundled open-abap kernel library, and this tool then runs the transpiled JavaScript in a local subprocess (server-owned temp directory, hard timeout, scrubbed environment, no shell, no network) and returns one structured row per test method — pass / fail / error / skipped with the assertion's expected and actual values, the message, the runtime and the JavaScript location. The honest static lint at your target ABAP version comes back in the same result, independent of the run. Use this when you have just written or changed ABAP logic and want real execution feedback before it goes near a system — the red-green loop for algorithms, calculations, parsing, string/table handling and refactorings, and the verification step after fix_abap or a model rewrite. It is NOT the SAP ABAP kernel: there is no database (any ABAP SQL aborts the method), no CDS, no EML/RAP runtime, no AMDP, no authority checks and no locks; it does not connect to a system, does not activate anything, does not run ATC, and cannot prove the code behaves the same on SAP's kernel — a green run is evidence about pure logic, and ABAP Unit on a real system remains authoritative. Constructs it cannot execute come back in `unsupported` rather than as a false pass. Takes ~4 s per call (parse + transpile dominate). Example: run_abap_unit({ \"files\": [ { \"filename\": \"zcl_calc.clas.abap\", \"source\": \"CLASS zcl_calc DEFINITION PUBLIC FINAL CREATE PUBLIC.\\n…\" }, { \"filename\": \"zcl_calc.clas.testclasses.abap\", \"source\": \"CLASS ltcl_calc DEFINITION FINAL FOR TESTING…\" } ] })."
@@ -165,12 +171,12 @@
           "kind": "tool",
           "name": "lint_abap"
         },
-        "reason": "top metadata score 18.14; margin 3.54",
+        "reason": "top metadata score 15.964; margin 1.364",
         "ranking": [
           {
             "kind": "tool",
             "name": "lint_abap",
-            "score": 18.14,
+            "score": 15.964,
             "matched": [
               "abap",
               "analysi",
@@ -313,15 +319,13 @@
             ]
           },
           {
-            "kind": "tool",
-            "name": "lint_abap",
-            "score": 9.42,
+            "kind": "prompt",
+            "name": "abap-migration-plan",
+            "score": 9.3,
             "matched": [
               "abap",
-              "clean",
               "cloud",
-              "readiness",
-              "report"
+              "ready"
             ]
           }
         ]
@@ -345,7 +349,7 @@
           "kind": "tool",
           "name": "scaffold_rap_bo"
         },
-        "reason": "top metadata score 25.092; margin 13.592",
+        "reason": "top metadata score 25.092; margin 2.672",
         "ranking": [
           {
             "kind": "tool",
@@ -369,6 +373,25 @@
               "service",
               "travel",
               "ui"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_rap_behavior",
+            "score": 22.42,
+            "matched": [
+              "behavior",
+              "cds",
+              "create",
+              "definition",
+              "draft",
+              "manag",
+              "new",
+              "projection",
+              "rap",
+              "scaffold",
+              "service",
+              "travel"
             ]
           },
           {
@@ -403,17 +426,6 @@
               "generate",
               "scaffold",
               "travel"
-            ]
-          },
-          {
-            "kind": "prompt",
-            "name": "abap-mentor",
-            "score": 6.62,
-            "matched": [
-              "new",
-              "object",
-              "rap",
-              "scaffold"
             ]
           }
         ]
@@ -465,19 +477,6 @@
           },
           {
             "kind": "tool",
-            "name": "lint_abap",
-            "score": 9.9,
-            "matched": [
-              "abaplint",
-              "check",
-              "code",
-              "rule",
-              "security",
-              "source"
-            ]
-          },
-          {
-            "kind": "tool",
             "name": "explain_abap_rule",
             "score": 8.9,
             "matched": [
@@ -485,6 +484,19 @@
               "check",
               "code",
               "rule"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 7.5,
+            "matched": [
+              "abaplint",
+              "check",
+              "code",
+              "rule",
+              "security",
+              "source"
             ]
           },
           {
@@ -613,7 +625,7 @@
           "kind": "tool",
           "name": "format_abap"
         },
-        "reason": "top metadata score 17.724; margin 5.624",
+        "reason": "top metadata score 17.724; margin 8.524",
         "ranking": [
           {
             "kind": "tool",
@@ -632,21 +644,21 @@
           },
           {
             "kind": "tool",
-            "name": "lint_abap",
-            "score": 12.1,
+            "name": "get_abap_outline",
+            "score": 9.2,
             "matched": [
               "abap",
-              "behavior",
               "source",
               "without"
             ]
           },
           {
             "kind": "tool",
-            "name": "get_abap_outline",
-            "score": 9.2,
+            "name": "lint_abap",
+            "score": 8.9,
             "matched": [
               "abap",
+              "behavior",
               "source",
               "without"
             ]
@@ -931,13 +943,14 @@
           },
           {
             "kind": "tool",
-            "name": "lint_abap",
-            "score": 11.3,
+            "name": "get_object_dependencies",
+            "score": 9.92,
             "matched": [
               "abap",
               "cloud",
-              "finding",
-              "source"
+              "rework",
+              "source",
+              "were"
             ]
           }
         ]
@@ -1004,18 +1017,6 @@
             ]
           },
           {
-            "kind": "tool",
-            "name": "lint_abap",
-            "score": 11.2,
-            "matched": [
-              "abap",
-              "file",
-              "migration",
-              "structur",
-              "turn"
-            ]
-          },
-          {
             "kind": "prompt",
             "name": "abap-from-spec",
             "score": 10.22,
@@ -1038,6 +1039,18 @@
               "migration",
               "output",
               "work"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "get_object_dependencies",
+            "score": 9.92,
+            "matched": [
+              "abap",
+              "file",
+              "migration",
+              "output",
+              "plan"
             ]
           }
         ]
@@ -1471,19 +1484,6 @@
           },
           {
             "kind": "tool",
-            "name": "lint_abap",
-            "score": 10.8,
-            "matched": [
-              "abap",
-              "clean",
-              "cloud",
-              "readiness",
-              "source",
-              "without"
-            ]
-          },
-          {
-            "kind": "tool",
             "name": "plan_cloud_migration",
             "score": 10.3,
             "matched": [
@@ -1502,6 +1502,19 @@
               "abap",
               "cloud",
               "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 9.2,
+            "matched": [
+              "abap",
+              "clean",
+              "cloud",
+              "readiness",
+              "source",
+              "without"
             ]
           }
         ]
@@ -1525,7 +1538,7 @@
           "kind": "tool",
           "name": "list_abap_rules"
         },
-        "reason": "top metadata score 13.288; margin 0.184",
+        "reason": "top metadata score 13.288; margin 2.36",
         "ranking": [
           {
             "kind": "tool",
@@ -1543,7 +1556,7 @@
           {
             "kind": "tool",
             "name": "lint_abap",
-            "score": 13.104,
+            "score": 10.928,
             "matched": [
               "abaplint",
               "analysi",
@@ -1901,6 +1914,16 @@
             ]
           },
           {
+            "kind": "tool",
+            "name": "check_rap_behavior",
+            "score": 6.3,
+            "matched": [
+              "implementation",
+              "rap",
+              "travel"
+            ]
+          },
+          {
             "kind": "prompt",
             "name": "abap-mentor",
             "score": 4.8,
@@ -1915,14 +1938,6 @@
             "score": 3.5,
             "matched": [
               "rap"
-            ]
-          },
-          {
-            "kind": "tool",
-            "name": "get_object_dependencies",
-            "score": 1.3,
-            "matched": [
-              "build"
             ]
           }
         ]
@@ -2024,7 +2039,7 @@
           "kind": "tool",
           "name": "explain_abap_release"
         },
-        "reason": "top metadata score 18.2; margin 13.2",
+        "reason": "top metadata score 18.2; margin 5.2",
         "ranking": [
           {
             "kind": "tool",
@@ -2032,6 +2047,22 @@
             "score": 18.2,
             "matched": [
               "chang",
+              "draft",
+              "effect",
+              "explain",
+              "rap",
+              "release",
+              "side",
+              "source"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_rap_behavior",
+            "score": 13,
+            "matched": [
+              "2508",
+              "action",
               "draft",
               "effect",
               "explain",
@@ -2067,14 +2098,6 @@
               "rap",
               "release",
               "source"
-            ]
-          },
-          {
-            "kind": "prompt",
-            "name": "abap-from-spec",
-            "score": 3.5,
-            "matched": [
-              "rap"
             ]
           }
         ]
@@ -2244,6 +2267,18 @@
           },
           {
             "kind": "tool",
+            "name": "check_rap_behavior",
+            "score": 10.2,
+            "matched": [
+              "base",
+              "bundl",
+              "check",
+              "definition",
+              "sap"
+            ]
+          },
+          {
+            "kind": "tool",
             "name": "scaffold_abap_unit",
             "score": 6.7,
             "matched": [
@@ -2251,17 +2286,6 @@
               "definition",
               "level",
               "no"
-            ]
-          },
-          {
-            "kind": "tool",
-            "name": "get_object_dependencies",
-            "score": 5.9,
-            "matched": [
-              "bundl",
-              "definition",
-              "level",
-              "sap"
             ]
           }
         ]
@@ -2409,8 +2433,21 @@
           },
           {
             "kind": "tool",
+            "name": "run_abap_unit",
+            "score": 17.9,
+            "matched": [
+              "abap",
+              "lint",
+              "loop",
+              "run",
+              "test",
+              "unit"
+            ]
+          },
+          {
+            "kind": "tool",
             "name": "lint_abap",
-            "score": 18.004,
+            "score": 15.028,
             "matched": [
               "abap",
               "analysi",
@@ -2423,19 +2460,6 @@
               "rule",
               "run",
               "style"
-            ]
-          },
-          {
-            "kind": "tool",
-            "name": "run_abap_unit",
-            "score": 17.9,
-            "matched": [
-              "abap",
-              "lint",
-              "loop",
-              "run",
-              "test",
-              "unit"
             ]
           },
           {
@@ -2533,11 +2557,159 @@
           {
             "kind": "tool",
             "name": "lint_abap",
-            "score": 8.6,
+            "score": 7.8,
             "matched": [
               "abap",
               "offline",
               "pass"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "rap-behavior-consistency",
+      "intent": "Check this RAP behavior definition for draft/etag/lock consistency before I activate it",
+      "expected": {
+        "kind": "tool",
+        "name": "check_rap_behavior"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "rap"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "check_rap_behavior"
+        },
+        "reason": "top metadata score 26.9; margin 19.3",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "check_rap_behavior",
+            "score": 26.9,
+            "matched": [
+              "behavior",
+              "check",
+              "consistency",
+              "definition",
+              "draft",
+              "etag",
+              "lock",
+              "rap"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_release",
+            "score": 7.6,
+            "matched": [
+              "check",
+              "draft",
+              "rap"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "scaffold_rap_bo",
+            "score": 7.5,
+            "matched": [
+              "behavior",
+              "definition",
+              "draft",
+              "rap"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_cloud_readiness",
+            "score": 6,
+            "matched": [
+              "check"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "check_released_api",
+            "score": 5.2,
+            "matched": [
+              "check"
+            ]
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "id": "srvd-expose-and-contract",
+      "intent": "Does this CDS service definition expose the right entities and is the provider contract valid?",
+      "expected": {
+        "kind": "tool",
+        "name": "check_rap_behavior"
+      },
+      "tags": [
+        "tool",
+        "direct",
+        "rap"
+      ],
+      "actual": {
+        "selected": {
+          "kind": "tool",
+          "name": "check_rap_behavior"
+        },
+        "reason": "top metadata score 8.5; margin 5.9",
+        "ranking": [
+          {
+            "kind": "tool",
+            "name": "check_rap_behavior",
+            "score": 8.5,
+            "matched": [
+              "cds",
+              "definition",
+              "entity",
+              "expose",
+              "service"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "explain_abap_release",
+            "score": 2.6,
+            "matched": [
+              "cds",
+              "entity"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "get_object_dependencies",
+            "score": 2.6,
+            "matched": [
+              "cds",
+              "definition"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "lint_abap",
+            "score": 2.6,
+            "matched": [
+              "cds",
+              "definition"
+            ]
+          },
+          {
+            "kind": "tool",
+            "name": "scaffold_rap_bo",
+            "score": 2,
+            "matched": [
+              "cds",
+              "definition",
+              "entity",
+              "service"
             ]
           }
         ]

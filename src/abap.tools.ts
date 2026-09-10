@@ -12,12 +12,13 @@ import atcVocabularyData from "./data/atc-vocabulary.json" with { type: "json" }
 
 import { compareAbap } from "./abap/compare.js";
 import { getObjectDependencies } from "./abap/deps.js";
-import { ABAP_VERSIONS, FOCUS_TAGS, runAbaplint } from "./abap/engine.js";
+import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FINDINGS, runAbaplint } from "./abap/engine.js";
 import { fixAbap } from "./abap/fix.js";
 import { formatAbap } from "./abap/formatter.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
 import { planCloudMigration } from "./abap/plan.js";
 import { checkCloudReadiness } from "./abap/readiness.js";
+import { RAP_SCOPE_NOTE, checkRapBehavior, containsRapFiles, rapFindingsToLintFindings } from "./abap/rap/index.js";
 import {
   DEFAULT_EDITION,
   lookupReleased,
@@ -34,6 +35,7 @@ import { defineTool } from "./tool.js";
 import { AGENT_RULES_TOOLS } from "./tools/agent-rules.tools.js";
 import { AISDK_TOOLS } from "./tools/aisdk.tools.js";
 import { KNOWLEDGE_TOOLS } from "./tools/knowledge.tools.js";
+import { RAP_TOOLS } from "./tools/rap.tools.js";
 
 const VERSION_ENUM = z.enum(ABAP_VERSIONS);
 // Literal tuple (not RELEASED_EDITIONS directly) so the inferred zod type is
@@ -114,6 +116,10 @@ export const lintAbap = defineTool({
     "preset \"full\" enables them when you provide every dependency). A focus tag turns a pass into a themed review " +
     "(performance / security / Clean ABAP style) without hand-picking rules; rule overrides layer a team's own pack " +
     "on top. For an ABAP-Cloud migration verdict use check_cloud_readiness instead. " +
+    "When the call contains a .bdef.asbdef or .srvd.srvdsrv file, abap-mcp's own RAP checker also runs over the " +
+    "whole set and its findings are merged in under rap/ rule keys (abaplint does not deep-parse those file " +
+    "types, so without this they would silently produce nothing); set rapCheck:false to opt out, or call " +
+    "check_rap_behavior for the full structured RAP report with hints, confidence and the scope note. " +
     `Example: ${sevenSampleAbap}.`,
   inputSchema: {
     files: filesField,
@@ -133,11 +139,29 @@ export const lintAbap = defineTool({
         'abaplint rule overrides merged onto the preset (and onto a focus filter), e.g. { "line_length": { "length": 120 }, "7bit_ascii": false } — encode an org\'s best-practice pack here.',
       ),
     focus: focusField,
+    rapCheck: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Also run abap-mcp's own RAP behavior/service-definition checker when the call contains a .bdef.asbdef " +
+          'or .srvd.srvdsrv file, merging its findings under namespaced "rap/RAP026"-style rule keys. Default ' +
+          "true — abaplint returns nothing at all for those file types. Set false for abaplint-only output " +
+          "(e.g. a CI that compares finding counts across versions).",
+      ),
   },
   outputSchema: {
     findings: z.array(findingShape),
-    truncated: z.boolean().describe("True if more than 500 findings existed and the list was cut."),
+    truncated: z
+      .boolean()
+      .describe("True if the list was cut short — more than 500 findings, or the RAP checker hit one of its own caps."),
     fileCount: z.number().describe("Number of files analyzed."),
+    rapChecked: z
+      .boolean()
+      .describe("True when the RAP checker ran (the call held a BDEF/SRVD and rapCheck was on); its findings carry rap/ rule keys."),
+    rapScopeNote: z
+      .string()
+      .optional()
+      .describe("Present only when rapChecked is true: what the RAP checker proves and does not prove."),
   },
   annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
   examples: [
@@ -170,15 +194,37 @@ export const lintAbap = defineTool({
       rules: args.rules,
       focus: args.focus,
     });
+    // Spec §5.2: route and merge. abaplint findings first, then the RAP ones,
+    // capped jointly by the same MAX_FINDINGS the engine uses.
+    const rapChecked = args.rapCheck && containsRapFiles(args.files);
+    const findings = [...result.findings];
+    // The RAP report's own truncation has to survive the merge: a RAP run
+    // that hit a parser or finding cap is a short report, and reporting
+    // `truncated: false` over it told the caller they were seeing everything.
+    let rapTruncated = false;
+    if (rapChecked) {
+      const rapReport = checkRapBehavior(args.files);
+      rapTruncated = rapReport.summary.truncated;
+      findings.push(...rapFindingsToLintFindings(rapReport.findings));
+    }
+    const truncated = result.truncated || rapTruncated || findings.length > MAX_FINDINGS;
+    if (findings.length > MAX_FINDINGS) findings.length = MAX_FINDINGS;
+    const merged = {
+      findings,
+      truncated,
+      fileCount: result.fileCount,
+      rapChecked,
+      ...(rapChecked ? { rapScopeNote: RAP_SCOPE_NOTE } : {}),
+    };
     const text =
-      result.findings.length === 0
-        ? `No findings in ${result.fileCount} file(s).`
-        : result.findings
+      merged.findings.length === 0
+        ? `No findings in ${merged.fileCount} file(s).`
+        : merged.findings
             .map((f) => `${f.file}:${f.line} [${f.severity}] ${f.rule}: ${f.message}`)
             .join("\n");
     return {
       content: [{ type: "text", text }],
-      structuredContent: result as unknown as Record<string, unknown>,
+      structuredContent: merged as unknown as Record<string, unknown>,
     };
   },
 });
@@ -341,8 +387,12 @@ export const scaffoldRapBoTool = defineTool({
         filename: z.string().describe("abapGit-conventional filename."),
         content: z.string().describe("Complete source, ready to paste into ADT or commit via abapGit."),
         validated: z
-          .enum(["abaplint", "template"])
-          .describe('"abaplint" = machine-parsed at Cloud level; "template" = golden-tested canonical template.'),
+          .enum(["abaplint", "template", "rap-checker"])
+          .describe(
+            '"abaplint" = machine-parsed at Cloud level; "rap-checker" = parsed and rule-checked by abap-mcp\'s ' +
+              'own RAP BDL/SDL checker with zero error/warning findings; "template" = golden-tested canonical ' +
+              "template only (the metadata extension — nothing machine-checks it).",
+          ),
       }),
     ),
     activationOrder: z.array(z.string()).describe("The order to create/activate artifacts in ADT."),
@@ -351,6 +401,9 @@ export const scaffoldRapBoTool = defineTool({
     validationIssues: z
       .array(z.unknown())
       .describe("abaplint findings on the generated sources — empty in normal operation."),
+    rapFindings: z
+      .array(z.unknown())
+      .describe("abap-mcp's own RAP checker findings on the generated BDEF/SRVD set — empty in normal operation."),
   },
   annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
   examples: [
@@ -390,7 +443,10 @@ export const scaffoldRapBoTool = defineTool({
       `(${result.files.map((f) => f.filename).join(", ")}). ` +
       (result.validationIssues.length === 0
         ? "All machine-checkable sources passed abaplint at Cloud level."
-        : `WARNING: ${result.validationIssues.length} abaplint finding(s) on generated code.`);
+        : `WARNING: ${result.validationIssues.length} abaplint finding(s) on generated code.`) +
+      (result.rapFindings.length === 0
+        ? ' Behavior and service definitions passed abap-mcp\'s own RAP checker (validated:"rap-checker").'
+        : ` WARNING: ${result.rapFindings.length} RAP checker finding(s) on the generated BDEF/SRVD.`);
     return {
       content: [{ type: "text", text }],
       structuredContent: result as unknown as Record<string, unknown>,
@@ -1189,6 +1245,7 @@ export const ALL_TOOLS: readonly AnyToolSpec[] = [
   ...KNOWLEDGE_TOOLS,
   ...AISDK_TOOLS,
   ...AGENT_RULES_TOOLS,
+  ...RAP_TOOLS,
 ];
 
 export const tools = ALL_TOOLS;

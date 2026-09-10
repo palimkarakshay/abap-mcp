@@ -8,13 +8,23 @@
  */
 import { scaffoldAbapAiSdk } from "./abap/aisdk.js";
 import type { AisdkInteraction } from "./abap/aisdk.js";
-import { explainAbapRelease, lookupSapKnowledge } from "./abap/knowledge.js";
-import type { KnowledgeArea } from "./abap/knowledge.js";
+import type { AbapSource } from "./abap/engine.js";
+import { MAX_FILE_CHARS } from "./abap/engine.js";
+import { KNOWLEDGE_RELEASES, explainAbapRelease, lookupSapKnowledge } from "./abap/knowledge.js";
+import type { KnowledgeArea, KnowledgeRelease } from "./abap/knowledge.js";
+import { MAX_RAP_FILES, checkRapBehavior } from "./abap/rap/index.js";
 import { buildAgentRules } from "./tools/agent-rules.tools.js";
 
 export interface ExtraCliIo {
   out: (s: string) => void;
   err: (s: string) => void;
+  /**
+   * Reads analyzable sources from file/dir paths. Injected by the dispatcher
+   * in cli-commands.ts (which owns `collectFiles`) rather than imported from
+   * there: cli-commands.ts already imports this module, and a back-import
+   * would make the two files a cycle.
+   */
+  readSources?: (paths: string[]) => AbapSource[];
   writeFile?: (path: string, content: string) => void;
   /** Existence check for --out overwrite guarding (mirrors cmdScaffold/cmdUnittest in cli-commands.ts). */
   exists?: (path: string) => boolean;
@@ -26,7 +36,7 @@ export interface ExtraCliIo {
 // command with no topic/question and a usage error. Every other recognized
 // flag here (since/kind/product/limit/area/scenario/interaction/class/prefix/
 // out/target/paired/edition) takes a value.
-const BOOLEAN_FLAGS = new Set(["json", "test", "run", "force"]);
+const BOOLEAN_FLAGS = new Set(["json", "test", "run", "force", "strict"]);
 
 function flagsOf(argv: string[]): { flags: Map<string, string | true>; rest: string[] } {
   const flags = new Map<string, string | true>();
@@ -178,6 +188,121 @@ export function cmdAgentRules(argv: string[], io: ExtraCliIo): number {
     }),
   );
   return 0;
+}
+
+/**
+ * `abap-mcp rapcheck [paths…] [--release 2508] [--strict] [--json]`
+ *
+ * Spec §4.2. Sweeping a directory brings the `.ddls.asddls` views along
+ * automatically, which is what turns on the cross-file half of the rule set
+ * in the common case.
+ */
+export function cmdRapcheck(argv: string[], io: ExtraCliIo): number {
+  const { flags, rest } = flagsOf(argv);
+  const read = io.readSources;
+  if (read === undefined) {
+    io.err("rapcheck needs filesystem access; run it through the abap-mcp CLI.");
+    return 2;
+  }
+  const all = read(rest.length > 0 ? rest : ["."]);
+  const files = all.filter((f) => {
+    if (!/\.(?:bdef\.asbdef|srvd\.srvdsrv|ddls\.asddls)$/i.test(f.filename ?? "")) return false;
+    if (f.source.length > MAX_FILE_CHARS) {
+      // Sweep-friendly, like collectFiles: one oversized file must not kill a
+      // whole-repo run — and it is skipped loudly, never silently truncated.
+      io.err(`skip ${f.filename ?? "(unnamed)"}: ${f.source.length} chars exceeds the ${MAX_FILE_CHARS}-char cap`);
+      return false;
+    }
+    return true;
+  });
+  if (!files.some((f) => /\.(?:bdef\.asbdef|srvd\.srvdsrv)$/i.test(f.filename ?? ""))) {
+    io.err("No RAP behavior or service definitions found (.bdef.asbdef / .srvd.srvdsrv).");
+    return 2;
+  }
+
+  const releaseRaw = str(flags.get("release"));
+  if (releaseRaw !== undefined && !(KNOWLEDGE_RELEASES as readonly string[]).includes(releaseRaw)) {
+    io.err(`Unknown release "${releaseRaw}". Valid: ${KNOWLEDGE_RELEASES.join(", ")}`);
+    return 2;
+  }
+
+  // One call keeps the cross-file rules working; the library cap is the only
+  // ceiling (a bigger sweep is checked in batches of MAX_RAP_FILES, each
+  // batch self-contained — the same trade cmdLint makes with MAX_FILES).
+  const batches: AbapSource[][] = [];
+  for (let i = 0; i < files.length; i += MAX_RAP_FILES) batches.push(files.slice(i, i + MAX_RAP_FILES));
+
+  const reports = batches.map((batch) =>
+    checkRapBehavior(
+      batch.map((f) => ({ filename: f.filename, source: f.source })),
+      {
+        ...(releaseRaw !== undefined ? { abapRelease: releaseRaw as KnowledgeRelease } : {}),
+        ...(flags.has("strict") ? { strict: true } : {}),
+      },
+    ),
+  );
+  const first = reports[0]!;
+  const findings = reports.flatMap((r) => r.findings);
+  // `summary.*` is counted over the UNCAPPED finding set (see
+  // `checkRapBehavior`), so `errors` here is a fact about the sources — not
+  // about how much of the list survived the report cap. It has to be: when
+  // the cap dropped the errors, this command used to print "0 error(s)" and
+  // exit 0 on a file the checker had just judged invalid, and a CI gate built
+  // on that exit code waved it through.
+  const errors = reports.reduce((n, r) => n + r.summary.errors, 0);
+  const warnings = reports.reduce((n, r) => n + r.summary.warnings, 0);
+  const infos = reports.reduce((n, r) => n + r.summary.infos, 0);
+  const checked = reports.reduce((n, r) => n + r.summary.filesChecked, 0);
+  const omitted = reports.reduce((n, r) => n + r.summary.omitted, 0);
+
+  if (flags.has("json")) {
+    io.out(
+      JSON.stringify(
+        {
+          files: reports.flatMap((r) => r.files),
+          findings,
+          summary: {
+            errors,
+            warnings,
+            infos,
+            filesChecked: checked,
+            rulesRun: first.summary.rulesRun,
+            suppressedByUnknown: reports.reduce((n, r) => n + r.summary.suppressedByUnknown, 0),
+            unknownConstructs: reports.reduce((n, r) => n + r.summary.unknownConstructs, 0),
+            baseUnresolved: reports.reduce((n, r) => n + r.summary.baseUnresolved, 0),
+            omitted,
+            truncated: reports.some((r) => r.summary.truncated),
+          },
+          scopeNote: first.scopeNote,
+          grammarVersion: first.grammarVersion,
+          rulesVersion: first.rulesVersion,
+          ...(first.releaseGate !== undefined
+            ? {
+                releaseGate: {
+                  ...first.releaseGate,
+                  gatedConstructs: reports.reduce((n, r) => n + (r.releaseGate?.gatedConstructs ?? 0), 0),
+                },
+              }
+            : {}),
+          validated: first.validated,
+        },
+        null,
+        2,
+      ),
+    );
+    return errors > 0 ? 1 : 0;
+  }
+
+  for (const f of findings) io.out(`${f.severity} ${f.file}:${f.line}:${f.column} ${f.rule} ${f.message}`);
+  io.out(
+    `${errors} error(s), ${warnings} warning(s), ${infos} info(s) in ${checked} RAP file(s) ` +
+      (omitted > 0 ? `(${omitted} finding(s) omitted by the report cap) ` : "") +
+      `[grammar ${first.grammarVersion}, rules ${first.rulesVersion}]`,
+  );
+  // stdout carries the findings; the honesty note goes to stderr so `--json`
+  // and piped output stay machine-clean.
+  io.err(first.scopeNote);
+  return errors > 0 ? 1 : 0;
 }
 
 export const EXTRA_USAGE = `  release [--since 2502] [--kind rap|cds|sql|language|testing|atc|tooling|eml] [--product btp] [--json] [topic…]

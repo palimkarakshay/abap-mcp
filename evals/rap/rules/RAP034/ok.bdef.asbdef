@@ -1,0 +1,12 @@
+managed implementation in class zbp_r_demo unique;
+
+define behavior for ZR_Demo alias Demo
+persistent table zdemo
+lock master total etag LastChangedAt
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+}

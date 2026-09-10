@@ -47,6 +47,44 @@ describe("scaffoldRapBo", () => {
     expect(r.validationIssues).toEqual([]);
   });
 
+  // The keystone, extended for v0.12 (spec §5.1/§6.4): the BDEF/SRVD half of
+  // the scaffold is no longer an unverifiable template. Zero findings at ANY
+  // severity — infos included, because our own generator must not emit a
+  // construct our own grammar cannot read. Fix the template, never the test.
+  it("ROUND-TRIP: the generated BDEF/SRVD set is clean under abap-mcp's own RAP checker", () => {
+    for (const draft of [true, false]) {
+      const r = scaffoldRapBo({ ...TRAVEL, draft });
+      expect(r.rapFindings.filter((f) => f.severity !== "info")).toEqual([]);
+      expect(r.rapFindings).toEqual([]);
+      expect(r.validationIssues).toEqual([]);
+    }
+  });
+
+  it('labels the behavior and service definitions validated:"rap-checker", the metadata extension "template"', () => {
+    for (const draft of [true, false]) {
+      const r = scaffoldRapBo({ ...TRAVEL, draft });
+      const byName = Object.fromEntries(r.files.map((f) => [f.filename, f.validated]));
+      expect(byName["zr_travel.bdef.asbdef"]).toBe("rap-checker");
+      expect(byName["zc_travel.bdef.asbdef"]).toBe("rap-checker");
+      expect(byName["zui_travel_v4.srvd.srvdsrv"]).toBe("rap-checker");
+      expect(byName["zc_travel.ddlx.asddlx"]).toBe("template");
+      expect(byName["zr_travel.ddls.asddls"]).toBe("abaplint");
+      expect(r.nextSteps.at(-1)).toContain("abap-mcp's own RAP parser and rule set");
+      expect(r.nextSteps.at(-1)).toContain("ADT activation is still the final arbiter");
+    }
+  });
+
+  it("draft projection exposes the draft actions the strict rule set requires (RAP018)", () => {
+    const projBdef = scaffoldRapBo(TRAVEL).files.find((f) => f.filename === "zc_travel.bdef.asbdef")!;
+    for (const action of ["Edit", "Activate", "Discard", "Resume", "Prepare"]) {
+      expect(projBdef.content).toContain(`use action ${action};`);
+    }
+    const nonDraft = scaffoldRapBo({ ...TRAVEL, draft: false }).files.find(
+      (f) => f.filename === "zc_travel.bdef.asbdef",
+    )!;
+    expect(nonDraft.content).not.toContain("use action");
+  });
+
   it("draft variant carries the draft contract", () => {
     const bdef = scaffoldRapBo(TRAVEL).files.find((f) => f.filename === "zr_travel.bdef.asbdef")!;
     expect(bdef.content).toContain("with draft;");

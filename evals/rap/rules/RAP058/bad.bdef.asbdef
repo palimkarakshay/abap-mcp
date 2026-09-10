@@ -1,0 +1,14 @@
+managed implementation in class zbp_r_demo unique;
+strict ( 2 );
+
+define behavior for ZR_Demo alias Demo
+persistent table zdemo
+lock master
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+  validation valA on save { update; }
+}

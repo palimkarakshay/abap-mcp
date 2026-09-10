@@ -1,0 +1,4 @@
+define service Z_BAD_SRV provider contracts odata_v4_ui, odata_v4_webapi
+{
+  expose ZC_FOO as Foo;
+}

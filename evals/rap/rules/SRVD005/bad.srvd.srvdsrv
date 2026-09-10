@@ -1,0 +1,5 @@
+define service Z_BAD_SRV
+{
+  expose ZC_FOO as Foo;
+  expose ZC_BAR as Foo;
+}

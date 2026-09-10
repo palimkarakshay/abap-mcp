@@ -1,0 +1,10 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_Demo alias Demo
+{
+  use create;
+  use update;
+  use delete;
+  use draft;
+}

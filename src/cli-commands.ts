@@ -25,7 +25,8 @@ import { checkCloudReadiness, gradeReadiness, SCOPE_NOTE } from "./abap/readines
 import type { ReleasedEdition } from "./abap/released.js";
 import { DEFAULT_EDITION, lookupReleased, RELEASED_API_SNAPSHOTS, RELEASED_EDITIONS, suggestSuccessor } from "./abap/released.js";
 import { explainRule, listRules } from "./abap/rules.js";
-import { cmdAgentRules, cmdAisdk, cmdKnowledge, cmdRelease, EXTRA_USAGE } from "./cli-extra.js";
+import { cmdAgentRules, cmdAisdk, cmdKnowledge, cmdRapcheck, cmdRelease, EXTRA_USAGE } from "./cli-extra.js";
+import { RAP_SCOPE_NOTE, containsRapFiles, checkRapBehavior, rapFindingsToLintFindings } from "./abap/rap/index.js";
 import type { ScaffoldField } from "./abap/scaffold.js";
 import { scaffoldRapBo } from "./abap/scaffold.js";
 
@@ -148,15 +149,31 @@ export function cmdLint(argv: string[], io: CliIo): number {
   const preset = asPreset(flags.get("preset"));
   const focus = asFocus(flags.get("focus"));
   const rules = rulesFromFile(flags.get("rules-file"));
+  // Same routing as lint_abap (spec §5.2): BDEF/SRVD get abap-mcp's own RAP
+  // checker merged in under rap/ keys, because abaplint returns nothing at
+  // all for those file types. --no-rap opts out.
+  const rapWanted = !flags.has("no-rap");
   const all: Finding[] = [];
+  let rapChecked = false;
   for (const batch of chunk(files, MAX_FILES)) {
     all.push(...runAbaplint(batch, { version, preset, focus, rules }).findings);
+    if (rapWanted && containsRapFiles(batch)) {
+      rapChecked = true;
+      all.push(...rapFindingsToLintFindings(checkRapBehavior(batch).findings));
+    }
   }
   if (flags.has("json")) {
-    io.out(JSON.stringify({ files: files.length, findings: all }, null, 2));
+    io.out(
+      JSON.stringify(
+        { files: files.length, findings: all, rapChecked, ...(rapChecked ? { rapScopeNote: RAP_SCOPE_NOTE } : {}) },
+        null,
+        2,
+      ),
+    );
   } else {
     for (const f of all) io.out(fmtFinding(f));
     io.out(`${all.length} finding(s) in ${files.length} file(s) [${preset}${focus !== undefined ? `:${focus}` : ""} @ ${version}]`);
+    if (rapChecked) io.err(RAP_SCOPE_NOTE);
   }
   return all.some((f) => f.severity === "Error") ? 1 : 0;
 }
@@ -745,7 +762,7 @@ export function cmdCompare(argv: string[], io: CliIo): number {
   const { flags, rest } = parseFlags(argv);
   if (rest.length !== 2) {
     io.err(
-      "Usage: abap-mcp compare BEFORE_PATH AFTER_PATH   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]",
+      "Usage: abap-mcp compare BEFORE_PATH AFTER_PATH   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--no-rap] [--json]",
     );
     return 2;
   }
@@ -848,7 +865,7 @@ export const USAGE = `abap-mcp — SAP ABAP analysis for AI agents (MCP server) 
 Usage:
   abap-mcp                       start the MCP server on stdio (for AI clients)
   abap-mcp setup [target]        register abap-mcp with your editor (auto-detects; targets: vscode, vscode-insiders, eclipse, claude)
-  abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--json]
+  abap-mcp lint [paths…]         lint files/dirs   [--abap-version v758|Cloud] [--preset style|full|syntax-only] [--focus Performance|Security|Styleguide] [--rules-file abaplint.json] [--no-rap] [--json]
   abap-mcp fix [paths…]          apply abaplint's deterministic auto-fixes (keyword case, MOVE→=, …)   [--write] [--abap-version …] [--preset …] [--rules-file …] [--json]
   abap-mcp readiness [paths…]    ABAP Cloud readiness diff, scored + graded A–D   [--baseline v758] [--edition s4hc|btp|pce] [--fail-below N] [--json]
   abap-mcp plan [paths…]         phased migration backlog from the readiness diff — work items, S/M/L efforts, exit criteria   [--baseline v758] [--edition s4hc|btp|pce] [--json]
@@ -861,6 +878,7 @@ Usage:
   abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--edition s4hc|btp|pce] [--json]
   abap-mcp explain <rule>        explain an abaplint rule
   abap-mcp rules                 list rules   [--query q] [--tag Security]
+  abap-mcp rapcheck [paths…]     check RAP behavior/service definitions (BDEF/SRVD) — syntax + draft/etag/lock/authorization consistency, strict-mode obligations, projection use vs base, service expose vs CDS (abaplint parses neither file type)   [--release 2508] [--strict] [--json]
 ${EXTRA_USAGE}
 
 Exit codes: 0 ok · 1 findings/validation failed · 2 usage error`;
@@ -912,6 +930,8 @@ export function runCli(argv: string[], io: CliIo): number | Promise<number> | nu
       });
     case "agent-rules":
       return cmdAgentRules(rest, io);
+    case "rapcheck":
+      return cmdRapcheck(rest, { ...io, readSources: (paths) => collectFiles(paths, io) });
     case "help":
     case "--help":
     case "-h":

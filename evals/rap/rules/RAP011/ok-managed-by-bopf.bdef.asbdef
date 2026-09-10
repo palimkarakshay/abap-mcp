@@ -1,0 +1,12 @@
+managed by bopf;
+
+define behavior for ZR_DemoBopf alias DemoBopf
+persistent table zdemobopf
+lock master
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+}

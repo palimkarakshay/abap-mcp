@@ -110,6 +110,207 @@ describe("cmdLint", () => {
   });
 });
 
+/* --------------------------------------------------------------- rapcheck
+ * Spec §4.2 / §6.4. Driven through `runCli` because the dispatcher is what
+ * injects filesystem access (`readSources`) into `cmdRapcheck` — testing the
+ * function alone would skip the wiring the CLI actually depends on.
+ */
+const GOOD_BDEF = `managed implementation in class zbp_travel unique;
+strict ( 2 );
+
+define behavior for ZR_Travel alias Travel
+persistent table ztravel
+etag master LocalLastChangedAt
+lock master
+authorization master ( instance )
+{
+  create;
+  update;
+  delete;
+}
+`;
+
+const BAD_BDEF = `managed implementation in class zbp_broken unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZR_Broken alias Broken
+persistent table zbroken
+etag master LocalLastChangedAt
+lock master
+authorization master ( instance )
+{
+  create;
+}
+`;
+
+const COLLABORATIVE_BDEF = `managed implementation in class zbp_collab unique;
+strict ( 2 );
+with collaborative draft;
+
+define behavior for ZR_Collab alias Collab
+persistent table zcollab
+draft table zcollab_d
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master ( instance )
+{
+  create;
+  update;
+  delete;
+
+  draft action Edit;
+  draft action Resume;
+  draft action Activate optimized;
+  draft action Discard;
+  draft determine action Prepare;
+}
+`;
+
+describe("cmdRapcheck", () => {
+  it("exits 0 on a clean BDEF directory", () => {
+    const dir = tmpWith({ "zr_travel.bdef.asbdef": GOOD_BDEF });
+    const { out, io: o } = io();
+    expect(runCli(["rapcheck", dir], o)).toBe(0);
+    expect(out.join("\n")).toContain("0 error(s)");
+  });
+
+  it("exits 1 when a rule reports an error", () => {
+    const dir = tmpWith({ "zr_broken.bdef.asbdef": BAD_BDEF });
+    const { out, err, io: o } = io();
+    expect(runCli(["rapcheck", dir], o)).toBe(1);
+    // draft BO without a draft table / total etag: RAP026 and RAP035.
+    expect(out.join("\n")).toContain("RAP026");
+    expect(err.join("\n")).toContain("ADT activation in the target system remains the only authority");
+  });
+
+  it("exits 2 when the directory holds no BDEF/SRVD", () => {
+    const dir = tmpWith({ "zok.prog.abap": "REPORT zok.\nWRITE 'hi'." });
+    const { err, io: o } = io();
+    expect(runCli(["rapcheck", dir], o)).toBe(2);
+    expect(err.join("\n")).toContain("No RAP behavior or service definitions found");
+  });
+
+  it("exits 2 on an unknown --release", () => {
+    const dir = tmpWith({ "zr_travel.bdef.asbdef": GOOD_BDEF });
+    const { err, io: o } = io();
+    expect(runCli(["rapcheck", dir, "--release", "9999"], o)).toBe(2);
+    expect(err.join("\n")).toContain("Unknown release");
+  });
+
+  it("--json emits a RapCheckReport", () => {
+    const dir = tmpWith({ "zr_travel.bdef.asbdef": GOOD_BDEF });
+    const { out, io: o } = io();
+    expect(runCli(["rapcheck", dir, "--json"], o)).toBe(0);
+    const report = JSON.parse(out.join("\n")) as {
+      files: { filename: string; kind: string; parsed: boolean }[];
+      findings: unknown[];
+      summary: { errors: number; rulesRun: number; unknownConstructs: number };
+      scopeNote: string;
+      grammarVersion: string;
+      rulesVersion: string;
+      validated: string;
+    };
+    expect(report.files[0]!.kind).toBe("bdef");
+    expect(report.files[0]!.parsed).toBe(true);
+    expect(report.summary.errors).toBe(0);
+    expect(report.summary.rulesRun).toBeGreaterThan(0);
+    expect(report.validated).toBe("rap-checker");
+    expect(report.grammarVersion).toMatch(/^bdl\//);
+    expect(report.rulesVersion).toMatch(/^rap-rules\//);
+    expect(report.scopeNote).toContain("not by abaplint");
+  });
+
+  it("--release gates a newer construct as a warning without failing the run", () => {
+    const dir = tmpWith({ "zr_collab.bdef.asbdef": COLLABORATIVE_BDEF });
+    const gated = io();
+    expect(runCli(["rapcheck", dir, "--release", "2502", "--json"], gated.io)).toBe(0);
+    const gatedReport = JSON.parse(gated.out.join("\n")) as {
+      findings: { rule: string; severity: string; minRelease?: string }[];
+      releaseGate?: { abapRelease: string; gatedConstructs: number; curatedDate: string };
+    };
+    const gate = gatedReport.findings.find((f) => f.rule === "RAP900");
+    expect(gate).toBeDefined();
+    expect(gate!.severity).toBe("warning");
+    expect(gatedReport.releaseGate!.abapRelease).toBe("2502");
+    expect(gatedReport.releaseGate!.gatedConstructs).toBeGreaterThan(0);
+
+    const current = io();
+    expect(runCli(["rapcheck", dir, "--release", "2508", "--json"], current.io)).toBe(0);
+    const currentReport = JSON.parse(current.out.join("\n")) as { findings: { rule: string }[] };
+    expect(currentReport.findings.some((f) => f.rule === "RAP900")).toBe(false);
+  });
+
+  it("is announced in the CLI usage text", () => {
+    expect(USAGE).toContain("abap-mcp rapcheck");
+  });
+
+  /**
+   * Review finding (`cli-extra.ts` §cmdRapcheck): `errors` used to be counted
+   * over the RETAINED findings, so a run whose errors fell off the end of the
+   * finding cap printed "0 error(s)" and exited 0 — a CI gate built on that
+   * exit code waved invalid RAP through. The fixture puts 660 infos in front
+   * of the error and relies on the report's own (file, line, column, rule)
+   * sort to push the error past the 500-finding cap.
+   */
+  const cappedFixture = (): string => {
+    const noise = Array.from({ length: 60 }, (_, i) => `  frobnicate${i} zzz;`).join("\n");
+    const files: Record<string, string> = {};
+    for (let n = 0; n < 11; n += 1) {
+      files[`za${String(n).padStart(2, "0")}.bdef.asbdef`] =
+        `managed implementation in class zbp_a${n} unique;\n\ndefine behavior for ZR_A${n} alias A${n}\n` +
+        `persistent table za${n}\nlock master\nauthorization master ( instance )\n{\n${noise}\n  create;\n}\n`;
+    }
+    // `managed;` with no implementation class — RAP011, a confirmed error.
+    files["zz_bad.bdef.asbdef"] =
+      "managed;\n\ndefine behavior for ZR_Z alias Z\npersistent table zz\nlock master\n" +
+      "authorization master ( instance )\n{\n  create;\n}\n";
+    return tmpWith(files);
+  };
+
+  it("exits 1 on an error the finding cap dropped, and says how many findings are missing", () => {
+    const dir = cappedFixture();
+    const { out, io: o } = io();
+    expect(runCli(["rapcheck", dir], o)).toBe(1);
+    const printed = out.join("\n");
+    // The error itself did NOT survive the cap — that is the whole point.
+    expect(printed).not.toContain("RAP011");
+    expect(printed).toContain("1 error(s)");
+    expect(printed).toContain("omitted by the report cap");
+  });
+
+  it("--json reports the uncapped counts, the omitted count and exit 1 too", () => {
+    const dir = cappedFixture();
+    const { out, io: o } = io();
+    expect(runCli(["rapcheck", dir, "--json"], o)).toBe(1);
+    const report = JSON.parse(out.join("\n")) as {
+      findings: { severity: string }[];
+      summary: { errors: number; infos: number; omitted: number; truncated: boolean; baseUnresolved: number };
+    };
+    expect(report.findings.some((f) => f.severity === "error")).toBe(false);
+    expect(report.summary.errors).toBe(1);
+    expect(report.summary.omitted).toBeGreaterThan(0);
+    expect(report.summary.truncated).toBe(true);
+    expect(report.summary.baseUnresolved).toBe(0);
+  });
+});
+
+describe("cmdLint RAP routing", () => {
+  it("merges rap/ findings for a BDEF and honors --no-rap", () => {
+    const dir = tmpWith({ "zr_broken.bdef.asbdef": BAD_BDEF });
+    const merged = io();
+    expect(cmdLint([dir, "--preset", "syntax-only"], merged.io)).toBe(1);
+    expect(merged.out.join("\n")).toContain("rap/RAP026");
+    expect(merged.err.join("\n")).toContain("not by abaplint");
+
+    const plain = io();
+    // abaplint alone has nothing to say about a BDEF — that silence is the
+    // honesty problem the routing exists to fix.
+    expect(cmdLint([dir, "--preset", "syntax-only", "--no-rap"], plain.io)).toBe(0);
+    expect(plain.out.join("\n")).not.toContain("rap/");
+  });
+});
+
 describe("cmdReadiness", () => {
   it("reports blockers for classic code and honors --fail-below", () => {
     const dir = tmpWith({ "zold.prog.abap": "REPORT zold.\nWRITE: / 'x'.\nCALL SCREEN 100." });

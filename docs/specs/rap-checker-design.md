@@ -600,7 +600,7 @@ Notation in the pseudo-code: `bo` = the parsed `BehaviorDefinition`; `e` = an `E
 | ID | Severity | Condition (pseudo-code) | Message template | Fix hint | Gate |
 |---|---|---|---|---|---|
 | **RAP001** | error | `requires ddls` · `root && ctx.cds.has(root.entity.key) && ctx.cds.get(root.entity.key).shape !== "root-view-entity"` | `The first behavior definition in this file is for {entity}, which is declared as a {shape} — a BO root must be a "define root view entity".` | `Point the first "define behavior for" at the root view entity, or add "root" to the CDS view definition.` | — |
-| **RAP002** | error | `requires ddls` · for each `e` with `form==="define"`: `!ctx.cds.has(e.entity.key)` **and** at least one supplied `.ddls` exists | `"define behavior for {entity}" references a CDS entity that is not among the .ddls sources passed in this call.` | `Pass the entity's .ddls.asddls in the same call, or correct the spelling — BDL matches CDS names exactly (case-insensitively).` | — |
+| **RAP002** | **warning** (amended, see §9.1) | `requires ddls` · for each `e` with `form==="define"`: `!ctx.cds.has(e.entity.key)` **and** at least one supplied `.ddls` exists | `"define behavior for {entity}" references a CDS entity that was not found among the .ddls sources passed in this call — it may simply not have been passed.` | `Pass the entity's .ddls.asddls in the same call, or correct the spelling — BDL matches CDS names exactly (case-insensitively).` | — |
 | **RAP003** | error | for each characteristic naming an association (`etag-dependent`, `lock-dependent`, `authorization-dependent`): `!e.associations.some(a => a.name.key === assoc.key)` | `Entity {entity} is "{clause} by {assoc}" but {assoc} is not declared in its behavior body.` | `Add "association {assoc};" to the entity body — dependent clauses may only name associations the BDEF declares.` | — |
 | **RAP011** | error | `bo.implementationType in {managed, unmanaged}` && `!bo.implementationClass` && `bo.entities.every(e => !e.implementationClass)` | `A {implType} behavior definition needs an implementation class: none is declared in the header or on any entity.` | `Add "{implType} implementation in class zbp_<entity> unique;" as the first statement.` | — |
 | **RAP008** | error | `requires base-bdef` · `bo.implementationType==="projection" && bo.strict && base && !base.ast.strict` | `This projection declares strict({level}) but its base behavior definition {baseFile} does not declare strict.` | `Add "strict ( 2 );" to the base BDEF — a projection may only be strict if its base is.` | — |
@@ -712,7 +712,7 @@ Detection is AST-driven (a visitor emits `construct` keys during parse; no re-sc
 ### 3.7 The suppression contract (§1.3, restated as an implementation obligation)
 
 Every rule of the form *"X must be declared"* (RAP011, RAP019, RAP026, RAP028, RAP029, RAP032, RAP035, RAP018,
-RAP076, SRVD001) must call `ctx.mayBeHiddenBy(entity, ["draft-table", "lock", …])` before reporting; the helper
+RAP076, SRVD001, **SRVD007**) must call `ctx.mayBeHiddenBy(entity, ["draft-table", "lock", …])` before reporting; the helper
 returns true when the entity (or header) holds an `UnknownStatement` whose leading key is in the given set or is
 unrecognised entirely. When it returns true the rule stays silent and increments
 `summary.suppressedByUnknown` — visible in the report, so coverage gaps are measurable instead of invisible.
@@ -773,7 +773,11 @@ interface RapCheckReport {
     sourceUrl?: string;        // the SAP page the rule derives from
   }[];
   summary: { errors: number; warnings: number; infos: number; filesChecked: number; rulesRun: number;
-             suppressedByUnknown: number; truncated: boolean };
+             suppressedByUnknown: number; unknownConstructs: number; baseUnresolved: number;
+             omitted: number; truncated: boolean };
+  // errors/warnings/infos are counted over the UNCAPPED finding set; `omitted`
+  // says how many findings the cap dropped (§9.1 item 9). `baseUnresolved` is
+  // §9.1 item 10's counter.
   scopeNote: string;           // RAP_SCOPE_NOTE, verbatim
   grammarVersion: string;      // RAP_GRAMMAR_VERSION
   rulesVersion: string;        // RAP_RULES_VERSION
@@ -828,7 +832,8 @@ abap-mcp rapcheck [paths…]   check RAP behavior/service definitions (BDEF/SRVD
   stderr; **stdout stays the JSON-RPC channel discipline** — for `rapcheck` (a plain CLI subcommand) the report
   goes to stdout only under `--json`, findings to stdout as text otherwise, and the scope note to stderr.
 - `--json` prints the exact `RapCheckReport`.
-- **Exit codes:** `1` if `summary.errors > 0`, `0` otherwise (warnings and infos do not fail — the release gate
+- **Exit codes:** `1` if `summary.errors > 0` — counted over the UNCAPPED finding set (§9.1 item 9), so an
+  error whose finding the report cap dropped still fails the run — `0` otherwise (warnings and infos do not fail — the release gate
   and the inferred rules must never break a build), `2` on usage error / no analyzable files found.
 - Implemented as `cmdRapcheck(argv, io)` in `src/cli-extra.ts`, dispatched from `src/cli-commands.ts`, listed in
   `EXTRA_USAGE`.
@@ -1029,3 +1034,113 @@ not the first thing broken.
 5. **`strict` default — unchanged (rules keyed to the BDEF's own `strict` declaration).** The checker reports what the file declares; it does not assume a policy the file does not state. A `RAP-STRICT-MISSING` **info** on a managed/unmanaged BDEF without `strict` is fine (ABAP Cloud release contracts expect strict(2)), but no strict rule fires without the declaration.
 
 Build constraints restated for the implementers: no commits; `npm run check` is the gate; the scaffold keystone (`validationIssues === []` **and** `rapFindings === []`) is never relaxed — fix the template; every new tool passes the rubric in `src/__tests__/server.test.ts` (the pinned tool list grows to 18 offline tools + the opt-in runner); version target 0.12.0; `docs/RAP-RULES.md` documents every shipped rule with its source.
+
+
+### 9.1 Amendments after verification (2026-09-10)
+
+The build's own verification pass changed three things the sections above still described the old way. They are
+recorded here rather than silently rewritten, because each one is a decision, not a typo.
+
+1. **RAP002 is `severity: "warning"`, not `error`** (§3.1's row amended in place). The gate is satisfied by
+   *one* supplied `.ddls`, after which every entity of every other BDEF in the call is "missing". A base BDEF +
+   its projection + the projection's CDS view — the ordinary partial set an agent assembles — is legal RAP, and
+   three errors on it is exactly the false positive §1.3 budgets against. An absent `.ddls` means *"not
+   supplied"*, not *"does not exist"* — the identical epistemic footing §3.4 already writes down for SRVD006,
+   and already a warning there.
+
+2. **SRVD007 is a suppressed rule** (§3.7's list amended in place). `@ObjectModel.leadingEntity.name` naming an
+   entity that is not in `exposes` is only a defect if we actually read every EXPOSE; an EXPOSE we skipped may
+   be the very one the annotation names. It now consults the same `bodyMayBeHidden()` gate as SRVD001 and
+   counts its silence in `summary.suppressedByUnknown`.
+
+3. **A punctuation error in a SRVD emits `RAP-PARSE` only — never `RAP-PARSE` *and* `RAP000`.** §1.3's two tiers
+   are exclusive, and the BDL parser has always treated them that way (`makeUnknown(pos, reported: true)` does
+   not file a second finding). The SDL parser filed both for one span, so the identical defect read as worse in a
+   service definition than in a behavior definition, and RAP000's message — *"a limit of the checker, not
+   necessarily an error in your file"* — was attached to text that demonstrably failed to reduce. §3.7 is
+   unaffected: `bodyMayBeHidden()` reads `errors` as well as `unknown`, so SRVD001/SRVD007 stay silent on a file
+   that did not parse. `rap-index.test.ts`'s assertion that pinned the double report was updated to pin the new
+   contract, with the BDEF half asserted beside it so the two parsers cannot drift apart again.
+
+4. **Root-ness is derived, not read off statement order** (§2.3 / §3.1). SAP's syntax notation for
+   *RAP - EntityBehaviorDefinition* anchors a behavior definition on its root and says the root's entity
+   behavior definition is mandatory while children's are optional, and all 79 corpus BDEFs write the root
+   first — but no primary source states that the order is *enforced*, and no documented ADT check rejects a
+   child-first file (researched 2026-09-10; the canonical page survives only as an archived snapshot). §2.5
+   caps an unconfirmed requirement at `warning`, so no new error was invented. Instead the checker derives the
+   root from evidence: the one `define`-form entity whose CDS view is a `define root view entity` when the
+   `.ddls` are in the call, else the first `define behavior for` (the documented convention, as a fallback).
+   A legal child-first BDEF used to draw four false errors (RAP001/RAP013/RAP028/RAP029) and now draws none.
+   The "entity no other composition targets" signal stays deferred with §3.6's composition rules.
+
+5. **Two new checker-level ids: `RAP-DUP` (error) and `RAP-INPUT` (warning).**
+   `RAP-DUP` reports an entity characteristic declared twice on one entity (`persistent table`, `draft table`,
+   `query`, one ETag clause, one lock clause, one authorization clause, `total etag`, numbering,
+   `changedocuments`). The parser keeps the *first* of a repeated pair, so a second declaration used to be read,
+   dropped and never mentioned — every rule then judged a file the caller did not write. Confirmed from the
+   entity-characteristic production in `bdl-grammar-notes.md` §1.2 and SAP's cheat-sheet sections, which
+   document each clause as one property of the entity; no corpus file repeats one.
+   `RAP-INPUT` reports two files passed in one call under the same filename. The cross-file rules key off names,
+   so the collision used to collapse both into one map entry and silently switch off every `requires:
+   ["base-bdef"]` rule — a checker returning nothing at all. Files are now told apart by content (identical text
+   under one name is one file passed twice; different text is kept as two) and the call is flagged. It carries no
+   `check()` over an AST and no `ok`/`bad` fixture pair can express it (a fixture directory cannot hold two files
+   with one name), so it lives beside `RAP_RULES` as its own metadata record rather than in it.
+
+6. **`check_rap_behavior` refuses a call it cannot check.** A file set with no `.bdef.asbdef` and no
+   `.srvd.srvdsrv` used to return `0 error(s), 0 warning(s) … across 0 RAP file(s)` stamped
+   `validated: "rap-checker"` — a clean bill of health for a check that never ran, the one thing `DESIGN.md` §4
+   forbids. It now throws `invalid_input` (via `src/errors.ts`) with the hint *"pass at least one .bdef.asbdef or
+   .srvd.srvdsrv (plus the .ddls files they reference)"*, matching what `abap-mcp rapcheck` has always done
+   (exit 2). The library entry point is unchanged — `lint_abap` and `scaffold_rap_bo` call it with whatever they
+   have and read `filesChecked` themselves.
+
+7. **Entity-level `extensible { … }` parses** (§2.3 already required both forms in both positions; only the
+   header position implemented the block form). The block used to be mistaken for the entity body, which cost
+   two `RAP000` infos on a legal file.
+
+8. **`rap-perf.test.ts` exists** (§6.5). Mean `checkRapBehavior()` time over the whole 243-file corpus (BDEF +
+   SRVD + DDLS, one call per repository), measured with `performance.now()`: the assertion fails only above
+   100 ms/file so shared CI cannot flake it, the §6.5 budget of 50 ms/file logs a warning, and the measured mean
+   is printed. Measured on the ARM64 target at implementation time: **0.7 ms/file**.
+
+9. **`summary` counts are uncapped, and two new counters** (§4.1's `RapCheckReport.summary`).
+   `errors`/`warnings`/`infos` are taken over the finding set **before** the report cap, and the new
+   `summary.omitted` says how many findings the cap dropped. They used to be counted over the retained
+   list, so a run whose errors fell past `MAX_FINDINGS` reported `errors: 0` with `truncated: true` — and
+   `abap-mcp rapcheck` exited **0** on a file its own rules had just called invalid, which is precisely the
+   CI gate the subcommand exists to be. The exit code (both the text and the `--json` path) now follows the
+   uncapped count. Two further honesty counters join `suppressedByUnknown`: `summary.baseUnresolved`
+   (item 10) and, on the `lint_abap` merge, the RAP report's `truncated` is ORed into the merged flag
+   instead of being discarded.
+
+10. **An explicit `as projection on` target that is absent from the call resolves to nothing** (§2.5's
+   `resolveBase`). `ddls.ts` now extracts `projectionOn` independently of `CdsShape`, so a
+   `define root view entity … as projection on ZR_A` keeps **both** facts (it used to return at the
+   root-view branch and throw the target away, which is the ordinary shape of a RAP consumption view).
+   With the target known, naming a base no supplied BDEF defines is evidence of absence *for this call*:
+   `resolveBase()` returns undefined, the cross-file rules stay silent, and `summary.baseUnresolved`
+   counts the silence. Falling through to the alias / single-candidate heuristics had been reporting
+   confirmed `RAP060` errors against an unrelated base the projection demonstrably does not use.
+
+11. **§3.7's suppression is scoped to the file the evidence would be in.** `RapRuleContext` gains
+   `mayBeHiddenIn(file, entity, keys)`; `mayBeHiddenBy` is the `ctx.file` case of it. RAP008 asks about
+   `strict` on the **base**, so it consults the base — checking the projection's own unknowns answered a
+   question nobody asked. Both count in the same `summary.suppressedByUnknown` column.
+
+12. **The two tiers are decided over all three delimiter kinds, and a service body must close.**
+   `synchronize()` tracks brace depth because that is what decides where a skipped statement *ends*;
+   whether the skipped span was *well-formed* is the separate question §1.3 keys its tiers on, and it now
+   checks `{}`, `()` and `[]` (`lexer.ts`'s `unbalancedDelimiter()`, one definition, both parsers). An
+   unbalanced span is `RAP-PARSE`, never `RAP000` — `future ( ; }` inside an entity used to report as a
+   coverage note over text that demonstrably failed to reduce, with the file reported `parsed: true`.
+   On the SDL side the closing `}` was merely *eaten if present*, so `define service Z { expose ZC_X;`
+   parsed clean and anything after the body was dropped on the floor; both are `RAP-PARSE` now.
+
+13. **Nothing in the checker may throw at the caller.** CDS annotation values are depth-limited (64 —
+   far past anything SAP documents; 10,000 nested `[` used to exhaust V8's stack and abort the whole
+   run with a `RangeError`), and each file's parse is wrapped so an unforeseen engine limit becomes a
+   `RAP-PARSE` *"internal parser error"* finding on that file, with every other file in the call still
+   checked. The same holds on the CDS side, where the parser is abaplint's own: `buildCdsMap()` retries
+   file-by-file when the batch throws, so one hostile `.ddls` costs itself and nothing else. §2.7's "never throws for anything the caller could have written" is now enforced, not just
+   intended.

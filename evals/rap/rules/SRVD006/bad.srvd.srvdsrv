@@ -1,0 +1,4 @@
+define service Z_BAD_SRV
+{
+  expose ZC_NOT_SUPPLIED as Foo;
+}

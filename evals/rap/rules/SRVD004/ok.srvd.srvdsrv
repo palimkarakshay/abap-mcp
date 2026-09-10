@@ -1,0 +1,4 @@
+define service Z_OK_SRV provider contracts sql
+{
+  expose method ZCL_FOO=>GET_DATA as Foo;
+}

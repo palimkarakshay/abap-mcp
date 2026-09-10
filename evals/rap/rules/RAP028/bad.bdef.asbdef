@@ -1,0 +1,20 @@
+managed implementation in class zbp_r_demo unique;
+
+define behavior for ZR_Demo alias Demo
+persistent table zdemo
+lock master
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+}
+
+define behavior for ZR_DemoItem alias Item
+persistent table zdemo_i
+lock master
+{
+  update;
+  association _Demo;
+}

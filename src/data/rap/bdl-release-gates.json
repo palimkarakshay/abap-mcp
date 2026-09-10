@@ -1,0 +1,1128 @@
+[
+  {
+    "construct": "managed",
+    "label": "managed",
+    "minRelease": "1905",
+    "btp": "1905",
+    "s4hcPublic": "1905",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "unmanaged",
+    "label": "unmanaged",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "projection",
+    "label": "projection",
+    "minRelease": "1905",
+    "btp": "1905",
+    "s4hcPublic": "1905",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "implementation-in-class-unique",
+    "label": "implementation in class [unique]",
+    "minRelease": "1905",
+    "btp": "1905",
+    "s4hcPublic": "1905",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "strict",
+    "label": "strict",
+    "minRelease": "2105",
+    "btp": "2105",
+    "s4hcPublic": "2105",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "strict-2",
+    "label": "strict(2)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "auxiliary-class",
+    "label": "auxiliary class",
+    "minRelease": "2408",
+    "btp": "2408",
+    "s4hcPublic": "2408",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "extensible-header",
+    "label": "extensible (header)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-validations-determinations-on-save-or-modify-with-additional-save-extensible",
+    "label": "with validations/determinations on save|modify, with additional save (extensible)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-managed-instance-filter",
+    "label": "with managed instance filter",
+    "minRelease": "2308",
+    "btp": "2308",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-draft",
+    "label": "with draft",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-collaborative-draft",
+    "label": "with collaborative draft",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-collaborative-draft-2508"
+  },
+  {
+    "construct": "use-draft",
+    "label": "use draft",
+    "minRelease": "1909",
+    "btp": "1909",
+    "s4hcPublic": "1909",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "use-draft-as-dependent",
+    "label": "use draft as dependent",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "use-side-effects",
+    "label": "use side effects",
+    "minRelease": "2302",
+    "btp": "2302",
+    "s4hcPublic": "2302",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-privileged-mode",
+    "label": "with privileged mode",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-privileged-mode-disabling",
+    "label": "with privileged mode disabling",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-privileged-mode-disabling-base-context-and",
+    "label": "with privileged mode disabling base context [and]",
+    "minRelease": "2111",
+    "btp": "2111",
+    "s4hcPublic": "2111",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "foreign-entity",
+    "label": "foreign entity",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "save-after",
+    "label": "save after",
+    "minRelease": "2408",
+    "btp": "2408",
+    "s4hcPublic": "2408",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "define-behavior-for-alias",
+    "label": "define behavior for \u2026 alias",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "define-authorization-context-for-disable",
+    "label": "define authorization context \u2026 [for disable \u2026]",
+    "minRelease": "2108",
+    "btp": "2108",
+    "s4hcPublic": "2108",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "save-early-late-after-authorization-context-for-disable",
+    "label": "save:early/late after authorization-context-for-disable",
+    "minRelease": "2302",
+    "btp": "2302",
+    "s4hcPublic": "2302",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "determination-validation-after-authorization-context-for-disable",
+    "label": "determination/validation after authorization-context-for-disable",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "define-own-authorization-context",
+    "label": "define own authorization context",
+    "minRelease": "2111",
+    "btp": "2111",
+    "s4hcPublic": "2111",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "define-own-authorization-context-by-privileged-mode-and",
+    "label": "define own authorization context by privileged mode [and]{...}",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "persistent-table",
+    "label": "persistent table",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "draft-table",
+    "label": "draft table",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "query-draft-query-view",
+    "label": "query (draft query view)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-additional-save-with-unmanaged-save",
+    "label": "with additional save / with unmanaged save",
+    "minRelease": "1911",
+    "btp": "1911",
+    "s4hcPublic": "1911",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "and-cleanup",
+    "label": "and cleanup",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "with-full-data",
+    "label": "with full data",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "etag-master-etag-dependent-total-etag",
+    "label": "etag master/etag dependent/total etag",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "use-etag",
+    "label": "use etag",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "lock-master",
+    "label": "lock master",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "lock-master-unmanaged-exit",
+    "label": "lock master unmanaged (exit)",
+    "minRelease": "2005",
+    "btp": "2005",
+    "s4hcPublic": "2005",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "lock-dependent",
+    "label": "lock dependent",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "lock-none-op-addition",
+    "label": "lock:none (op addition)",
+    "minRelease": "2011",
+    "btp": "2011",
+    "s4hcPublic": "2011",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-master-global",
+    "label": "authorization master(global)",
+    "minRelease": "2011",
+    "btp": "2011",
+    "s4hcPublic": "2011",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-master-instance",
+    "label": "authorization master(instance)",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-dependent",
+    "label": "authorization dependent",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-global-or-instance-or-global-instance-projection",
+    "label": "authorization(global|instance|global,instance) (projection)",
+    "minRelease": "2105",
+    "btp": "2105",
+    "s4hcPublic": "2105",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-update-op-addition",
+    "label": "authorization:update (op addition)",
+    "minRelease": "2108",
+    "btp": "2108",
+    "s4hcPublic": "2108",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-none",
+    "label": "authorization:none",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-global",
+    "label": "authorization:global",
+    "minRelease": "2305",
+    "btp": "2305",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "authorization-instance",
+    "label": "authorization:instance",
+    "minRelease": "2305",
+    "btp": "2305",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "changedocuments-master",
+    "label": "changedocuments master",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-change-documents-2508"
+  },
+  {
+    "construct": "changedocuments-dependent",
+    "label": "changedocuments dependent",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-change-documents-2508"
+  },
+  {
+    "construct": "changedocuments-create-update-delete",
+    "label": "changedocuments(create:.., update:.., delete:..)",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-change-documents-2508"
+  },
+  {
+    "construct": "instance-hierarchy",
+    "label": "instance hierarchy",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-event-driven-side-effects-2502"
+  },
+  {
+    "construct": "copy-action",
+    "label": "copy action",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-hierarchy-copy-auth-2508"
+  },
+  {
+    "construct": "field-hierarchy-index",
+    "label": "field(hierarchy-index)",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-event-driven-side-effects-2502"
+  },
+  {
+    "construct": "ascending-association-descending-association-with-cascading-delete",
+    "label": "ascending association / descending association [with cascading delete]",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-event-driven-side-effects-2502"
+  },
+  {
+    "construct": "reorder-action",
+    "label": "reorder action",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-event-driven-side-effects-2502"
+  },
+  {
+    "construct": "early-numbering",
+    "label": "early numbering",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "late-numbering",
+    "label": "late numbering",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-readonly",
+    "label": "field(readonly)",
+    "minRelease": "1905",
+    "btp": "1905",
+    "s4hcPublic": "1905",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-mandatory",
+    "label": "field(mandatory)",
+    "minRelease": "1905",
+    "btp": "1905",
+    "s4hcPublic": "1905",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-features-instance",
+    "label": "field(features:instance)",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-mandatory-create",
+    "label": "field(mandatory:create)",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-readonly-update",
+    "label": "field(readonly:update)",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-numbering-managed",
+    "label": "field(numbering:managed)",
+    "minRelease": "2002",
+    "btp": "2002",
+    "s4hcPublic": "2002",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-suppress",
+    "label": "field(suppress)",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-notrigger-warn",
+    "label": "field(notrigger:warn)",
+    "minRelease": "2211",
+    "btp": "2211",
+    "s4hcPublic": "2211",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "field-modify-projection-virtual-element-augment",
+    "label": "field(modify) (projection virtual-element augment)",
+    "minRelease": "2011",
+    "btp": "2011",
+    "s4hcPublic": "2011",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "group",
+    "label": "group",
+    "minRelease": "1911",
+    "btp": "1911",
+    "s4hcPublic": "1911",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "create-update-delete",
+    "label": "create/update/delete",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "use-op-reuse-in-projection",
+    "label": "use (op reuse in projection)",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "association-without-response",
+    "label": "association \u2026 [without response]",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "action-external",
+    "label": "action \u2026 [external]",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "static-action",
+    "label": "static (action)",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "repeatable-action-function",
+    "label": "repeatable (action/function)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "factory-action",
+    "label": "factory (action)",
+    "minRelease": "1905",
+    "btp": "1905",
+    "s4hcPublic": "1905",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "default-default-factory-action",
+    "label": "default (default factory action)",
+    "minRelease": "2211",
+    "btp": "2211",
+    "s4hcPublic": "2211",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "save-finalize-or-adjustnumbers-or-both-save-action",
+    "label": "save(finalize|adjustnumbers|both) (save action)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "function-external",
+    "label": "function \u2026 [external]",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "determine-action",
+    "label": "determine action",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "always-determine-action-addition",
+    "label": "always (determine action addition)",
+    "minRelease": "2011",
+    "btp": "2011",
+    "s4hcPublic": "2011",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "rap-recommendation-function",
+    "label": "RAP recommendation function",
+    "minRelease": "2602",
+    "btp": "2602",
+    "s4hcPublic": "2602",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-recommendations-islm-2602"
+  },
+  {
+    "construct": "draft-action-edit-or-activate-or-discard-or-resume-with-additional-implementation-draft-determine-action-prepare",
+    "label": "draft action Edit|Activate|Discard|Resume [with additional implementation], draft determine action Prepare",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "draft-action-additionalsave",
+    "label": "draft action AdditionalSave",
+    "minRelease": "2308",
+    "btp": "2308",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "draft-action-share",
+    "label": "draft action Share",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "optimized-on-activate",
+    "label": "optimized (on Activate)",
+    "minRelease": "2308",
+    "btp": "2308",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "parameter-self",
+    "label": "parameter \u2026 [$self]",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "deep-table-parameter",
+    "label": "deep [table] (parameter)",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "result-cardinality-self-or-entity",
+    "label": "result[cardinality]{$self|entity}",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "selective-result",
+    "label": "selective (result)",
+    "minRelease": "2002",
+    "btp": "2002",
+    "s4hcPublic": "2002",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "selective-deep-result",
+    "label": "selective (deep result)",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "mapping-for-control-corresponding-except",
+    "label": "mapping for \u2026 [control][corresponding][except]",
+    "minRelease": "1911",
+    "btp": "1911",
+    "s4hcPublic": "1911",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "validation-on-save",
+    "label": "validation \u2026 on save {\u2026}",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "determination-on-save-or-on-modify",
+    "label": "determination \u2026 on save|on modify {\u2026}",
+    "minRelease": "1808",
+    "btp": "1808",
+    "s4hcPublic": "1808",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "features-global-op-addition",
+    "label": "features:global (op addition)",
+    "minRelease": "2011",
+    "btp": "2011",
+    "s4hcPublic": "2011",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "features-instance-op-addition",
+    "label": "features:instance (op addition)",
+    "minRelease": "1908",
+    "btp": "1908",
+    "s4hcPublic": "1908",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "internal-op",
+    "label": "internal (op)",
+    "minRelease": "1805",
+    "btp": "1805",
+    "s4hcPublic": "1805",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "precheck",
+    "label": "precheck",
+    "minRelease": "2008",
+    "btp": "2008",
+    "s4hcPublic": "2008",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "default-function-rap-default-values-function",
+    "label": "default function (RAP default-values function)",
+    "minRelease": "2311",
+    "btp": "2311",
+    "s4hcPublic": "2402",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "key-function-alternative-key-function",
+    "label": "key \u2026 function \u2026 (alternative-key function)",
+    "minRelease": "2405",
+    "btp": "2405",
+    "s4hcPublic": "2408",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "augment-projection-virtual-element",
+    "label": "augment (projection virtual-element)",
+    "minRelease": "2011",
+    "btp": "2011",
+    "s4hcPublic": "2011",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "event-deep-parameter",
+    "label": "event \u2026 [[deep] parameter]",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "event-for-side-effects",
+    "label": "event \u2026 for side effects",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-event-driven-side-effects-2502"
+  },
+  {
+    "construct": "managed-event-on-parameter",
+    "label": "managed event \u2026 on \u2026 parameter",
+    "minRelease": "2308",
+    "btp": "2308",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "side-effects-executed-on-affects",
+    "label": "side effects {\u2026 [executed on \u2026] affects \u2026;}",
+    "minRelease": "2302",
+    "btp": "2302",
+    "s4hcPublic": "2302",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "executed-on-global-side-effects",
+    "label": "executed on global (side effects)",
+    "minRelease": "2511",
+    "btp": "2511",
+    "s4hcPublic": "2602",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-global-side-effects-2511"
+  },
+  {
+    "construct": "define-secondary-key-define-pure-key",
+    "label": "define secondary key / define pure key",
+    "minRelease": "2408",
+    "btp": "2408",
+    "s4hcPublic": null,
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "link-action-unlink-action",
+    "label": "link action / unlink action",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-event-driven-side-effects-2502"
+  },
+  {
+    "construct": "inverse-function",
+    "label": "inverse function",
+    "minRelease": "2502",
+    "btp": "2502",
+    "s4hcPublic": "2502",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "use-association-assoc-with-dependent-draft",
+    "label": "use association _assoc { with dependent draft; }",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface",
+    "label": "interface",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-extensible",
+    "label": "Interface extensible",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-with-managed-instance-filter",
+    "label": "Interface with managed instance filter",
+    "minRelease": "2308",
+    "btp": "2308",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-define-behavior-for-alias-external",
+    "label": "Interface define behavior for \u2026 alias \u2026 external",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-use-collaborative-draft",
+    "label": "Interface use collaborative draft",
+    "minRelease": "2508",
+    "btp": "2508",
+    "s4hcPublic": "2508",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables",
+    "knowledgeId": "rap-collaborative-draft-2508"
+  },
+  {
+    "construct": "interface-bdef-interface-use-draft",
+    "label": "Interface use draft",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-use-side-effects",
+    "label": "Interface use side effects",
+    "minRelease": "2302",
+    "btp": "2302",
+    "s4hcPublic": "2302",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-use-event",
+    "label": "Interface use event",
+    "minRelease": "2308",
+    "btp": "2308",
+    "s4hcPublic": "2308",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-use-etag",
+    "label": "Interface use etag",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-with-privileged-mode",
+    "label": "Interface with privileged mode",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-foreign-entity",
+    "label": "Interface foreign entity",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "interface-bdef-interface-field-readonly-or-mandatory-create-or-readonly-update-or-suppress",
+    "label": "Interface field(readonly|mandatory:create|readonly:update|suppress)",
+    "minRelease": "2211",
+    "btp": "2211",
+    "s4hcPublic": "2211",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract",
+    "label": "abstract",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-with-hierarchy",
+    "label": "Abstract with hierarchy",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-with-hierarchy-like-entity",
+    "label": "Abstract with hierarchy like entity",
+    "minRelease": "2408",
+    "btp": "2408",
+    "s4hcPublic": "2408",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-with-control",
+    "label": "Abstract with control",
+    "minRelease": "2108",
+    "btp": "2108",
+    "s4hcPublic": "2108",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-scalar-entity",
+    "label": "Abstract scalar entity",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-association-with-hierarchy",
+    "label": "Abstract association \u2026 [with hierarchy]",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-deep-mapping-for-corresponding-sub",
+    "label": "Abstract deep mapping for \u2026 [corresponding][sub]",
+    "minRelease": "2102",
+    "btp": "2102",
+    "s4hcPublic": "2102",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-mandatory-execute-field",
+    "label": "Abstract mandatory:execute (field)",
+    "minRelease": "2205",
+    "btp": "2205",
+    "s4hcPublic": "2205",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "abstract-bdef-abstract-mandatory-execute-association",
+    "label": "Abstract mandatory:execute (association)",
+    "minRelease": "2311",
+    "btp": "2311",
+    "s4hcPublic": "2402",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extension",
+    "label": "extension",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extension-extensible",
+    "label": "Extension extensible",
+    "minRelease": "2302",
+    "btp": "2302",
+    "s4hcPublic": "2302",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extension-with-friends",
+    "label": "Extension with friends",
+    "minRelease": "2402",
+    "btp": "2402",
+    "s4hcPublic": "2402",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extend-behavior-for",
+    "label": "extend behavior for",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extend-own-authorization-context",
+    "label": "extend own authorization context",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extend-determine-action",
+    "label": "extend determine action",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extend-draft-determine-action-prepare",
+    "label": "extend draft determine action Prepare",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extend-mapping-for",
+    "label": "extend mapping for",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extension-for-projection",
+    "label": "extension for projection",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-ancestor-association",
+    "label": "ancestor association",
+    "minRelease": "2208",
+    "btp": "2208",
+    "s4hcPublic": "2208",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  },
+  {
+    "construct": "bdef-extensions-extension-for-abstract",
+    "label": "extension for abstract",
+    "minRelease": "2302",
+    "btp": "2302",
+    "s4hcPublic": "2302",
+    "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/rap-bdl-feature-tables"
+  }
+]

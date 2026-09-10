@@ -1,0 +1,33 @@
+{
+  "note": "Findings the v1 RAP rule set produces on the Apache-2.0 SAP sample corpus in evals/rap/fixtures. Pinned so a false-positive regression fails CI. Regenerate with RAP_WRITE_EXPECTATIONS=1 npx vitest run src/__tests__/rap-rules.test.ts",
+  "byRule": {
+    "RAP-STRICT-MISSING": 2,
+    "RAP032": 8
+  },
+  "files": {
+    "SAP__code-pal-for-abap-cloud/#cc4a#test_rap_unamanaged.bdef.asbdef": {
+      "RAP032": 1
+    },
+    "SAP__project-kernseife/zknsf_i_projects.bdef.asbdef": {
+      "RAP032": 1
+    },
+    "SAP-samples__abap-cheat-sheets/zdemo_abap_rap_ro_m_as.bdef.asbdef": {
+      "RAP032": 1
+    },
+    "SAP-samples__abap-cheat-sheets/zdemo_abap_rap_ro_m.bdef.asbdef": {
+      "RAP032": 2
+    },
+    "SAP-samples__abap-cheat-sheets/zdemo_abap_rap_ro_u.bdef.asbdef": {
+      "RAP032": 2
+    },
+    "SAP-samples__abap-platform-application-jobs/zappr_inventorytp_01.bdef.asbdef": {
+      "RAP-STRICT-MISSING": 1
+    },
+    "SAP-samples__btp-abap-cna/zi_bonus_calc_sa.bdef.asbdef": {
+      "RAP-STRICT-MISSING": 1
+    },
+    "SAP-samples__forms-service-by-adobe-samples/zcine_i_ticket.bdef.asbdef": {
+      "RAP032": 1
+    }
+  }
+}

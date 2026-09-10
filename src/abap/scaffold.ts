@@ -13,11 +13,15 @@
  * through abaplint at version Cloud before it is returned: the generator and
  * the linter share one parser, so the scaffold can never drift into syntax
  * the lint would reject. BDEF/SRVD artifacts are outside abaplint's checked
- * surface (verified empirically) — those are covered by golden tests and
- * marked validated:"template".
+ * surface (verified empirically) — since v0.12 they are run through
+ * abap-mcp's own RAP checker instead (`./rap/index.ts`) and, on a clean
+ * result, carry validated:"rap-checker"; the metadata extension has no
+ * checker at all and stays validated:"template".
  */
 import type { Finding } from "./engine.js";
 import { runAbaplint } from "./engine.js";
+import type { RapFinding } from "./rap/index.js";
+import { RAP_GRAMMAR_VERSION, checkRapBehavior } from "./rap/index.js";
 
 export interface ScaffoldField {
   /** snake_case table field name, e.g. "agency_id". */
@@ -44,8 +48,14 @@ export interface ScaffoldOptions {
 export interface ScaffoldFile {
   filename: string;
   content: string;
-  /** "abaplint" = machine-validated through the parser; "template" = golden-tested template. */
-  validated: "abaplint" | "template";
+  /**
+   * How the file was checked (spec `docs/specs/rap-checker-design.md` §1.4):
+   * `"abaplint"` = round-tripped through abaplint's real parser;
+   * `"rap-checker"` = parsed by abap-mcp's own BDL/SDL parser and checked
+   * against the rule set with zero error/warning findings; `"template"` =
+   * golden-tested template only — nothing machine-checked it.
+   */
+  validated: "abaplint" | "template" | "rap-checker";
 }
 
 export interface ScaffoldResult {
@@ -55,6 +65,13 @@ export interface ScaffoldResult {
   suggestedTableDdl: string;
   /** Non-empty only if the generated sources failed abaplint — should never happen. */
   validationIssues: Finding[];
+  /**
+   * abap-mcp's own RAP checker over the generated CDS + BDEF + SRVD set, run
+   * as one call so the cross-file rules (RAP001/RAP002/RAP018/RAP060/RAP076/
+   * SRVD006/SRVD007) actually run on our own output. Empty on a clean
+   * generator — the keystone test asserts exactly that.
+   */
+  rapFindings: RapFinding[];
 }
 
 const ADMIN_FIELDS: { name: string; cds: string; semantics: string; ddlType: string }[] = [
@@ -233,7 +250,17 @@ define behavior for ${projView} alias ${alias}
 {
   use create;
   use update;
-  use delete;
+  use delete;${
+    opts.draft
+      ? `
+
+  use action Edit;
+  use action Activate;
+  use action Discard;
+  use action Resume;
+  use action Prepare;`
+      : ""
+  }
 }
 `;
 
@@ -295,6 +322,24 @@ define service ${serviceDef} {
     { version: "Cloud", preset: "syntax-only" },
   );
 
+  // …and the BDEF/SRVD artifacts abaplint cannot parse through abap-mcp's own
+  // RAP checker (spec §5.1). Both `.ddls` go in the same call so the
+  // cross-file rules — root shape, entity resolution, projection `use` vs the
+  // base BDEF, `expose` vs the CDS entities — actually run on our own output.
+  const rapInput = files.filter((f) => /\.(?:bdef\.asbdef|srvd\.srvdsrv|ddls\.asddls)$/.test(f.filename));
+  const rapReport = checkRapBehavior(rapInput.map((f) => ({ filename: f.filename, source: f.content })));
+  const rapFindings = rapReport.findings;
+
+  // The label is never the optimistic default (spec §1.4): "rap-checker" only
+  // when the checker ran and returned nothing at error or warning severity.
+  // `.ddlx.asddlx` stays "template" — nothing checks metadata extensions.
+  const rapClean = rapFindings.every((f) => f.severity === "info");
+  if (rapClean) {
+    for (const file of files) {
+      if (/\.(?:bdef\.asbdef|srvd\.srvdsrv)$/.test(file.filename)) file.validated = "rap-checker";
+    }
+  }
+
   const activationOrder = [
     `Table ${table} (see suggestedTableDdl; adjust field types)`,
     ...(opts.draft ? [`Draft table ${draftTable} (ADT quick-fix on the behavior definition generates it)`] : []),
@@ -317,8 +362,10 @@ define service ${serviceDef} {
       ? "The key uses managed UUID numbering — no number ranges needed; the framework fills it on create."
       : "The key is caller-provided on create (readonly:update). Add a validation if you need format checks.",
     "The service binding cannot be generated as source — create it in ADT (New > Service Binding, OData V4 - UI) on the service definition, then Publish.",
-    "Generated classes and CDS views were machine-validated through abaplint at ABAP-Cloud level; behavior/service definitions are canonical templates — ADT activation is the final arbiter.",
+    rapClean
+      ? `Generated classes and CDS views were machine-validated through abaplint at ABAP-Cloud level; behavior and service definitions were checked by abap-mcp's own RAP parser and rule set (grammar ${RAP_GRAMMAR_VERSION}); ADT activation is still the final arbiter.`
+      : `Generated classes and CDS views were machine-validated through abaplint at ABAP-Cloud level; abap-mcp's own RAP checker (grammar ${RAP_GRAMMAR_VERSION}) reported ${rapFindings.length} finding(s) on the behavior/service definitions — see rapFindings; ADT activation is still the final arbiter.`,
   ];
 
-  return { files, activationOrder, nextSteps, suggestedTableDdl, validationIssues: findings };
+  return { files, activationOrder, nextSteps, suggestedTableDdl, validationIssues: findings, rapFindings };
 }

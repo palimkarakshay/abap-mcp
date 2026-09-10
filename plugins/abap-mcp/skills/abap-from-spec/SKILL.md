@@ -40,8 +40,9 @@ delivered may bypass their gates.
 
 - Never deliver code that has not been linted; if the spec is too thin to derive a data model,
   say exactly what is missing instead of guessing.
-- Behavior and service definitions are template-validated, not deep-parsed — ADT activation is
-  the final arbiter.
+- Behavior and service definitions are checked by abap-mcp's own RAP parser and rule set
+  (`check_rap_behavior`; pass the CDS views in the same call so the cross-file rules run), not by
+  abaplint and not by SAP — ADT activation is the final arbiter.
 - Everything runs offline on supplied text: no SAP system, no ATC. `run_abap_unit` (opt-in)
   executes transpiled JavaScript against the open-abap kernel, not SAP's — evidence for pure
   logic only.

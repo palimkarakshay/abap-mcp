@@ -1,0 +1,13 @@
+managed;
+strict ( 2 );
+
+define behavior for ZR_Demo alias Demo
+persistent table zdemo
+lock master
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+}

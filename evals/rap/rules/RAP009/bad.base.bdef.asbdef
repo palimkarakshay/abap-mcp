@@ -1,0 +1,6 @@
+abstract;
+
+define behavior for ZR_Demo alias Demo
+{
+  association _Item;
+}

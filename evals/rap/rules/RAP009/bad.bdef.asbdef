@@ -1,0 +1,5 @@
+projection;
+
+define behavior for ZC_Demo alias Demo
+{
+}

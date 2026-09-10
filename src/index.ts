@@ -23,6 +23,23 @@ export { lookupReleased, suggestSuccessor, RELEASED_API_SNAPSHOT } from "./abap/
 export type { ReleasedLookup, ReleasedState } from "./abap/released.js";
 export { scaffoldRapBo, snakeToCamel } from "./abap/scaffold.js";
 export type { ScaffoldOptions, ScaffoldResult } from "./abap/scaffold.js";
+export {
+  checkRapBehavior,
+  containsRapFiles,
+  rapFindingsToLintFindings,
+  MAX_RAP_FILES,
+  RAP_GRAMMAR_VERSION,
+  RAP_RULES,
+  RAP_RULES_VERSION,
+  RAP_SCOPE_NOTE,
+} from "./abap/rap/index.js";
+export type {
+  RapCheckOptions,
+  RapCheckReport,
+  RapFileReport,
+  RapFinding,
+  RapSeverity,
+} from "./abap/rap/index.js";
 export { listRules, explainRule } from "./abap/rules.js";
 export { formatAbap } from "./abap/formatter.js";
 export { outlineAbap, outlineToMermaid } from "./abap/outline.js";

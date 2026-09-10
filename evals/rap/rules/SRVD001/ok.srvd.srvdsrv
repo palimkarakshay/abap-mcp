@@ -1,0 +1,4 @@
+define service Z_OK_SRV
+{
+  expose ZC_FOO as Foo;
+}

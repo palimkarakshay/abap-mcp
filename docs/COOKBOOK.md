@@ -358,3 +358,62 @@ Pick the edition that matches the actual target system — a Private Cloud on-pr
 against the Public Edition snapshot (or vice versa) will get plausible-looking but wrong verdicts.
 `successorSource` on each finding tells you whether the successor came from SAP's own published
 data (`"sap"`) or abap-mcp's curated fallback (`"curated"`, used only when SAP's data has none).
+
+## 10. v0.12 — checking the two files abaplint cannot read (BDEF/SRVD)
+
+abaplint stores a behavior definition behind a single regex and does not parse a service definition
+at all. Until v0.12 that meant `lint_abap` returned **zero findings** for both file types — and you
+could not tell "clean" from "not parsed". `check_rap_behavior` closes that with abap-mcp's own BDL/SDL
+parser and rule set.
+
+### Check a BDEF before it reaches ADT
+
+```bash
+npx abap-mcp rapcheck src/                       # whole abapGit dir: BDEFs, SRVDs and the CDS views
+npx abap-mcp rapcheck src/ --release 2508        # + flag constructs newer than ABAP Cloud 2508
+npx abap-mcp rapcheck src/ --strict --json       # run the strict-mode rules even where strict is absent
+```
+
+Exit 1 on errors, 0 on warnings and infos — the release gate and the advisory rules never break a
+build. With an assistant: *"Check this behavior definition for draft/etag/lock consistency before I
+activate it"* → `check_rap_behavior`.
+
+**Sweep a directory, not a file.** The cross-file rules only run on files present in the same call:
+projection → base BDEF (RAP008/RAP009/RAP018/RAP060/RAP076), BDEF → CDS entity and its elements
+(RAP001/RAP002/RAP059), service `expose` → CDS entities (SRVD006/SRVD007). A directory sweep brings
+the `.ddls.asddls` along automatically, which is what makes them fire.
+
+### It is already inside `lint_abap`
+
+Any `lint_abap` call (or `abap-mcp lint`) that contains a BDEF/SRVD routes the whole set through the
+RAP checker too, and merges the findings under namespaced keys — `rap/RAP026`, `rap/SRVD003`,
+`rap/RAP900`. The result carries `rapChecked: true` and `rapScopeNote`. Opt out with `rapCheck: false`
+(CLI: `--no-rap`) if you have a CI job comparing abaplint finding counts across versions.
+
+### Reading the severities honestly
+
+| You see | It means |
+|---|---|
+| `error` | A rule with `confidence: "confirmed"` — stated in SAP's documentation. Fix it. |
+| `warning` | An advisory rule (weaker provenance, message carries the clause), the dated release gate `RAP900`, or a rule whose only evidence is the file set you passed — `RAP002` and `SRVD006` say "not found among the sources in this call", which may just mean you did not pass it. Judgment call. |
+| `info` `RAP000` | **Our** grammar does not know that statement; it was skipped and no rule ran on it. Nothing is necessarily wrong with your file. |
+| `info` `RAP-STRICT-MISSING` | The BDEF declares no `strict`, so every strict-gated rule stayed off. Add `strict ( 2 );` to get them. |
+
+`summary.suppressedByUnknown` counts the times a "must be declared" rule stayed silent because a
+statement it could not read might have been that declaration — coverage gaps are visible, not hidden.
+Every rule is documented in [`RAP-RULES.md`](RAP-RULES.md).
+
+### Pair it with `check_cloud_readiness`
+
+They answer different questions and are deliberately not merged: readiness is
+`diff(parse@Cloud, parse@baseline)` over ABAP, and BDL has no classic-vs-Cloud dialect to diff. The
+useful pairing for a RAP repo is both, in one pass:
+
+```bash
+npx abap-mcp readiness src/ --fail-below 80   # the ABAP half: cloud blockers, score, A–D grade
+npx abap-mcp rapcheck src/ --release 2508     # the RAP half: BDEF/SRVD consistency + release gate
+```
+
+A green readiness score says nothing about whether your behavior definition is coherent; a clean
+`rapcheck` says nothing about whether the ABAP around it is cloud-ready. Neither says ADT will
+activate it — that remains the target system's call.

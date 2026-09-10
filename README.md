@@ -126,8 +126,8 @@ npm install && npm run build
 claude mcp add abap-mcp -- node /path/to/abap-mcp/dist/cli.js
 ```
 
-Connected? Ask your agent *"list your ABAP tools"* — you should see seventeen by default,
-`lint_abap` through `get_abap_agent_rules`, plus the opt-in `run_abap_unit` when
+Connected? Ask your agent *"list your ABAP tools"* — you should see eighteen by default,
+`lint_abap` through `check_rap_behavior`, plus the opt-in `run_abap_unit` when
 `ABAP_MCP_ENABLE_RUN=1` is set.
 
 ### First things to ask
@@ -174,6 +174,7 @@ npx abap-mcp release --since 2605 rap           # bundled ABAP Cloud/RAP release
 npx abap-mcp knowledge "clean core level C"     # search the bundled SAP knowledge base (Clean Core, ATC, SAP-AI)
 npx abap-mcp aisdk --scenario ZDEMO_AI --interaction string --out ./out  # scaffold a Generative AI Hub call
 npx abap-mcp agent-rules --target Cloud --paired sap-adt-mcp --run       # print the AGENTS.md rules block
+npx abap-mcp rapcheck src/ --release 2508       # check RAP behavior/service definitions (BDEF/SRVD); exit 1 on errors
 npx abap-mcp unittest --run src/                # EXECUTE ABAP Unit tests offline (open-abap kernel, no DB/CDS/EML); exit 1 on failure
 ```
 
@@ -231,6 +232,7 @@ The full offline loop an agent can run before anything reaches a system:
 | `search_sap_knowledge` | Free-text search over the same bundle plus Clean Core governance (Levels A–D, release contracts C0–C3, the real ATC vocabulary) and 7 SAP-AI decision cards (SAP-ABAP-1, Generative AI Hub, ABAP AI SDK, SAP's official ADT MCP server, …) — every hit carries its sources and confidence. |
 | `scaffold_abap_ai_sdk` | Generates a validated ABAP class calling the Generative AI Hub through the ABAP AI SDK (ISLM): 7 interaction shapes (string, messages, prompt-template, function-calling, structured-output, streaming, orchestration), round-tripped through abaplint against abap-mcp's own bundled `IF_AIC_*` stubs (`validated: "abaplint-syntax"`); returns the manual ISLM setup steps it cannot perform itself. |
 | `get_abap_agent_rules` | Emits the AGENTS.md / CLAUDE.md rules block for an ABAP repo: lint-before-commit, the readiness gate, released-API discipline, scaffold-first, the offline unit-test loop, and division of labour with an online ADT MCP server. |
+| `check_rap_behavior` | Checks RAP behavior definitions (`.bdef.asbdef`) and CDS service definitions (`.srvd.srvdsrv`) with abap-mcp's own BDL/SDL parser and a 48-rule set (40 behavior rules including the structural tiers, 7 service-definition rules, 1 release gate) — **abaplint deep-parses neither file type**, so this is the only static feedback they get without a system. Covers the draft/etag/lock/authorization/numbering consistency set, strict-mode obligations, action/operation/validation/determination/side-effect coherence, projection `use` against the base BDEF, and service `expose` against the CDS entities you pass in the same call; with `abapRelease` it also gates constructs newer than that release. Two-tier by design: punctuation breakage is an error, a construct the grammar does not know is an **info** that says so. |
 | `run_abap_unit` *(opt-in — `ABAP_MCP_ENABLE_RUN=1`)* | Executes ABAP Unit tests offline: transpiles to JavaScript via `@abaplint/transpiler` against the bundled open-abap kernel and runs it in a sandboxed subprocess (server-owned temp dir, hard timeout, no network) — one pass/fail/error/skipped row per method, plus the honest static lint. Evidence about pure logic only — no DB/CDS/EML/AMDP/auth. Always available in the CLI as `abap-mcp unittest --run`. |
 
 ## Knowledge base & resources
@@ -267,9 +269,20 @@ returned as both `application/json` and `text/markdown`).
   (`src/data/atc-vocabulary.json`).
 - **Scaffold validation is tiered.** Generated classes and CDS views are round-tripped through
   abaplint at Cloud level before they're returned (the generator and the linter share one
-  parser). Behavior/service definitions are outside abaplint's checked surface — they are
-  golden-tested canonical templates, and ADT activation is the final arbiter. Each generated
-  file is labeled `validated: "abaplint" | "template"`.
+  parser). Behavior and service definitions are outside abaplint's checked surface, so they run
+  through abap-mcp's own RAP checker instead and are labeled `validated: "rap-checker"` when it
+  returns nothing at error or warning severity; the metadata extension has no checker at all and
+  stays `"template"`. Each generated file is labeled `validated: "abaplint" | "rap-checker" |
+  "template"`, and ADT activation is still the final arbiter.
+- **The RAP checker is our own grammar, not SAP's parser.** `check_rap_behavior` (and the `rap/…`
+  findings merged into `lint_abap`) reads BDEF/SRVD with a tokenizer and grammar this project wrote
+  from SAP's published RAP BDL feature tables, the ABAP keyword documentation, and a 102-file corpus
+  of Apache-2.0 SAP sample sources. Every report carries `grammarVersion`, `rulesVersion` and a
+  `scopeNote` saying what that does and does not prove: it cannot see DDIC tables, behavior-pool
+  classes or CDS field types, and constructs it does not recognise are reported as **info**, never as
+  errors. Rules derived from anything weaker than SAP documentation are capped at `warning` and carry
+  their provenance in the message. Every shipped rule is documented in
+  [`docs/RAP-RULES.md`](docs/RAP-RULES.md).
 - **`run_abap_unit` is not SAP's kernel.** It transpiles to JavaScript and executes on the
   open-abap kernel (opt-in, `ABAP_MCP_ENABLE_RUN=1`; always on in the CLI via `unittest --run`) —
   no database (any ABAP SQL aborts the method), no CDS, no EML/RAP runtime, no AMDP, no authority

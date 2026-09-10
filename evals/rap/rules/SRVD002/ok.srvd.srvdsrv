@@ -1,0 +1,4 @@
+define service Z_OK_SRV provider contracts odata_v4_ui
+{
+  expose ZC_FOO as Foo;
+}

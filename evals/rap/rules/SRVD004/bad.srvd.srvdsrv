@@ -1,0 +1,4 @@
+define service Z_BAD_SRV
+{
+  expose method ZCL_FOO=>GET_DATA as Foo;
+}

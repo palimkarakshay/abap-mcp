@@ -1,0 +1,20 @@
+managed implementation in class zbp_r_demo unique;
+
+with draft;
+
+define behavior for ZR_Demo alias Demo
+persistent table zdemo
+draft table zdemo_d
+lock master
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+  draft action Edit;
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Resume;
+  draft determine action Prepare;
+}

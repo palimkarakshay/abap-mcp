@@ -420,5 +420,31 @@
       "direct",
       "execution"
     ]
+  },
+  {
+    "id": "rap-behavior-consistency",
+    "intent": "Check this RAP behavior definition for draft/etag/lock consistency before I activate it",
+    "expected": {
+      "kind": "tool",
+      "name": "check_rap_behavior"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "rap"
+    ]
+  },
+  {
+    "id": "srvd-expose-and-contract",
+    "intent": "Does this CDS service definition expose the right entities and is the provider contract valid?",
+    "expected": {
+      "kind": "tool",
+      "name": "check_rap_behavior"
+    },
+    "tags": [
+      "tool",
+      "direct",
+      "rap"
+    ]
   }
 ]

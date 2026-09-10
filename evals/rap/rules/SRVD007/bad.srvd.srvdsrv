@@ -1,0 +1,5 @@
+@ObjectModel.leadingEntity.name: 'ZC_NOT_EXPOSED'
+define service Z_BAD_SRV
+{
+  expose ZC_FOO as Foo;
+}

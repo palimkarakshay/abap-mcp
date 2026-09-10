@@ -30,10 +30,13 @@ describe("MCP server wire", () => {
     expect(SERVER_INSTRUCTIONS).toContain("do not connect to SAP or run ATC");
     expect(SERVER_INSTRUCTIONS).toContain("explain_abap_release");
     expect(SERVER_INSTRUCTIONS).toContain("run_abap_unit");
+    expect(SERVER_INSTRUCTIONS).toContain("check_rap_behavior");
+    expect(SERVER_INSTRUCTIONS).toContain("abaplint does not parse those file types");
   });
 
   const CORE_TOOLS = [
     "check_cloud_readiness",
+    "check_rap_behavior",
     "check_released_api",
     "compare_abap",
     "explain_abap_release",
@@ -52,7 +55,7 @@ describe("MCP server wire", () => {
     "search_sap_knowledge",
   ];
 
-  it("lists the seventeen offline tools by default (run_abap_unit stays opt-in)", async () => {
+  it("lists the eighteen offline tools by default (run_abap_unit stays opt-in)", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(CORE_TOOLS);
@@ -354,9 +357,134 @@ describe("MCP server wire", () => {
     const result = (await client.callTool({
       name: "lint_abap",
       arguments: { files: [{ source: "REPORT ztest.\nDATA foo TYPE i.\nIF foo = 1.\nENDIF." }] },
-    })) as { isError?: boolean; structuredContent?: { findings: unknown[] } };
+    })) as { isError?: boolean; structuredContent?: { findings: unknown[]; rapChecked?: boolean } };
     expect(result.isError ?? false).toBe(false);
     expect(result.structuredContent!.findings.length).toBeGreaterThan(0);
+    // No BDEF/SRVD in the call ⇒ the RAP checker never ran (spec §5.2).
+    expect(result.structuredContent!.rapChecked).toBe(false);
+  });
+
+  // Spec §4.1 / §6.4: the tool exists over the wire and reports the draft
+  // consistency set on a BDEF abaplint would say nothing at all about.
+  it("check_rap_behavior round-trips over the wire with structured content", async () => {
+    const client = await connectedClient();
+    const result = (await client.callTool({
+      name: "check_rap_behavior",
+      arguments: {
+        files: [
+          {
+            filename: "zr_travel.bdef.asbdef",
+            source:
+              "managed implementation in class zbp_travel unique;\nstrict ( 2 );\nwith draft;\n\n" +
+              "define behavior for ZR_Travel alias Travel\npersistent table ztravel\n" +
+              "etag master LocalLastChangedAt\nlock master\nauthorization master ( instance )\n" +
+              "{\n  create;\n  update;\n  delete;\n}\n",
+          },
+        ],
+      },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        findings: { rule: string; severity: string; hint: string; confidence: string }[];
+        files: { kind: string; parsed: boolean; entityCount?: number }[];
+        summary: { errors: number; rulesRun: number; unknownConstructs: number };
+        scopeNote: string;
+        grammarVersion: string;
+        rulesVersion: string;
+        validated: string;
+      };
+    };
+    expect(result.isError ?? false).toBe(false);
+    const report = result.structuredContent!;
+    expect(report.files[0]).toMatchObject({ kind: "bdef", parsed: true, entityCount: 1 });
+    // A draft BO with no draft table and no total etag: RAP026 and RAP035.
+    const ruleIds = report.findings.map((f) => f.rule);
+    expect(ruleIds).toContain("RAP026");
+    expect(ruleIds).toContain("RAP035");
+    expect(report.summary.errors).toBeGreaterThan(0);
+    expect(report.summary.unknownConstructs).toBe(0);
+    expect(report.validated).toBe("rap-checker");
+    expect(report.grammarVersion).toMatch(/^bdl\//);
+    expect(report.rulesVersion).toMatch(/^rap-rules\//);
+    expect(report.scopeNote).toContain("not by abaplint");
+    for (const finding of report.findings) {
+      expect(finding.hint.length).toBeGreaterThan(0);
+      expect(["confirmed", "inferred", "community-reported", "conflicting"]).toContain(finding.confidence);
+    }
+  });
+
+  // Spec §5.2: a BDEF in a lint_abap call routes through the RAP checker and
+  // comes back merged under namespaced rap/ keys — abaplint alone reports
+  // nothing on these files, and that silence was the honesty problem.
+  it("lint_abap merges RAP findings under rap/ keys, and rapCheck:false opts out", async () => {
+    const client = await connectedClient();
+    const files = [
+      {
+        filename: "zr_travel.bdef.asbdef",
+        source:
+          "managed implementation in class zbp_travel unique;\nstrict ( 2 );\nwith draft;\n\n" +
+          "define behavior for ZR_Travel alias Travel\npersistent table ztravel\n" +
+          "etag master LocalLastChangedAt\nlock master\nauthorization master ( instance )\n" +
+          "{\n  create;\n}\n",
+      },
+    ];
+    const merged = (await client.callTool({
+      name: "lint_abap",
+      arguments: { files },
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        findings: { rule: string; severity: string; docsUrl: string; message: string }[];
+        rapChecked: boolean;
+        rapScopeNote?: string;
+      };
+    };
+    expect(merged.isError ?? false).toBe(false);
+    const sc = merged.structuredContent!;
+    expect(sc.rapChecked).toBe(true);
+    expect(sc.rapScopeNote).toContain("ADT activation");
+    const rapFindings = sc.findings.filter((f) => f.rule.startsWith("rap/"));
+    expect(rapFindings.length).toBeGreaterThan(0);
+    expect(rapFindings.map((f) => f.rule)).toContain("rap/RAP026");
+    for (const finding of rapFindings) {
+      expect(["Error", "Warning", "Info"]).toContain(finding.severity);
+      expect(finding.docsUrl).toContain("RAP-RULES.md");
+      // The hint is appended to the message so nothing is lost in the merge.
+      expect(finding.message).toContain(" — ");
+    }
+
+    const optedOut = (await client.callTool({
+      name: "lint_abap",
+      arguments: { files, rapCheck: false },
+    })) as { structuredContent?: { findings: { rule: string }[]; rapChecked: boolean; rapScopeNote?: string } };
+    expect(optedOut.structuredContent!.rapChecked).toBe(false);
+    expect(optedOut.structuredContent!.rapScopeNote).toBeUndefined();
+    expect(optedOut.structuredContent!.findings.filter((f) => f.rule.startsWith("rap/"))).toEqual([]);
+  });
+
+  // Review finding (`abap.tools.ts` §lint_abap handler): the RAP report's own
+  // `summary.truncated` was dropped on the floor by the merge, so a RAP run
+  // that stopped at one of its parser caps came back as a complete lint.
+  it("lint_abap carries the RAP checker's truncation into the merged truncated flag", async () => {
+    const client = await connectedClient();
+    const body = Array.from({ length: 400 }, () => "  frobnicate zzz;").join("\n");
+    const files = [
+      {
+        filename: "zr_trunc.bdef.asbdef",
+        source:
+          "managed implementation in class zbp_trunc unique;\n\ndefine behavior for ZR_Trunc alias Trunc\n" +
+          `persistent table ztrunc\nlock master\nauthorization master ( instance )\n{\n${body}\n}\n`,
+      },
+    ];
+    const result = (await client.callTool({ name: "lint_abap", arguments: { files } })) as {
+      structuredContent?: { findings: unknown[]; truncated: boolean; rapChecked: boolean };
+    };
+    const sc = result.structuredContent!;
+    expect(sc.rapChecked).toBe(true);
+    // Well under abaplint's own 500-finding cap — the flag can only come
+    // from the RAP side.
+    expect(sc.findings.length).toBeLessThan(500);
+    expect(sc.truncated).toBe(true);
   });
 
   it("scaffold_rap_bo returns validated artifacts over the wire", async () => {
@@ -364,10 +492,20 @@ describe("MCP server wire", () => {
     const result = (await client.callTool({
       name: "scaffold_rap_bo",
       arguments: { entityName: "Trip", sqlTable: "ztrip", keyField: "trip_id" },
-    })) as { isError?: boolean; structuredContent?: { files: { filename: string }[]; validationIssues: unknown[] } };
+    })) as {
+      isError?: boolean;
+      structuredContent?: {
+        files: { filename: string; validated: string }[];
+        validationIssues: unknown[];
+        rapFindings: unknown[];
+      };
+    };
     expect(result.isError ?? false).toBe(false);
     expect(result.structuredContent!.files.length).toBe(8);
     expect(result.structuredContent!.validationIssues).toEqual([]);
+    expect(result.structuredContent!.rapFindings).toEqual([]);
+    const bdef = result.structuredContent!.files.find((f) => f.filename === "zr_trip.bdef.asbdef")!;
+    expect(bdef.validated).toBe("rap-checker");
   });
 
   it("check_released_api resolves table/CDS/BAPI states over the wire", async () => {

@@ -1,0 +1,7 @@
+interface;
+implementation in class zbp_i_demo unique;
+
+define behavior for ZI_Demo alias Demo
+{
+  association _Item;
+}
