@@ -1,0 +1,5 @@
+@EndUserText.label: 'Service for Shipping Request'
+define service ZSHIPPINGREQUEST_SERVICE {
+  expose ZC_SHIPPINGREQUEST as ShippingRequest;
+  expose ZC_ORDER000        as Order000;
+}

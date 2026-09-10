@@ -1,0 +1,13 @@
+managed implementation in class zknsf_cl_bp_projects unique;
+strict ( 2 );
+
+define behavior for ZKNSF_I_PROJECTS alias project
+persistent table sycma_project
+lock master
+authorization master ( instance )
+
+{
+ static action Setup;
+ static action RunATC;
+ static action UploadFile deep parameter ZKNSF_I_FILE_UPLOAD ;
+}

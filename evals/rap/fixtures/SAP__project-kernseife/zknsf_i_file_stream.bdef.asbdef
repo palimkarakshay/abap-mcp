@@ -1,0 +1,6 @@
+abstract;
+strict ( 2 );
+with hierarchy;
+define behavior for ZKNSF_I_FILE_STREAM alias FileStream
+{
+}

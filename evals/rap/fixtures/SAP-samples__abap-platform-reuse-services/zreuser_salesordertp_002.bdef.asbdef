@@ -1,0 +1,140 @@
+managed with additional save implementation in class ZREUSEBP_R_SalesOrderTP_002 unique;
+strict ( 2 );
+with draft;
+
+
+define behavior for ZREUSER_SalesOrderTP_002 alias SalesOrder
+//implementation in class ZREUSEBP_R_SalesOrderTP_002 unique
+
+//persistent table zreuse_head_002
+draft table zreusesal00d_002
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master ( global )
+with unmanaged save
+late numbering
+{
+  field ( readonly )
+  CreatedAt,
+  CreatedBy,
+  LastChangedBy,
+  LastChangedAt,
+  LocalLastChangedAt,
+  SalesorderID,
+  AmountExclVat,
+  AmountVat,
+  TotalAmount,
+  //  Attachment,
+  //  FileName,
+  //  MimeType,
+  OverallStatus
+
+
+  ;
+
+  //  field ( readonly : update )
+  //  SalesorderID;
+
+
+  create;
+  update;
+  delete;
+
+  draft action Edit;
+  draft action Activate;
+  draft action Discard;
+  draft action Resume;
+  draft determine action Prepare;
+
+  action ( features : instance ) createPDF result [1] $self;
+
+  internal action recalcTotalPrice;
+
+  mapping for zreuse_head_002 control zreuse_head_x_002 corresponding
+    {
+      SalesorderID       = SALESORDER_ID;
+      CustomerID         = CUSTOMER_ID;
+      PaymentMethod      = PAYMENT_METHOD;
+      AmountExclVat      = AMOUNT_EXCL_VAT;
+      AmountVat          = AMOUNT_VAT;
+      TotalAmount        = TOTAL_AMOUNT;
+      CurrencyCode       = CURRENCY_CODE;
+      Description        = DESCRIPTION;
+      OverallStatus      = OVERALL_STATUS;
+      Attachment         = attachment;
+      FileName           = file_name;
+      MimeType           = mime_type;
+      CreatedAt          = CREATED_AT;
+      CreatedBy          = CREATED_BY;
+      LastChangedBy      = LAST_CHANGED_BY;
+      LastChangedAt      = LAST_CHANGED_AT;
+      LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+    }
+
+  association _Item { create; with draft; }
+}
+
+define behavior for ZREUSER_ItemTP_002 alias Item
+implementation in class ZREUSEBP_R_ItemTP_002 unique
+persistent table zreuse_item_002
+draft table zreuseite00d_002
+etag master LocalLastChangedAt
+lock dependent by _SalesOrder
+authorization dependent by _SalesOrder
+late numbering
+{
+  field ( readonly )
+  SalesorderID,
+  ItemID,
+  LocalLastChangedAt,
+  Amount,
+  AmountExclVat,
+  AmountVat,
+  OverallStatus
+//  ,
+//  UnitPrice
+  ;
+
+  //  field ( readonly : update )
+  //  ItemID;
+
+
+  update;
+  delete;
+
+  determination calculateTotalPrice on modify { create; field UnitPrice, Quantity; }
+
+
+
+  side effects
+  {
+    field UnitPrice affects field Amount, field AmountExclVat, field AmountVat,
+        field _SalesOrder.TotalAmount,
+        field _SalesOrder.AmountVat,
+        field _SalesOrder.AmountExclVat;
+    field Quantity affects field Amount, field AmountExclVat, field AmountVat,
+        field _SalesOrder.TotalAmount,
+        field _SalesOrder.AmountVat,
+        field _SalesOrder.AmountExclVat;
+    //     field ChildPieces affects field _Root.TotalPieces;
+  }
+
+  mapping for zreuse_item_002
+    {
+      SalesorderID       = SALESORDER_ID;
+      ItemID             = ITEM_ID;
+      Product            = PRODUCT;
+      Quantity           = QUANTITY;
+      QuantityUnit       = QUANTITY_UNIT;
+      UnitPrice          = unit_price;
+      AmountExclVat      = AMOUNT_EXCL_VAT;
+      AmountVat          = AMOUNT_VAT;
+      Amount             = AMOUNT;
+      CurrencyCode       = CURRENCY_CODE;
+      Description        = DESCRIPTION;
+      OverallStatus      = OVERALL_STATUS;
+      LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+    }
+
+  association _SalesOrder { with draft; }
+}

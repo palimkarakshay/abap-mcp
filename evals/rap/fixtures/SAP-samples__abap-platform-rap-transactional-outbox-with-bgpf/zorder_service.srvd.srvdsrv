@@ -1,0 +1,5 @@
+@EndUserText.label: 'Demo for bgPF'
+define service ZORDER_SERVICE {
+  expose ZC_ORDER000  as SalesOrder;
+  expose ZC_ORDERITEM as OrderItem;
+}

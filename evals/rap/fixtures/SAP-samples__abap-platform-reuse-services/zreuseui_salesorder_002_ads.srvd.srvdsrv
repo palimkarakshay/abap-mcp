@@ -1,0 +1,9 @@
+@ObjectModel.leadingEntity.name: 'ZREUSEI_SALESORDER_002_ADS'
+define service ZREUSEUI_SALESORDER_002_ADS {
+  expose ZREUSEI_SALESORDER_002_ADS as SalesOrder;
+  expose ZREUSEI_ITEM_002_ADS       as Item;
+  expose I_UnitOfMeasure            as UnitOfMeasure;
+  expose I_Currency                 as Currency;
+  expose ZREUSEI_VH_CUSTOMER_002    as Customer;
+  expose ZREUSEI_VH_PRODUCT_002     as Product;
+}

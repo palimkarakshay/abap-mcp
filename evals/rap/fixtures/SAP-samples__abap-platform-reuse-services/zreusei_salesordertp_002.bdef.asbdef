@@ -1,0 +1,28 @@
+interface;
+use draft;
+define behavior for ZREUSEI_SalesOrderTP_002 alias SalesOrder
+use etag
+
+{
+  use create;
+  use update;
+  use delete;
+
+  use action Edit;
+  use action Activate;
+  use action Discard;
+  use action Resume;
+  use action Prepare;
+
+  use association _Item { create; with draft; }
+}
+
+define behavior for ZREUSEI_ItemTP_002 alias Item
+use etag
+
+{
+  use update;
+  use delete;
+
+  use association _SalesOrder { with draft; }
+}

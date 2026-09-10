@@ -1,0 +1,76 @@
+managed implementation in class ZRAP100_BP_TravelTP_SOL unique;
+strict ( 2 );
+with draft;
+define behavior for ZRAP100_R_TRAVELTP_SOL alias Travel
+persistent table zrap100_atravsol
+draft table zrap100_dtravsol
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master ( global )
+early numbering
+{
+
+  field ( readonly )
+  CreatedAt,
+  CreatedBy,
+  LastChangedAt,
+  LocalLastChangedAt,
+  LocalLastChangedBy;
+
+  field ( readonly )
+  TravelID;
+
+  field ( mandatory )
+  CustomerID,
+  BeginDate,
+  EndDate;
+
+
+  create;
+  update ( features : instance ) ;
+  delete ( features : instance ) ;
+
+  determination setStatusToOpen on modify { create; }
+
+  validation validateCustomer on save { create; field CustomerID; }
+  validation validateDates on save { create; field BeginDate, EndDate; }
+
+  action ( features : instance ) deductDiscount parameter /dmo/a_travel_discount result [1] $self;
+  factory action copyTravel [1];
+
+  action ( features : instance ) acceptTravel result [1] $self;
+  action ( features : instance ) rejectTravel result [1] $self;
+
+
+  draft action ( features : instance ) Edit;
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Resume;
+  draft determine action Prepare
+  {
+    validation validateCustomer;
+    validation validateDates; }
+
+
+  mapping for zrap100_atravsol
+    {
+      TravelID           = travel_id;
+      AgencyID           = agency_id;
+      CustomerID         = customer_id;
+      BeginDate          = begin_date;
+      EndDate            = end_date;
+      BookingFee         = booking_fee;
+      TotalPrice         = total_price;
+      CurrencyCode       = currency_code;
+      Description        = description;
+      OverallStatus      = overall_status;
+      Attachment         = attachment;
+      MimeType           = mime_type;
+      FileName           = file_name;
+      CreatedBy          = created_by;
+      CreatedAt          = created_at;
+      LocalLastChangedBy = local_last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+      LastChangedAt      = last_changed_at;
+    }
+}

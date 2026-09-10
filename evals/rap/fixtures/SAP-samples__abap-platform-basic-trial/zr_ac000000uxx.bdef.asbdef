@@ -1,0 +1,91 @@
+managed with additional save implementation in class ZBP_R_AC000000UXX unique;
+strict ( 2 );
+with draft;
+extensible;
+define behavior for ZR_AC000000UXX alias ShoppingCart
+persistent table zac000000uxx
+extensible
+draft table zac000000uxx_d
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master ( global )
+{
+  field ( readonly )
+  OrderUUID,
+  CreatedBy,
+  CreatedAt,
+  LastChangedBy,
+  LastChangedAt,
+  LocalLastChangedAt;
+
+  //additional readonly field
+  field ( readonly )
+  OrderId;
+
+  // mark mandatory fields
+  field ( mandatory )
+  OrderQuantity,
+  OrderedItem,
+  RequestedDeliveryDate;
+
+  field ( numbering : managed )
+  OrderUUID;
+
+  // side effect events
+  event statusUpdated for side effects;
+
+  side effects
+  {
+    event statusUpdated affects field ( TotalPrice, Notes, OverallStatus, SalesOrderStatus,
+    Salesorder, ManageSalesOrderUrl );
+  }
+
+
+  create;
+  update;
+  delete;
+
+  determination setStatusToNew on modify { create; }
+  determination calculateOrderID on save { create; }
+  determination setStatusToSaved on save { create; }
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  //  draft determine action Prepare;
+  draft determine action Prepare
+  {
+    validation validateOrderedItem;
+    validation validateRequestedDeliveryDate;
+    validation validateOrderQuantity;
+  }
+
+  validation validateOrderedItem on save { create; field OrderedItem; }
+  validation validateRequestedDeliveryDate on save { create; field RequestedDeliveryDate; }
+  validation validateOrderQuantity on save { create; field OrderQuantity; }
+
+  mapping for zac000000uxx corresponding extensible
+    {
+      OrderUUID             = ORDER_UUID;
+      OrderID               = ORDER_ID;
+      OrderedItem           = ORDERED_ITEM;
+      OrderQuantity         = ORDER_QUANTITY;
+      RequestedDeliveryDate = REQUESTED_DELIVERY_DATE;
+      TotalPrice            = TOTAL_PRICE;
+      Currency              = CURRENCY;
+      OverallStatus         = OVERALL_STATUS;
+      SalesOrderStatus      = SALES_ORDER_STATUS;
+      Salesorder            = SALESORDER;
+      BgpfStatus            = BGPF_STATUS;
+      BgpgProcessName       = BGPG_PROCESS_NAME;
+      ManageSalesOrderUrl   = MANAGE_SALES_ORDER_URL;
+      Notes                 = NOTES;
+      CreatedBy             = CREATED_BY;
+      CreatedAt             = CREATED_AT;
+      LastChangedBy         = LAST_CHANGED_BY;
+      LastChangedAt         = LAST_CHANGED_AT;
+      LocalLastChangedAt    = LOCAL_LAST_CHANGED_AT;
+    }
+
+}

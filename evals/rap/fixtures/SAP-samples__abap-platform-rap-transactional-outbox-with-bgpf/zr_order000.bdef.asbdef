@@ -1,0 +1,85 @@
+managed with additional save implementation in class ZBP_R_ORDER000 unique;
+strict ( 2 );
+with draft;
+extensible;
+define behavior for ZR_ORDER000 alias Order000
+persistent table zorder
+extensible
+draft table zorder_d
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master ( global )
+{
+  field ( readonly )
+  UUID,
+  LocalCreatedBy,
+  LocalCreatedAt,
+  LocalLastChangedBy,
+  LocalLastChangedAt,
+  LastChangedAt;
+
+  field ( numbering : managed )
+  UUID;
+
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare;
+
+  mapping for zorder corresponding extensible
+    {
+      UUID               = uuid;
+      OrderID            = order_id;
+      OrderDate          = order_date;
+      CustomerName       = customer_name;
+      LocalCreatedBy     = local_created_by;
+      LocalCreatedAt     = local_created_at;
+      LocalLastChangedBy = local_last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+      LastChangedAt      = last_changed_at;
+      status             = status;
+    }
+
+  association _OrderItem { create; with draft; }
+
+}
+
+define behavior for ZR_ORDERITEM alias OrderItem
+persistent table zorderitem
+extensible
+draft table zorderitem_d
+etag dependent by _Order000
+lock dependent by _Order000
+authorization dependent by _Order000
+{
+  field ( readonly )
+  UUID,
+  ParentUUID;
+
+  field ( numbering : managed )
+  UUID;
+
+
+  update;
+  delete;
+
+  mapping for zorderitem corresponding extensible
+    {
+      UUID         = uuid;
+      ParentUUID   = parent_uuid;
+      OrderItemID  = order_item_id;
+      ProductName  = product_name;
+      Quantity     = quantity;
+      UnitPrice    = unit_price;
+      QuantityUOM  = quantity_uom;
+      CurrencyCode = currency_code;
+    }
+
+  association _Order000 { with draft; }
+
+}
