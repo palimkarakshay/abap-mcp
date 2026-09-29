@@ -1,0 +1,6 @@
+{
+  "gate": ["rapcheck"],
+  "baselineShouldFail": true,
+  "expectedBlockers": ["RAP028", "RAP029", "RAP032"],
+  "notes": "No lock master / etag / authorization master: concurrent edits overwrite each other and nothing checks who may change the order."
+}

@@ -1,0 +1,14 @@
+{
+  "gate": [
+    "unittest"
+  ],
+  "baselineShouldFail": true,
+  "expectedBlockers": [
+    "ZCL_NWB_RATING>AVERAGES_VALID_ONLY"
+  ],
+  "notes": "A tidy-up dropped the 1..5 range filter: lint and readiness stay clean and the code still runs, but invalid ratings now skew the average.",
+  "blindGates": [
+    "lint",
+    "readiness"
+  ]
+}

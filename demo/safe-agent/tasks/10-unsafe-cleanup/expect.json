@@ -1,0 +1,7 @@
+{
+  "gate": ["policy"],
+  "policy": ["POL-DELETE-NO-WHERE", "POL-COMMIT-IN-HANDLER", "POL-CALL-SYSTEM", "POL-EXEC-SQL"],
+  "baselineShouldFail": true,
+  "expectedBlockers": ["POL-DELETE-NO-WHERE", "POL-COMMIT-IN-HANDLER"],
+  "notes": "'Clean up old orders' became DELETE with no WHERE plus COMMIT WORK in a RAP handler: it compiles, lints clean, and empties the table."
+}

@@ -1,0 +1,123 @@
+{
+  "runAt": "2026-09-29T16:17:13.339Z",
+  "classes": [
+    {
+      "class": "ZLV_NWB_DISCOUNT",
+      "uri": "/sap/bc/adt/oo/classes/zlv_nwb_discount",
+      "httpStatus": 200,
+      "passed": 3,
+      "total": 3,
+      "methods": [
+        {
+          "method": "AT_THRESHOLD",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        },
+        {
+          "method": "BELOW_THRESHOLD",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        },
+        {
+          "method": "ROUNDS_TO_CENTS",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        }
+      ]
+    },
+    {
+      "class": "ZLV_NWB_DISCOUNT_B",
+      "uri": "/sap/bc/adt/oo/classes/zlv_nwb_discount_b",
+      "httpStatus": 200,
+      "passed": 2,
+      "total": 3,
+      "methods": [
+        {
+          "method": "AT_THRESHOLD",
+          "executionTime": "0",
+          "result": "FAIL",
+          "alerts": [
+            {
+              "kind": "failedAssertion",
+              "severity": "critical",
+              "title": "Critical Assertion Error: 'At_Threshold: ASSERT_EQUALS'",
+              "details": [
+                "Different values",
+                "Expected [90.00] Actual [ 100.00 ]",
+                "Test 'LTC_DISCOUNT->AT_THRESHOLD' in Main Program 'ZLV_NWB_DISCOUNT_B============CP'"
+              ]
+            }
+          ]
+        },
+        {
+          "method": "BELOW_THRESHOLD",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        },
+        {
+          "method": "ROUNDS_TO_CENTS",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        }
+      ]
+    },
+    {
+      "class": "ZLV_NWB_RATING",
+      "uri": "/sap/bc/adt/oo/classes/zlv_nwb_rating",
+      "httpStatus": 200,
+      "passed": 2,
+      "total": 2,
+      "methods": [
+        {
+          "method": "AVERAGES_VALID_ONLY",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        },
+        {
+          "method": "EMPTY_IS_ZERO",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        }
+      ]
+    },
+    {
+      "class": "ZLV_NWB_RATING_B",
+      "uri": "/sap/bc/adt/oo/classes/zlv_nwb_rating_b",
+      "httpStatus": 200,
+      "passed": 1,
+      "total": 2,
+      "methods": [
+        {
+          "method": "AVERAGES_VALID_ONLY",
+          "executionTime": "0",
+          "result": "FAIL",
+          "alerts": [
+            {
+              "kind": "failedAssertion",
+              "severity": "critical",
+              "title": "Critical Assertion Error: 'Averages_Valid_Only: ASSERT_EQUALS'",
+              "details": [
+                "Different values",
+                "Expected [3.33] Actual [ 3.80 ]",
+                "Test 'LTC_RATING->AVERAGES_VALID_ONLY' in Main Program 'ZLV_NWB_RATING_B==============CP'"
+              ]
+            }
+          ]
+        },
+        {
+          "method": "EMPTY_IS_ZERO",
+          "executionTime": "0",
+          "result": "PASS",
+          "alerts": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "gate": ["policy"],
+  "policy": ["POL-HARDCODED-USER", "POL-AUTH-REQUIRED"],
+  "baselineShouldFail": true,
+  "expectedBlockers": ["POL-HARDCODED-USER", "POL-AUTH-REQUIRED"],
+  "notes": "Two user names hard-coded instead of AUTHORITY-CHECK: anyone renamed or added is a silent security hole. abaplint has no rule for this, so the gate is the policy grep."
+}

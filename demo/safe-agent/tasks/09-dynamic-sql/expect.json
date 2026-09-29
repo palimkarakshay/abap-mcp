@@ -1,0 +1,8 @@
+{
+  "gate": ["lint"],
+  "lintFocus": "Security",
+  "lintFail": ["dangerous_statement"],
+  "baselineShouldFail": true,
+  "expectedBlockers": ["dangerous_statement"],
+  "notes": "User text concatenated into a dynamic WHERE is an SQL-injection vector; a host variable makes it data, not code."
+}

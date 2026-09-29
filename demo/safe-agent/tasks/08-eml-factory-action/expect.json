@@ -1,0 +1,7 @@
+{
+  "gate": ["rapcheck", "policy"],
+  "policy": ["POL-EML-CONTROL", "POL-EML-DUP-CID"],
+  "baselineShouldFail": true,
+  "expectedBlockers": ["RAP048", "POL-EML-CONTROL", "POL-EML-DUP-CID"],
+  "notes": "Factory action returns its key via a result clause (must be MAPPED), and the EML call omits %control and reuses a %cid: rows are ignored or collide."
+}

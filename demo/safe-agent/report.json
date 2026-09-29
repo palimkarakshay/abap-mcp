@@ -1,0 +1,542 @@
+{
+  "generated": "2026-09-29T16:09:11.355Z",
+  "summary": "10 tasks · 12 gates: baseline caught 12/12 · solution passes 16/16 · 30.4s",
+  "results": [
+    {
+      "task": "01-rap-lock-etag",
+      "notes": "No lock master / etag / authorization master: concurrent edits overwrite each other and nothing checks who may change the order.",
+      "rows": [
+        {
+          "task": "01-rap-lock-etag",
+          "gate": "rapcheck",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "RAP028",
+              "RAP029",
+              "RAP032"
+            ],
+            "detail": "3 errors"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "0 errors"
+          },
+          "removed": [
+            "RAP028",
+            "RAP029",
+            "RAP032"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 0,
+        "introduced": 0,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "02-released-cds",
+      "notes": "Classic VBAK is not a released API; it works today and breaks the Clean Core contract at the next upgrade. (Snapshot records VBAK only for s4hc, not btp; readiness does not scan .ddls, so the gated consumer is the ABAP SQL class.)",
+      "rows": [
+        {
+          "task": "02-released-cds",
+          "gate": "readiness",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "released:VBAK"
+            ],
+            "grade": "A",
+            "detail": "A/100 VBAK not released"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "grade": "A",
+            "detail": "A/100"
+          },
+          "removed": [
+            "released:VBAK"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 3,
+        "introduced": 5,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "03-classic-report",
+      "notes": "WRITE lists, a REPORT program, EXEC SQL and TABLES do not exist in ABAP Cloud - graded D until rewritten as a class over a released view.",
+      "rows": [
+        {
+          "task": "03-classic-report",
+          "gate": "readiness",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "other",
+              "list-output",
+              "report-program",
+              "native-sql"
+            ],
+            "grade": "D",
+            "detail": "D/70 6 blockers"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "grade": "A",
+            "detail": "A/100"
+          },
+          "removed": [
+            "other",
+            "list-output",
+            "report-program",
+            "native-sql"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 11,
+        "introduced": 6,
+        "blockers": [
+          6,
+          0
+        ],
+        "grade": [
+          "D",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "04-authority-check",
+      "notes": "Two user names hard-coded instead of AUTHORITY-CHECK: anyone renamed or added is a silent security hole. abaplint has no rule for this, so the gate is the policy grep.",
+      "rows": [
+        {
+          "task": "04-authority-check",
+          "gate": "policy",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "POL-HARDCODED-USER",
+              "POL-AUTH-REQUIRED"
+            ],
+            "detail": "2 violation(s)"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "2 rules clean"
+          },
+          "removed": [
+            "POL-HARDCODED-USER",
+            "POL-AUTH-REQUIRED"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 0,
+        "introduced": 0,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "05-discount-boundary",
+      "notes": "'>' instead of '>=' at the 10-unit boundary: lint and readiness are clean, only the executed ABAP Unit test sees the wrong price.",
+      "rows": [
+        {
+          "task": "05-discount-boundary",
+          "gate": "unittest",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "ZCL_NWB_DISCOUNT>AT_THRESHOLD"
+            ],
+            "detail": "2/3 pass"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "3/3 pass"
+          },
+          "removed": [
+            "ZCL_NWB_DISCOUNT>AT_THRESHOLD"
+          ]
+        },
+        {
+          "task": "05-discount-boundary",
+          "gate": "lint",
+          "blind": true,
+          "baseline": {
+            "pass": true,
+            "ids": [],
+            "detail": "clean"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "clean"
+          },
+          "removed": []
+        },
+        {
+          "task": "05-discount-boundary",
+          "gate": "readiness",
+          "blind": true,
+          "baseline": {
+            "pass": true,
+            "ids": [],
+            "grade": "A",
+            "detail": "A/100"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "grade": "A",
+            "detail": "A/100"
+          },
+          "removed": []
+        }
+      ],
+      "compare": {
+        "resolved": 0,
+        "introduced": 0,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "06-refactor-regression",
+      "notes": "A tidy-up dropped the 1..5 range filter: lint and readiness stay clean and the code still runs, but invalid ratings now skew the average.",
+      "rows": [
+        {
+          "task": "06-refactor-regression",
+          "gate": "unittest",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "ZCL_NWB_RATING>AVERAGES_VALID_ONLY"
+            ],
+            "detail": "1/2 pass"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "2/2 pass"
+          },
+          "removed": [
+            "ZCL_NWB_RATING>AVERAGES_VALID_ONLY"
+          ]
+        },
+        {
+          "task": "06-refactor-regression",
+          "gate": "lint",
+          "blind": true,
+          "baseline": {
+            "pass": true,
+            "ids": [],
+            "detail": "clean"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "clean"
+          },
+          "removed": []
+        },
+        {
+          "task": "06-refactor-regression",
+          "gate": "readiness",
+          "blind": true,
+          "baseline": {
+            "pass": true,
+            "ids": [],
+            "grade": "A",
+            "detail": "A/100"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "grade": "A",
+            "detail": "A/100"
+          },
+          "removed": []
+        }
+      ],
+      "compare": {
+        "resolved": 0,
+        "introduced": 0,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "07-obsolete-statements",
+      "notes": "MOVE/ADD/MULTIPLY are illegal in ABAP Cloud; abap-mcp fix rewrites them deterministically, so no model tokens are needed.",
+      "rows": [
+        {
+          "task": "07-obsolete-statements",
+          "gate": "lint",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "obsolete_statement",
+              "parser_error"
+            ],
+            "detail": "4 blocking"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "clean"
+          },
+          "removed": [
+            "obsolete_statement",
+            "parser_error"
+          ]
+        },
+        {
+          "task": "07-obsolete-statements",
+          "gate": "fix",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "obsolete_statement"
+            ],
+            "detail": "4 auto-fixable",
+            "fixedCount": 4
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "nothing to fix",
+            "fixedCount": 0
+          },
+          "removed": [
+            "obsolete_statement"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 4,
+        "introduced": 0,
+        "blockers": [
+          1,
+          0
+        ],
+        "grade": [
+          "C",
+          "A"
+        ]
+      },
+      "autofix": {
+        "ok": true,
+        "left": 0
+      },
+      "problems": []
+    },
+    {
+      "task": "08-eml-factory-action",
+      "notes": "Factory action returns its key via a result clause (must be MAPPED), and the EML call omits %control and reuses a %cid: rows are ignored or collide.",
+      "rows": [
+        {
+          "task": "08-eml-factory-action",
+          "gate": "rapcheck",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "RAP048"
+            ],
+            "detail": "1 errors"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "0 errors"
+          },
+          "removed": [
+            "RAP048"
+          ]
+        },
+        {
+          "task": "08-eml-factory-action",
+          "gate": "policy",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "POL-EML-CONTROL",
+              "POL-EML-DUP-CID"
+            ],
+            "detail": "2 violation(s)"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "2 rules clean"
+          },
+          "removed": [
+            "POL-EML-CONTROL",
+            "POL-EML-DUP-CID"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 0,
+        "introduced": 0,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "09-dynamic-sql",
+      "notes": "User text concatenated into a dynamic WHERE is an SQL-injection vector; a host variable makes it data, not code.",
+      "rows": [
+        {
+          "task": "09-dynamic-sql",
+          "gate": "lint",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "dangerous_statement"
+            ],
+            "detail": "1 blocking"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "clean"
+          },
+          "removed": [
+            "dangerous_statement"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 4,
+        "introduced": 2,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    },
+    {
+      "task": "10-unsafe-cleanup",
+      "notes": "'Clean up old orders' became DELETE with no WHERE plus COMMIT WORK in a RAP handler: it compiles, lints clean, and empties the table.",
+      "rows": [
+        {
+          "task": "10-unsafe-cleanup",
+          "gate": "policy",
+          "blind": false,
+          "baseline": {
+            "pass": false,
+            "ids": [
+              "POL-DELETE-NO-WHERE",
+              "POL-COMMIT-IN-HANDLER"
+            ],
+            "detail": "2 violation(s)"
+          },
+          "solution": {
+            "pass": true,
+            "ids": [],
+            "detail": "4 rules clean"
+          },
+          "removed": [
+            "POL-DELETE-NO-WHERE",
+            "POL-COMMIT-IN-HANDLER"
+          ]
+        }
+      ],
+      "compare": {
+        "resolved": 1,
+        "introduced": 5,
+        "blockers": [
+          0,
+          0
+        ],
+        "grade": [
+          "A",
+          "A"
+        ]
+      },
+      "autofix": null,
+      "problems": []
+    }
+  ],
+  "problems": []
+}

@@ -1,0 +1,7 @@
+{
+  "gate": ["readiness"],
+  "edition": "btp",
+  "baselineShouldFail": true,
+  "expectedBlockers": ["list-output", "report-program", "native-sql"],
+  "notes": "WRITE lists, a REPORT program, EXEC SQL and TABLES do not exist in ABAP Cloud - graded D until rewritten as a class over a released view."
+}

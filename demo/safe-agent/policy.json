@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "note": "Grep-style guardrails for things a static analyser does not call wrong but an agent must never do unasked. Patterns run case-insensitively on comment-stripped .abap files. 'context' limits a rule to files that also match it.",
+  "default": ["POL-DELETE-NO-WHERE", "POL-COMMIT-IN-HANDLER", "POL-CALL-SYSTEM", "POL-EXEC-SQL"],
+  "rules": [
+    { "id": "POL-DELETE-NO-WHERE", "kind": "forbidden", "pattern": "\\bDELETE\\s+FROM\\s+[\\w/]+\\s*\\.",
+      "description": "DELETE FROM <table> with no WHERE clause wipes the whole table." },
+    { "id": "POL-COMMIT-IN-HANDLER", "kind": "forbidden", "pattern": "\\bCOMMIT\\s+WORK\\b",
+      "context": "cl_abap_behavior_handler|cl_abap_behavior_saver|\\bFOR\\s+(MODIFY|BEHAVIOR|VALIDATE|DETERMINE|READ|LOCK)\\b",
+      "description": "RAP owns the transaction; COMMIT WORK inside a handler/saver breaks it." },
+    { "id": "POL-CALL-SYSTEM", "kind": "forbidden", "pattern": "\\bCALL\\s+'SYSTEM'",
+      "description": "Kernel call into the OS shell." },
+    { "id": "POL-EXEC-SQL", "kind": "forbidden", "pattern": "\\bEXEC\\s+SQL\\b",
+      "description": "Native SQL bypasses ABAP SQL, authorisations and ABAP Cloud." },
+    { "id": "POL-HARDCODED-USER", "kind": "forbidden", "pattern": "\\bsy-uname\\s*(=|EQ|<>|NE)\\s*'",
+      "description": "Hard-coded user names are not an authorisation model." },
+    { "id": "POL-AUTH-REQUIRED", "kind": "required", "pattern": "\\bAUTHORITY-CHECK\\b",
+      "context": "\\bUPDATE\\s+\\w+\\s+SET\\b",
+      "description": "A method that changes data must run an AUTHORITY-CHECK." },
+    { "id": "POL-EML-CONTROL", "kind": "required", "pattern": "%control",
+      "context": "\\bMODIFY\\s+ENTITIES\\b",
+      "description": "EML CREATE/UPDATE must set %control, or the fields are silently ignored." },
+    { "id": "POL-EML-DUP-CID", "kind": "forbidden", "pattern": "%cid\\s*=\\s*('[^']*')[\\s\\S]*?%cid\\s*=\\s*\\1",
+      "description": "A %cid literal reused within one EML call collides in the MAPPED response." }
+  ]
+}

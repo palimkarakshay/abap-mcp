@@ -1,0 +1,8 @@
+{
+  "gate": ["lint", "fix"],
+  "lintFail": ["obsolete_statement"],
+  "autofix": true,
+  "baselineShouldFail": true,
+  "expectedBlockers": ["parser_error"],
+  "notes": "MOVE/ADD/MULTIPLY are illegal in ABAP Cloud; abap-mcp fix rewrites them deterministically, so no model tokens are needed."
+}

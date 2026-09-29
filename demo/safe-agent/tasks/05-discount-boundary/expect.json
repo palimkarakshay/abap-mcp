@@ -1,0 +1,14 @@
+{
+  "gate": [
+    "unittest"
+  ],
+  "baselineShouldFail": true,
+  "expectedBlockers": [
+    "ZCL_NWB_DISCOUNT>AT_THRESHOLD"
+  ],
+  "notes": "'>' instead of '>=' at the 10-unit boundary: lint and readiness are clean, only the executed ABAP Unit test sees the wrong price.",
+  "blindGates": [
+    "lint",
+    "readiness"
+  ]
+}

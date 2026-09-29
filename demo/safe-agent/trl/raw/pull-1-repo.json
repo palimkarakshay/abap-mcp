@@ -1,0 +1,50 @@
+{
+  "key": "000000000299",
+  "sapPackage": "ZLV_NWBDEMO",
+  "url": "https://github.com/palimkarakshay/nwb-safe-agent-demo.git",
+  "branch_name": "refs/heads/main",
+  "created_by": "CB9980002584",
+  "created_at": "2026-09-29T16:14:08.000Z",
+  "created_email": "<redacted>",
+  "deserialized_by": "CB9980002584",
+  "deserialized_email": "<redacted>",
+  "deserialized_at": "2026-09-29T16:14:32.000Z",
+  "status": "S",
+  "links": [
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/pull",
+      "rel": "http://www.sap.com/adt/abapgit/relations/pull",
+      "type": "pull_link"
+    },
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/pull/modifiedobjects",
+      "rel": "http://www.sap.com/adt/abapgit/relations/pull/modifiedobjects",
+      "type": "modifiedobjects_link"
+    },
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/stage",
+      "rel": "http://www.sap.com/adt/abapgit/relations/stage",
+      "type": "stage_link"
+    },
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/push",
+      "rel": "http://www.sap.com/adt/abapgit/relations/push",
+      "type": "push_link"
+    },
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/checks",
+      "rel": "http://www.sap.com/adt/abapgit/relations/check",
+      "type": "check_link"
+    },
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/status/9ED0DB71CA851FD1AF841A991111CDC3",
+      "rel": "http://www.sap.com/adt/abapgit/relations/status",
+      "type": "status_link"
+    },
+    {
+      "href": "/sap/bc/adt/abapgit/repos/000000000299/log/9ED0DB71CA851FD1AF841A991111CDC3",
+      "rel": "http://www.sap.com/adt/abapgit/relations/log",
+      "type": "log_link"
+    }
+  ]
+}

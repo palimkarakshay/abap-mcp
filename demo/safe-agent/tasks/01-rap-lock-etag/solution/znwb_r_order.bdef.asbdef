@@ -1,0 +1,14 @@
+managed implementation in class zbp_nwb_r_order unique;
+strict ( 2 );
+
+define behavior for ZNWB_R_Order alias Order
+persistent table znwb_order
+lock master
+authorization master ( instance )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+  field ( readonly ) OrderId, LastChangedAt;
+}

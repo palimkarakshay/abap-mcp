@@ -1,0 +1,7 @@
+{
+  "gate": ["readiness"],
+  "edition": "s4hc",
+  "baselineShouldFail": true,
+  "expectedBlockers": ["released:VBAK"],
+  "notes": "Classic VBAK is not a released API; it works today and breaks the Clean Core contract at the next upgrade. (Snapshot records VBAK only for s4hc, not btp; readiness does not scan .ddls, so the gated consumer is the ABAP SQL class.)"
+}
