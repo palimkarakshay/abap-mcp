@@ -9,7 +9,7 @@ neither file type), an opt-in offline ABAP Unit runner, a bundled dated SAP know
 abap-review / abap-mentor / abap-migration-plan). No SAP system, no credentials, and no
 user-filesystem — text in, structured JSON out (package-bundled data assets excepted; see
 invariants). The default stdio server makes no outbound network calls; the opt-in
-`abap-mcp-genai` binary is the ONLY networked entry point (see invariants). Lumivara product
+`abap-mcp-genai` binary is the ONLY networked entry point (see invariants). Product
 line: **SAP**. **Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm package `abap-mcp`
 (bins: `abap-mcp`, `abap-mcp-http`, `abap-mcp-genai`; library).
 
