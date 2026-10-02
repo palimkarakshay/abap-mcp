@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* Deploy the NWB safe-agent demo objects into ZLV_NWBDEMO on the SAP BTP ABAP trial via abapGit (headless).
-   Reuses the lumivara-fifa sap/tools connection seam (conn.mjs/adt.mjs, bearer from ~/.abapd-token.json)
+   Reuses the sap/tools connection seam of a private ADT helper checkout (conn.mjs/adt.mjs, bearer from
+   ~/.abapd-token.json); point SAP_TOOLS_DIR at that sap/tools directory
    and the abapd-trainer guardrails (owned namespaces, <=25 objects/run, >=60 s polling).
    Usage: node deploy.mjs <step> [tag]
      package   registerPackage + create ZLV_NWBDEMO (ZLOCAL super/software component) via create-package.mjs
@@ -17,7 +18,8 @@ const PKG = "ZLV_NWBDEMO";
 const REPO = "https://github.com/palimkarakshay/nwb-safe-agent-demo.git";
 const BRANCH = "refs/heads/main";
 const OBJECTS = ["ZLV_NWB_DISCOUNT", "ZLV_NWB_DISCOUNT_B", "ZLV_NWB_RATING", "ZLV_NWB_RATING_B", "ZLV_NWB_STOCK_REPORT"];
-const TOOLS = "/home/akshay/projects/lumivara-fifa/sap/tools";
+const TOOLS = process.env.SAP_TOOLS_DIR;
+if (!TOOLS) throw new Error("Set SAP_TOOLS_DIR to the sap/tools directory of the ADT helper checkout");
 const GUARD = "/home/akshay/projects/abapd-trainer/bridge/guardrails.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RAW = join(HERE, "raw");

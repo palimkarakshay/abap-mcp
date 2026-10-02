@@ -7,7 +7,8 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 process.env.SAP_APP_PACKAGE = "ZLV_NWBDEMO";
-const { adtRest } = await import("/home/akshay/projects/lumivara-fifa/sap/tools/adt.mjs");
+if (!process.env.SAP_TOOLS_DIR) throw new Error("Set SAP_TOOLS_DIR to the sap/tools directory of the ADT helper checkout");
+const { adtRest } = await import(join(process.env.SAP_TOOLS_DIR, "adt.mjs"));
 const RAW = join(dirname(fileURLToPath(import.meta.url)), "raw");
 mkdirSync(RAW, { recursive: true });
 

@@ -248,7 +248,7 @@ deterministic makes it the perfect referee between two LLMs.
 | Reviewer | review queue, no system access from laptop | PR review recipe (§2), reviewer subagent (§6) |
 | Tech lead sizing S/4 move | weeks waiting for ATC access | repo triage (§4), graded A–D table (§4b) |
 | Reviewer judging a refactor / AI rewrite | "looks better" isn't evidence | compare_abap regression gate (§2) |
-| RAP newcomer | BDEF syntax + activation order maze | scaffold + explain rules (§2), academy: rapdojo.lumivara.tech |
+| RAP newcomer | BDEF syntax + activation order maze | scaffold + explain rules (§2) |
 | Team onboarding juniors | seniors repeating Clean ABAP lore | explain_abap_rule as a teaching tool (§2) |
 | abapGit team | nothing gates a PR before the system | CI gates (§5) |
 | Consultant doing assessments | client security says no system access | graded assessment on an export (§4b) — zero credentials is the feature |
