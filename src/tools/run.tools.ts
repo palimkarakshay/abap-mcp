@@ -47,8 +47,8 @@ export const runAbapUnitTool = defineTool({
   description:
     "Execute the ABAP Unit tests in the provided sources offline: the code is transpiled to JavaScript by " +
     "@abaplint/transpiler against the bundled open-abap kernel library, and this tool then runs the transpiled " +
-    "JavaScript in a local subprocess (server-owned temp directory, hard timeout, scrubbed environment, no shell, " +
-    "no network) and returns one structured row per test method — pass / fail / error / skipped with the assertion's " +
+    "JavaScript in a local subprocess (server-owned temp directory, hard timeout, scrubbed environment, no shell; " +
+    "network access is not used but is not blocked by the sandbox) and returns one structured row per test method — pass / fail / error / skipped with the assertion's " +
     "expected and actual values, the message, the runtime and the JavaScript location. The honest static lint at your " +
     "target ABAP version comes back in the same result, independent of the run. " +
     "Use this when you have just written or changed ABAP logic and want real execution feedback before it goes near a " +

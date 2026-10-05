@@ -410,6 +410,28 @@ describe("GenAiClient.getAccessToken", () => {
 // GenAiClient — orchestration URL discovery + caching
 // ---------------------------------------------------------------------------
 
+describe("GenAiClient refuses to send credentials over plain http", () => {
+  it("rejects an http token URL before any request is made", async () => {
+    const { fetch: fetchImpl, calls } = mockFetchSequence(tokenResponse());
+    const client = new GenAiClient({
+      serviceKey: { ...TEST_SERVICE_KEY, url: "http://auth.example.com" },
+      fetchImpl,
+    });
+    await expect(client.getAccessToken()).rejects.toMatchObject({ kind: "not_configured" });
+    expect(calls.length).toBe(0);
+  });
+
+  it("still allows http on loopback (local mock)", async () => {
+    const { fetch: fetchImpl, calls } = mockFetchSequence(tokenResponse());
+    const client = new GenAiClient({
+      serviceKey: { ...TEST_SERVICE_KEY, url: "http://127.0.0.1:9999" },
+      fetchImpl,
+    });
+    expect(await client.getAccessToken()).toBe("token-1");
+    expect(calls.length).toBe(1);
+  });
+});
+
 describe("GenAiClient.resolveOrchestrationUrl", () => {
   it("skips discovery entirely when an explicit override is configured", async () => {
     const { fetch: fetchImpl, calls } = mockFetchSequence();

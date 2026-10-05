@@ -6,9 +6,10 @@ import { registerKnowledgeResources } from "./resources.js";
 import { registerTools } from "./tool.js";
 import type { AnyToolSpec } from "./tool.js";
 import { RUN_TOOLS } from "./tools/run.tools.js";
+import { PACKAGE_VERSION } from "./version.js";
 
 export const SERVER_NAME = "abap-mcp";
-export const SERVER_VERSION = "0.12.0";
+export const SERVER_VERSION = PACKAGE_VERSION;
 export const SERVER_INSTRUCTIONS =
   "Use abap-mcp for offline analysis of ABAP source text. Start general reviews with lint_abap; for ABAP Cloud or Clean Core questions use check_cloud_readiness, then plan_cloud_migration when the user wants an actionable backlog. The tools cannot read workspace files: the client must pass source text — for whole-repo sweeps prefer the bundled CLI (npx abap-mcp readiness src/) through your shell instead of passing dozens of files through tool calls. " +
   "Before designing around any ABAP Cloud or RAP feature from 2025 onward, ask explain_abap_release (bundled, dated release deltas with sources) and search_sap_knowledge (Clean Core levels, ATC variants, SAP-ABAP-1, Generative AI Hub, the ABAP AI SDK, SAP's official ADT MCP server) instead of guessing; the same knowledge is readable as abap-mcp://knowledge/… resources. " +

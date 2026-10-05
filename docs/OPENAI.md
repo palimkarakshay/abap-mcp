@@ -98,6 +98,10 @@ may all appear under the proxy address; multi-instance or proxied deployments sh
 real client limit at the gateway. The server does not log source text, arguments, results, or
 request bodies. Review [PRIVACY.md](../PRIVACY.md) before hosting other people's code.
 
+Do not set `ABAP_MCP_ENABLE_RUN=1` on a network-reachable listener unless every holder of the
+bearer token is someone you would let run code on the host. `run_abap_unit` executes transpiled
+ABAP in a subprocess; its sandbox confines file access but does not block network access.
+
 Published ChatGPT plugins may be anonymous when their tools are read-only. If the published
 endpoint is authenticated, implement the MCP OAuth 2.1 discovery flow expected by ChatGPT; the
 built-in shared bearer check is not a replacement for that publishing requirement.

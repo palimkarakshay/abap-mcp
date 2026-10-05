@@ -1,10 +1,10 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cmdCompare, cmdLint, cmdOutline, cmdReadiness, cmdReleased, cmdScaffold, cmdSetup, mergeReadiness, parseFlags, runCli, USAGE } from "../cli-commands.js";
+import { cmdCompare, cmdFix, cmdLint, cmdOutline, cmdReadiness, cmdReleased, cmdScaffold, cmdSetup, mergeReadiness, parseFlags, runCli, USAGE } from "../cli-commands.js";
 import { checkCloudReadiness, gradeReadiness } from "../abap/readiness.js";
 
 function io(): { out: string[]; err: string[]; io: { out: (s: string) => void; err: (s: string) => void } } {
@@ -54,6 +54,19 @@ describe("cmdSetup", () => {
   it("rejects unknown targets with usage", () => {
     const { err, io: o } = io();
     expect(cmdSetup(["notepad"], o)).toBe(2);
+    expect(err.join("\n")).toContain("Usage: abap-mcp setup");
+  });
+
+  it("never registers when given a flag: --help prints usage, unknown flags are a usage error", () => {
+    // Regression: `setup --help` fell through to target "auto" and changed editor config.
+    for (const argv of [["--help"], ["-h"], ["claude", "--help"]]) {
+      const { out, io: o } = io();
+      expect(cmdSetup(argv, o)).toBe(0);
+      expect(out.join("\n")).toBe("Usage: abap-mcp setup [auto|vscode|vscode-insiders|eclipse|claude]");
+    }
+    const { out, err, io: o } = io();
+    expect(cmdSetup(["--dry-run"], o)).toBe(2);
+    expect(out).toEqual([]);
     expect(err.join("\n")).toContain("Usage: abap-mcp setup");
   });
 
@@ -438,5 +451,38 @@ describe("runCli", () => {
     expect(runCli(["help"], a.io)).toBe(0);
     const b = io();
     expect(runCli(["frobnicate"], b.io)).toBe(2);
+  });
+});
+
+describe("version", () => {
+  it("--version prints the package.json version", async () => {
+    const expected = (JSON.parse(readFileSync(join(import.meta.dirname, "../../package.json"), "utf8")) as { version: string }).version;
+    for (const flag of ["--version", "-v", "version"]) {
+      const { out, io: o } = io();
+      expect(await runCli([flag], o)).toBe(0);
+      expect(out).toEqual([expected]);
+    }
+  });
+});
+
+describe("cmdFix symlink safety", () => {
+  const FIXABLE = "REPORT zfix.\nDATA a TYPE i.\nMOVE 1 TO a.\n";
+
+  it("survives a symlink cycle", () => {
+    const dir = tmpWith({ "zfix.prog.abap": FIXABLE });
+    mkdirSync(join(dir, "sub"));
+    symlinkSync(dir, join(dir, "sub", "loop"));
+    const { io: o } = io();
+    expect(cmdFix([dir], o)).toBe(0);
+  });
+
+  it("--write does not write through a symlinked file", () => {
+    const outside = tmpWith({ "zfix.prog.abap": FIXABLE });
+    const dir = mkdtempSync(join(tmpdir(), "abapmcp-"));
+    symlinkSync(join(outside, "zfix.prog.abap"), join(dir, "zfix.prog.abap"));
+    const { err, io: o } = io();
+    expect(cmdFix([dir, "--write"], o)).toBe(0);
+    expect(err.join("\n")).toContain("symbolic link");
+    expect(readFileSync(join(outside, "zfix.prog.abap"), "utf8")).toBe(FIXABLE);
   });
 });

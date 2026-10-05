@@ -103,6 +103,9 @@ const findingShape = z.object({
   docsUrl: z.string().describe("Rule documentation at rules.abaplint.org."),
 });
 
+/** One abaplint rule override: false/true to switch it, or its config object. Null is rejected here, not deep inside abaplint. */
+const RULE_OVERRIDE = z.union([z.boolean(), z.record(z.string(), z.unknown())]);
+
 export const lintAbap = defineTool({
   name: "lint_abap",
   title: "Lint ABAP source",
@@ -133,7 +136,7 @@ export const lintAbap = defineTool({
         '"style" (default): abaplint default rules minus whole-program semantic checks — right for isolated snippets. "full": every default rule, expects all referenced objects provided. "syntax-only": parser errors only.',
       ),
     rules: z
-      .record(z.string(), z.unknown())
+      .record(z.string(), RULE_OVERRIDE)
       .optional()
       .describe(
         'abaplint rule overrides merged onto the preset (and onto a focus filter), e.g. { "line_length": { "length": 120 }, "7bit_ascii": false } — encode an org\'s best-practice pack here.',
@@ -277,6 +280,15 @@ export const checkCloudReadinessTool = defineTool({
         label: z.string().describe("What this category means and the usual remediation."),
         count: z.number().describe("Blockers in this category."),
         findings: z.array(z.unknown()).describe("The individual findings (same shape as lint_abap)."),
+        rewrite: z
+          .object({
+            pattern: z.string().describe("Name of the canonical rewrite pattern."),
+            before: z.string().describe("Classic ABAP skeleton the category typically looks like."),
+            after: z.string().describe("ABAP Cloud skeleton it is usually rewritten to."),
+            notes: z.string().describe("Caveats — the recipe is illustrative, not drop-in."),
+          })
+          .optional()
+          .describe("Curated canonical Cloud rewrite for this category, when one is bundled."),
       }),
     ),
     brokenAtBaseline: z
@@ -817,7 +829,7 @@ export const compareAbapTool = defineTool({
         'Lint preset applied identically to both sides: "style" (default) for isolated snippets, "full" when every referenced object is provided, "syntax-only" for parser errors only.',
       ),
     rules: z
-      .record(z.string(), z.unknown())
+      .record(z.string(), RULE_OVERRIDE)
       .optional()
       .describe('abaplint rule overrides applied to both sides, e.g. { "line_length": { "length": 120 } }.'),
     focus: focusField,
@@ -1077,7 +1089,11 @@ export const getObjectDependenciesTool = defineTool({
           .enum(["released", "deprecated", "not-released"])
           .optional()
           .describe("Released-API state from the bundled snapshot, for referenced DDIC/API objects."),
-        successor: z.string().optional().describe("Curated released CDS successor for a classic table."),
+        successor: z.string().optional().describe("Released successor for a classic table, when one is known."),
+        successorSource: z
+          .enum(["sap", "curated", "none"])
+          .optional()
+          .describe("Where the successor came from: SAP's own snapshot or the curated fallback map."),
       }),
     ),
     edges: z.array(
@@ -1159,7 +1175,7 @@ export const fixAbapTool = defineTool({
         'Which ruleset supplies the fixes: "style" (default) fits isolated snippets; "full" expects all referenced objects provided; "syntax-only" yields no style fixes.',
       ),
     rules: z
-      .record(z.string(), z.unknown())
+      .record(z.string(), RULE_OVERRIDE)
       .optional()
       .describe(
         'abaplint rule overrides merged onto the preset, e.g. { "keyword_case": { "style": "lower" } } — fixes follow your org\'s pack, same as lint_abap.',

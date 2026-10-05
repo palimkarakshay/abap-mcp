@@ -98,7 +98,7 @@
       },
       "requestShape": "{ config: { modules: { ... } }, placeholder_values: { ... } }",
       "responseShape": "{ request_id, intermediate_results: { templating, input_filtering, ..., llm }, final_result } — the llm and final_result blocks follow the OpenAI chat-completion shape with choices[] and usage.",
-      "v1Eol": "The original V1 endpoint (POST {deploymentUrl}/completion) is deprecated and scheduled for decommissioning on 2026-10-31. Migrate before then.",
+      "v1Eol": "The original V1 endpoint (POST {deploymentUrl}/completion) is deprecated, with decommissioning scheduled for 2026-10-31. Treat it as gone: build on V2 only.",
       "v1ToV2Renames": {
         "llm_module_config + templating_module_config": "prompt_templating (model nested inside)",
         "input_params": "placeholder_values",
@@ -225,12 +225,12 @@
       "id": "joule-for-developers",
       "title": "Joule for Developers, ABAP AI capabilities",
       "kind": "assistant",
-      "asOf": "2026-09-09",
+      "asOf": "2026-10-05",
       "confidence": "confirmed",
       "summary": "SAP's in-IDE AI toolset for ABAP developers, distinct from the ABAP AI SDK. It covers chat, predictive completion, explanation, ABAP Unit and CDS test generation, CDS annotations, custom code migration assistance and the agentic capabilities layered on the ADT MCP server.",
       "pricing": {
         "model": "Consumption-based on AI units since Q2 2026, replacing the earlier flat arrangement.",
-        "promotionEnds": "The free promotional period ends in September 2026 — the Extensibility Assistant licence promotion is documented as available until 2026-09-30.",
+        "promotionEnds": "The free promotional period ended on 2026-09-30. From 2026-10-01 the ABAP AI capabilities are commercial, metered on AI units; the ABAP development tools themselves stay free.",
         "skus": { "customers": "8019164", "partners": "8019670" },
         "extensibilityAssistantMaterials": { "customers": "8019124", "partners": "8019541" },
         "notes": [
@@ -254,11 +254,12 @@
         "Agentic AI for ABAP development through the ADT MCP server"
       ],
       "whenToUse": "When a team already licenses Joule and wants SAP-native assistance inside Eclipse without wiring an external coding agent, or when they need the two licence-gated AI ATC fix tools.",
-      "whenNotToUse": "As a substitute for offline verification, or as an assumed-free capability — the promotion ends in September 2026 and everything after that is metered on AI units. Note that eighteen of SAP's twenty MCP tools need no Joule licence at all.",
+      "whenNotToUse": "As a substitute for offline verification, or as an assumed-free capability — the promotion ended on 2026-09-30 and everything since is metered on AI units. Note that eighteen of SAP's twenty MCP tools need no Joule licence at all.",
       "sources": [
         "https://community.sap.com/t5/technology-blog-posts-by-sap/entering-the-new-era-of-agentic-ai-for-abap-development/ba-p/14394643",
         "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-ai-chapter-3-we-go-agentic/ba-p/14391469",
         "https://community.sap.com/t5/artificial-intelligence-blogs-posts/sap-joule-for-developers-abap-ai-capabilities-including-agentic/ba-p/14417633",
+      "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-joule-for-developers-end-of-the-promotional-period-and-the-path-forward/ba-p/14490003",
         "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/availability",
         "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/mcp-tools"
       ],
