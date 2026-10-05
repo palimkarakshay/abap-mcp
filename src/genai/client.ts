@@ -14,8 +14,7 @@
  * reach an error message or stderr.
  *
  * Auth flow (XSUAA client-credentials) and the Orchestration V2 request/response shapes below
- * are sourced from SAP's own documentation, fact-checked in
- * ~/docs/reports/abap-mcp-sap-ai-upgrade-2026-09-09/raw/{sap-abap-1-model,genai-hub-orchestration-api}/VERIFIED.md:
+ * are sourced from SAP's own documentation (fact-checked September 2026):
  *  - token endpoint:        POST {serviceKey.url}/oauth/token (Basic clientid:clientsecret, grant_type=client_credentials)
  *    https://help.sap.com/docs/sap-ai-core/generative-ai/get-auth-token-5ec7ec0626ed4b55a496a48feab2b56b
  *  - deployment discovery:  GET {AI_API_URL}/v2/lm/deployments (header AI-Resource-Group), find the
@@ -199,6 +198,29 @@ function raceWithAbort<T>(promise: Promise<T>, signal: AbortSignal, onAbort: () 
  * raced against the same abort signal via `raceWithAbort`, so a body promise that never settles on
  * its own is still bounded.
  */
+/**
+ * Every request here carries the XSUAA client secret or a bearer token, so the target must be
+ * https. Plain http is allowed only for a loopback host (a local mock). The URL itself is never
+ * echoed: it may embed a tenant name.
+ */
+function assertSecureUrl(url: string, context: string): void {
+  let parsed: URL | undefined;
+  try {
+    parsed = new URL(url);
+  } catch {
+    parsed = undefined;
+  }
+  const loopback =
+    parsed !== undefined && ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname) && parsed.protocol === "http:";
+  if (parsed === undefined || (parsed.protocol !== "https:" && !loopback)) {
+    throw toolError(
+      "not_configured",
+      `Refusing to send credentials while ${context}: the configured URL is not https. ` +
+        "Check url, serviceurls.AI_API_URL and AICORE_ORCHESTRATION_URL in the service key / environment.",
+    );
+  }
+}
+
 async function fetchJson(
   fetchImpl: FetchLike,
   url: string,
@@ -206,6 +228,7 @@ async function fetchJson(
   timeoutMs: number,
   context: string,
 ): Promise<FetchJsonResult> {
+  assertSecureUrl(url, context);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const timeoutError = (): McpToolError => toolError("timeout", `Timed out after ${timeoutMs}ms while ${context}.`);

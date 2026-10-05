@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 9 * * 1"
 
 jobs:
   check:
@@ -15,4 +17,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run check
+
+  # What `npx abap-mcp` users actually get: dependencies resolved fresh from the
+  # ranges in package.json, not from the lockfile. A caret range that floats to
+  # a release the lockfile never saw broke the unit runner in 0.12.0 while the
+  # locked job above stayed green. The weekly run catches a bad upstream
+  # release even when nothing here changed.
+  fresh-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: rm package-lock.json
+      - run: npm install --no-audit --no-fund
       - run: npm run check

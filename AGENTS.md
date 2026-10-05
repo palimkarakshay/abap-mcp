@@ -17,7 +17,7 @@ line: **SAP**. **Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm p
 
 ## Commands (authoritative)
 - `npm install`
-- `npm run check`     — typecheck + vitest (1407 tests / 31 files) + build + routing eval = **the CI gate**
+- `npm run check`     — typecheck + vitest (32 files, incl. the output-schema contract test) + build + routing eval = **the CI gate**
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `npm run build`     — `tsc && node scripts/copy-data.mjs` (tsc does NOT copy the bundled `.json`)
 - `node scripts/build-released-api-index.mjs` / `build-open-abap-lib.mjs` — **dev-only**, refresh

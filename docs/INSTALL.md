@@ -21,7 +21,7 @@ tooling uses).
    ```bash
    node --version
    ```
-2. If that prints `v20` or higher — you're done, skip ahead.
+2. If that prints `v22` or higher — you're done, skip ahead.
 3. Otherwise install the LTS version from **[nodejs.org](https://nodejs.org)** (click the big
    green button, accept the defaults), then reopen your terminal and check again.
 

@@ -49,7 +49,8 @@ export const RUN_SCOPE_NOTE =
   "transpiled. On Node 22+ the child additionally runs under Node's permission model — filesystem reads " +
   "limited to the run's temp dir and the open-abap runtime's own packages, writes limited to the temp " +
   "dir, no child processes, no worker threads (see `sandbox` on the result); on older Node it runs " +
-  "unsandboxed.";
+  "unsandboxed. The permission model does not restrict network access: the bundled runtime makes no " +
+  "network calls, but do not treat the sandbox as a network boundary.";
 
 export const RUN_DEFAULT_TIMEOUT_MS = 20_000;
 export const RUN_MAX_TIMEOUT_MS = 60_000;

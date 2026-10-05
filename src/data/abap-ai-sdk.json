@@ -1,6 +1,6 @@
 {
   "curatedDate": "2026-09-10",
-  "attribution": "Curated by abap-mcp from a fact-checked research corpus (~/docs/reports/abap-mcp-sap-ai-upgrade-2026-09-09/). Class/interface/method SHAPES that mirror SAP-samples/abap-cheat-sheets and SAP-samples/abap-partner-reference-application (both Apache-2.0) are drawn from those repos. help.sap.com and developers.sap.com pages are cited by URL only — no prose from those pages is reproduced here; every string below is this project's own summary.",
+  "attribution": "Curated by abap-mcp from a fact-checked research corpus (September 2026). Class/interface/method SHAPES that mirror SAP-samples/abap-cheat-sheets and SAP-samples/abap-partner-reference-application (both Apache-2.0) are drawn from those repos. help.sap.com and developers.sap.com pages are cited by URL only — no prose from those pages is reproduced here; every string below is this project's own summary.",
   "sources": [
     { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/generative-ai-in-abap-cloud", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },
     { "url": "https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/abap-ai-sdk-powered-by-intelligent-scenario-lifecycle-management", "licence": "citation-only (help.sap.com terms; no prose reproduced)" },

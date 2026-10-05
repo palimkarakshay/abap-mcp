@@ -1,6 +1,6 @@
 {
   "name": "abap-mcp",
-  "version": "0.11.0",
+  "version": "0.12.4",
   "description": "Offline ABAP analysis, ABAP Cloud readiness with edition-aware released-API data, a bundled 2025\u20132026 ABAP Cloud/RAP knowledge base, RAP and ABAP-AI-SDK scaffolding, migration planning, and an opt-in offline ABAP Unit runner for Codex.",
   "author": {
     "name": "Akshay Palimkar",

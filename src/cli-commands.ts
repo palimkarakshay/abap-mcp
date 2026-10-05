@@ -6,7 +6,7 @@
  * is fine. Both call the identical engine — one definition of "clean".
  */
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, realpathSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
 import { compareAbap } from "./abap/compare.js";
@@ -29,6 +29,7 @@ import { cmdAgentRules, cmdAisdk, cmdKnowledge, cmdRapcheck, cmdRelease, EXTRA_U
 import { RAP_SCOPE_NOTE, containsRapFiles, checkRapBehavior, rapFindingsToLintFindings } from "./abap/rap/index.js";
 import type { ScaffoldField } from "./abap/scaffold.js";
 import { scaffoldRapBo } from "./abap/scaffold.js";
+import { PACKAGE_VERSION } from "./version.js";
 
 const ABAP_FILE_RE =
   /\.(clas\.abap|clas\.locals_imp\.abap|clas\.locals_def\.abap|clas\.testclasses\.abap|prog\.abap|intf\.abap|fugr\.abap|ddls\.asddls|bdef\.asbdef|srvd\.srvdsrv|ddlx\.asddlx)$/;
@@ -362,7 +363,14 @@ function printEclipse(io: CliIo): void {
 }
 
 export function cmdSetup(argv: string[], io: CliIo): number {
-  const { rest } = parseFlags(argv);
+  const { flags, rest } = parseFlags(argv);
+  // setup changes editor configuration, so an unrecognized flag must never fall
+  // through to the auto-detecting default — `setup --help` used to register.
+  if (flags.size > 0 || argv.includes("-h")) {
+    const asked = flags.has("help") || argv.includes("-h");
+    (asked ? io.out : io.err)("Usage: abap-mcp setup [auto|vscode|vscode-insiders|eclipse|claude]");
+    return asked ? 0 : 2;
+  }
   const target = (rest[0] ?? "auto").toLowerCase();
   io.out("abap-mcp setup — registers this server with your editor. Nothing is sent anywhere;");
   io.out("analysis runs on your machine only.\n");
@@ -414,10 +422,15 @@ export function cmdSetup(argv: string[], io: CliIo): number {
 function collectFilesWithPaths(paths: string[], io: CliIo): { files: AbapSource[]; pathOf: Map<string, string[]> } {
   const files = collectFiles(paths, io);
   const pathOf = new Map<string, string[]>();
+  const visitedDirs = new Set<string>();
   const visit = (p: string): void => {
     const st = statSync(p);
     if (st.isDirectory()) {
       if (basename(p) === ".git" || basename(p) === "node_modules") return;
+      // Same symlink-cycle guard as collectFiles.
+      const real = realpathSync(p);
+      if (visitedDirs.has(real)) return;
+      visitedDirs.add(real);
       for (const entry of readdirSync(p)) visit(join(p, entry));
       return;
     }
@@ -474,6 +487,11 @@ export function cmdFix(argv: string[], io: CliIo): number {
       const targets = pathOf.get(f.filename) ?? [];
       if (targets.length !== 1) {
         io.err(`skip write ${f.filename}: ${targets.length === 0 ? "path unknown" : "ambiguous (same name in several folders)"}`);
+        continue;
+      }
+      // Never write through a symlink: the link may point outside the tree being fixed.
+      if (lstatSync(targets[0]!).isSymbolicLink()) {
+        io.err(`skip write ${targets[0]}: symbolic link (fix the real file directly)`);
         continue;
       }
       writeFileSync(targets[0]!, f.source, "utf8");
@@ -878,6 +896,7 @@ Usage:
   abap-mcp released <names…>     released-API status from the bundled SAP snapshot   [--type TABL|FUNC|…] [--edition s4hc|btp|pce] [--json]
   abap-mcp explain <rule>        explain an abaplint rule
   abap-mcp rules                 list rules   [--query q] [--tag Security]
+  abap-mcp --version             print the installed version
   abap-mcp rapcheck [paths…]     check RAP behavior/service definitions (BDEF/SRVD) — syntax + draft/etag/lock/authorization consistency, strict-mode obligations, projection use vs base, service expose vs CDS (abaplint parses neither file type)   [--release 2508] [--strict] [--json]
 ${EXTRA_USAGE}
 
@@ -936,6 +955,11 @@ export function runCli(argv: string[], io: CliIo): number | Promise<number> | nu
     case "--help":
     case "-h":
       io.out(USAGE);
+      return 0;
+    case "version":
+    case "--version":
+    case "-v":
+      io.out(PACKAGE_VERSION);
       return 0;
     default:
       io.err(`Unknown command "${cmd}".\n\n${USAGE}`);
