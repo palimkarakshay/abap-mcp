@@ -18,6 +18,11 @@ line: **SAP**. **Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm p
 ## Commands (authoritative)
 - `npm install`
 - `npm run check`     — typecheck + vitest (32 files, incl. the output-schema contract test) + build + routing eval = **the CI gate**
+- **Releasing** — `npm version patch|minor` (syncs server.json + the Codex plugin manifest), commit,
+  push, then push the tag `vX.Y.Z`. `.github/workflows/publish.yml` does the rest from the tag: gate,
+  `npm publish` via trusted publishing (OIDC, no token, provenance), MCP registry, GitHub release.
+  Never `npm publish` from a laptop. Add `docs/RELEASE-NOTES-X.Y.Z.md` first if the release
+  deserves notes. Manual run of the workflow = dry run.
 - `npm run typecheck` / `npm test` / `npm run build` — the individual steps
 - `npm run build`     — `tsc && node scripts/copy-data.mjs` (tsc does NOT copy the bundled `.json`)
 - `node scripts/build-released-api-index.mjs` / `build-open-abap-lib.mjs` — **dev-only**, refresh

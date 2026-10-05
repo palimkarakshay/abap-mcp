@@ -1,0 +1,112 @@
+name: Publish
+
+# Pushing a tag vX.Y.Z publishes that version to npm (trusted publishing: a
+# short-lived OIDC credential, no stored token, provenance attached), then to
+# the MCP registry, then creates the GitHub release. Run it by hand
+# (workflow_dispatch) for a dry run that does everything except publish.
+#
+# npm side: the package's trusted publisher must name this repository and this
+# file name (publish.yml) — `npm trust list abap-mcp` shows it.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub release
+  id-token: write # OIDC for npm trusted publishing and the MCP registry
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      # Trusted publishing needs npm >= 11.5.1.
+      - run: npm install -g npm@latest
+
+      - name: Resolve version and mode
+        id: v
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          SERVER_JSON="$(node -p "const j=require('./server.json');[j.version,...j.packages.map(p=>p.version)].join(',')")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$SERVER_JSON" != "$VERSION,$VERSION" ]; then
+            echo "::error::server.json ($SERVER_JSON) does not match package.json ($VERSION) — run npm version, which syncs both"
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match package.json version $VERSION"
+              exit 1
+            fi
+            echo "dry=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry=true" >> "$GITHUB_OUTPUT"
+          fi
+          if npm view "abap-mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "on_npm=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "on_npm=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npm ci
+      - run: npm run check
+
+      - name: Publish to npm (dry run)
+        if: steps.v.outputs.dry == 'true'
+        run: npm publish --dry-run --ignore-scripts
+
+      # --ignore-scripts: prepublishOnly would only repeat the gate that just ran.
+      - name: Publish to npm
+        if: steps.v.outputs.dry == 'false' && steps.v.outputs.on_npm == 'false'
+        run: npm publish --ignore-scripts
+
+      - name: Wait for npm to serve the version
+        if: steps.v.outputs.dry == 'false'
+        run: |
+          for i in $(seq 1 60); do
+            GOT="$(curl -fsS "https://registry.npmjs.org/abap-mcp/${{ steps.v.outputs.version }}" | node -p "JSON.parse(require('fs').readFileSync(0)).version" 2>/dev/null || true)"
+            [ "$GOT" = "${{ steps.v.outputs.version }}" ] && exit 0
+            sleep 5
+          done
+          echo "::error::npm did not serve ${{ steps.v.outputs.version }} within 5 minutes"
+          exit 1
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help >/dev/null
+
+      # The registry rejects a version npm does not have, hence after the wait.
+      - name: Publish to the MCP registry
+        if: steps.v.outputs.dry == 'false'
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
+      - name: Create the GitHub release
+        if: steps.v.outputs.dry == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.v.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG already exists"
+            exit 0
+          fi
+          NOTES="docs/RELEASE-NOTES-${{ steps.v.outputs.version }}.md"
+          if [ -f "$NOTES" ]; then
+            gh release create "$TAG" --title "$TAG" -F "$NOTES"
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          fi

@@ -132,9 +132,13 @@ describe("input-schema hygiene", () => {
 });
 
 describe("version manifests", () => {
-  it("the Codex plugin manifest carries the package.json version", () => {
+  it("the Codex plugin manifest and server.json carry the package.json version", () => {
     const root = join(import.meta.dirname, "../..");
-    const read = (rel: string): { version: string } => JSON.parse(readFileSync(join(root, rel), "utf8")) as { version: string };
-    expect(read("plugins/abap-mcp/.codex-plugin/plugin.json").version).toBe(read("package.json").version);
+    const read = (rel: string): { version: string; packages?: { version: string }[] } =>
+      JSON.parse(readFileSync(join(root, rel), "utf8")) as { version: string; packages?: { version: string }[] };
+    const version = read("package.json").version;
+    expect(read("plugins/abap-mcp/.codex-plugin/plugin.json").version).toBe(version);
+    const server = read("server.json");
+    expect([server.version, ...(server.packages ?? []).map((p) => p.version)]).toEqual([version, version]);
   });
 });
