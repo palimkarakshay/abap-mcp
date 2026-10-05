@@ -62,9 +62,16 @@ jobs:
       - run: npm ci
       - run: npm run check
 
+      # npm refuses even a dry-run publish of a version that already exists, so a
+      # dry run of an already-released version only packs.
       - name: Publish to npm (dry run)
         if: steps.v.outputs.dry == 'true'
-        run: npm publish --dry-run --ignore-scripts
+        run: |
+          if [ "${{ steps.v.outputs.on_npm }}" = "true" ]; then
+            npm pack --dry-run --ignore-scripts
+          else
+            npm publish --dry-run --ignore-scripts
+          fi
 
       # --ignore-scripts: prepublishOnly would only repeat the gate that just ran.
       - name: Publish to npm
