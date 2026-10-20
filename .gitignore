@@ -4,3 +4,5 @@ dist/
 .DS_Store
 # generated live-run eval artifacts (evals/report.json is a committed sample)
 evals/report.live.*
+
+help_*.md
