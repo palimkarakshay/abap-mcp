@@ -7,7 +7,11 @@ describe("get_abap_agent_rules", () => {
   it("prescribes the offline loop and the online hand-off when paired", () => {
     const md = buildAgentRules({ target: "Cloud", pairedWith: ["sap-adt-mcp"], runEnabled: true, packagePrefix: "Z", edition: "btp" });
     expect(md).toContain("run_abap_unit");
-    expect(md).toContain("abap_activate_objects");
+    expect(md).toContain("abap_object_activate");
+    expect(md).toContain("abap_object_edit_file");
+    expect(md).toContain("level 3");
+    expect(md).not.toContain("abap_activate_objects");
+    expect(md).not.toContain("abap_run_atc");
     expect(md).toContain("ABAP_CLEAN_CORE_DEVELOPMENT");
     expect(md).toContain("edition `btp`");
     expect(md).not.toContain("API_RELEASE_STATE_CHECK");
@@ -17,6 +21,13 @@ describe("get_abap_agent_rules", () => {
     expect(md).toContain("no SAP connection");
     expect(md).toContain("`Y`");
     expect(md).not.toContain("Readiness gate");
+    expect(md).not.toContain("Composed loop");
+  });
+  it("names the community server's tools without the composed loop", () => {
+    const md = buildAgentRules({ target: "Cloud", pairedWith: ["abap-adt-mcp"], runEnabled: false, packagePrefix: "Z", edition: "s4hc" });
+    expect(md).toContain("activateByName");
+    expect(md).not.toContain("Composed loop");
+    expect(md).not.toContain("Allow-list level");
   });
   for (const tool of AGENT_RULES_TOOLS) {
     describe(`${tool.name} rubric`, () => {

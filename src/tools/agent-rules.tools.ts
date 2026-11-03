@@ -1,11 +1,14 @@
 /**
  * get_abap_agent_rules — emit the AGENTS.md / CLAUDE.md block for an ABAP repo.
  *
- * SAP now ships an AGENTS.md template with its official ADT MCP server; this
- * tool produces the offline-verification counterpart: the rules a coding agent
- * should follow when abap-mcp is connected (lint before commit, readiness
- * gate, the unit-test loop, pairing with the online servers). Pure text
- * generation — no filesystem, no network.
+ * SAP ships an AGENTS.md template with its official ADT MCP server; this tool
+ * produces the offline-companion counterpart: the rules a coding agent should
+ * follow when abap-mcp is connected (lint before commit, readiness gate, the
+ * unit-test loop) and, when SAP's server is paired, the composed loop that
+ * uses both — SAP's server for read/edit/check/activate/test in the system,
+ * abap-mcp for the offline gate between read and edit. Tool names follow
+ * SAP's TechEd 2026 AD100 slides (language server 1.3 / ADT for VS Code 1.2).
+ * Pure text generation — no filesystem, no network.
  */
 import { z } from "zod";
 
@@ -46,13 +49,27 @@ export function buildAgentRules(o: AgentRulesOptions): string {
   lines.push("- **Prove rework:** after a refactor run `compare_abap` before-vs-after; the readiness grade may not regress.");
   if (paired.length > 0) {
     const names = paired
-      .map((p) => (p === "sap-adt-mcp" ? "SAP's official ADT MCP server (`abap_creation-*`, `abap_activate_objects`, `abap_run_unit_tests`, `abap_run_atc`)" : "`abap-adt-mcp` (`setObjectSource`, `activateByName`, `unitTestRun`, `createAtcRun`)"))
+      .map((p) =>
+        p === "sap-adt-mcp"
+          ? "SAP's official ADT MCP server (`abap_read_file`, `abap_object_edit_file`, `abap_object_check`, `abap_object_activate`, `abap_unit_run_tests`, `abap_atc_run_start` / `abap_atc_run_get_result`, `abap_feed_query`)"
+          : "`abap-adt-mcp` (`setObjectSource`, `activateByName`, `unitTestRun`, `createAtcRun`)",
+      )
       .join(" and ");
-    lines.push(`- **Division of labour:** abap-mcp verifies offline (lint, readiness, scaffolds, unit loop); ${names} writes, activates and tests in the system. Never activate code that has not passed the offline gates; after activation, read the ATC/ABAP Unit results back and fix before moving on.`);
+    lines.push(
+      `- **Division of labour:** abap-mcp is the offline half (lint, fix, readiness, RAP checks, scaffolds, knowledge, the unit loop); ${names} is the system half (read, edit, check, activate, transport, real ABAP Unit and ATC runs). Never activate code that has not passed the offline gates; after activation, read the ATC / ABAP Unit results back and fix before moving on.`,
+    );
+    if (paired.includes("sap-adt-mcp")) {
+      lines.push(
+        "- **Composed loop (one object):** read the object's files with `abap_read_file` → `fix_abap` then `lint_abap` on that text (plus `check_rap_behavior` for BDEF/SRVD and `check_cloud_readiness` / `check_released_api` for Cloud targets) → apply the change with `abap_object_edit_file` → `abap_object_check` → `abap_object_activate` → `abap_unit_run_tests` and `abap_atc_run_start` / `abap_atc_run_get_result` → `abap_atc_quickfixes_apply` for deterministic findings → `compare_abap` old-vs-new text → if a run dumps, `abap_feed_query` for the short dump. File names from `abap_object_list_file_uris` (`zcl_x.clas.abap`, `zr_x.bdef.asbdef`, …) are accepted by the abap-mcp tools as-is.",
+      );
+      lines.push(
+        "- **Allow-list level:** SAP's server ships closed (level 1). At read-only (level 2) the loop above stops after the offline checks — report findings, do not try to write. The composed loop needs restricted editing (level 3: edit tools scoped to allow-listed packages); never ask for fully open (level 4).",
+      );
+    }
   } else {
     lines.push("- **System hand-off:** abap-mcp has no SAP connection. Deliver files in activation order with the assumptions register; ADT activation, ATC and a real ABAP Unit run remain the final arbiters.");
   }
-  lines.push("- **Honesty:** behavior/service definitions are template-validated (abaplint does not parse them); say so when it matters. Bundled SAP data is snapshot-dated; quote the date.");
+  lines.push("- **Honesty:** behavior/service definitions are checked by abap-mcp's own RAP grammar, not SAP's parser (abaplint does not parse them); say so when it matters. Bundled SAP data is snapshot-dated; quote the date.");
   return lines.join("\n");
 }
 
@@ -61,8 +78,9 @@ export const getAbapAgentRules = defineTool({
   title: "Get the AGENTS.md rules block for an ABAP repo",
   description:
     "Generate the ABAP section of a repository's AGENTS.md / CLAUDE.md: the lint-before-commit rule, the ABAP Cloud " +
-    "readiness gate, released-API discipline, scaffold-first, the offline unit-test loop, and the division of labour " +
-    "with an online ADT MCP server. Use this when you set up a new ABAP repo for agentic development or want a " +
+    "readiness gate, released-API discipline, scaffold-first, the offline unit-test loop, and — when SAP's official ADT MCP " +
+    "server is paired — the composed read → offline-check → edit → check → activate → test loop with the allow-list level it " +
+    "needs. Use this when you set up a new ABAP repo for agentic development or want a " +
     "team's coding-agent rules to reference the abap-mcp tools consistently. It does not write the file (paste the " +
     "returned markdown yourself), does not read the workspace, and is not a substitute for the project's own " +
     "conventions — it encodes the tool contract, nothing project-specific beyond the parameters you pass. " +

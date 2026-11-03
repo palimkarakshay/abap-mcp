@@ -1,5 +1,7 @@
 # abap-mcp roadmap — SAP AI + agentic upgrade (2026-09-10)
 
+> **Correction 2026-11-02.** The ADT MCP server tool names quoted below (`abap_activate_objects`, `abap_run_unit_tests`, `abap_run_atc`, "20 tools / 8 toolsets") were never the shipped names; SAP's TechEd 2026 AD100 slides give `abap_object_activate`, `abap_unit_run_tests`, `abap_atc_run_start` and, since language server 1.3 (October 2026), 36 tools including `abap_read_file` and `abap_object_edit_file`. The `official-adt-mcp-server` knowledge card and `get_abap_agent_rules` carry the current list; this document is kept as the dated plan it was.
+
 **Basis:** a 9-topic, fact-checked research corpus (SAP-ABAP-1, Generative AI Hub, ABAP AI SDK/ISLM,
 SAP's official ADT MCP server, ABAP Cloud/RAP 2025–26, Clean Core, OSS ecosystem, MCP 2026-07-28,
 agentic-ABAP practice), an independent codex web-research report, a repo audit, and two feasibility

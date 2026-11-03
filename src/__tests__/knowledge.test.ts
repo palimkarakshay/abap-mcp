@@ -216,15 +216,27 @@ describe("bundled knowledge base — SAP AI decision cards", () => {
     expect(blob).toContain("experimental");
   });
 
-  it("records the ADT MCP server's 20 tools and the two Joule-gated ones", () => {
+  it("records the ADT MCP server's 36 tools (language server 1.3), the 16 new ones and the Joule-gated ones", () => {
     const card = cards.find((c) => c.id === "official-adt-mcp-server")!;
-    const tools = card["tools"] as { name: string; toolset: string; jouleLicence: boolean }[];
-    expect(tools.length).toBe(20);
+    const tools = card["tools"] as { name: string; toolset: string; jouleLicence: boolean; addedIn?: string }[];
+    expect(tools.length).toBe(36);
+    expect(tools.filter((t) => t.addedIn !== undefined).length).toBe(16);
     expect(tools.filter((t) => t.jouleLicence).map((t) => t.name)).toEqual([
-      "abap_atc_apply_ai_fix",
-      "abap_atc_get_ai_fix_result",
+      "abap_atc_ai_start_fix",
+      "abap_atc_ai_get_fix_result",
+      "abap_explain_object",
+      "abap_docs_dcp",
     ]);
-    expect(new Set(tools.map((t) => t.toolset)).size).toBe(8);
+    expect(new Set(tools.map((t) => t.toolset)).size).toBe(11);
+    // The names abap-mcp documented before 2026-11 were never the shipped ones.
+    const names = new Set(tools.map((t) => t.name));
+    for (const stale of ["abap_lists_destinations", "abap_activate_objects", "abap_run_unit_tests", "abap_run_atc"]) {
+      expect(names.has(stale), stale).toBe(false);
+    }
+    expect(names.has("abap_list_destinations")).toBe(true);
+    expect(names.has("abap_object_edit_file")).toBe(true);
+    const levels = card["safetyLevels"] as { level: number }[];
+    expect(levels.map((l) => l.level)).toEqual([1, 2, 3, 4]);
   });
 
   it("records the ABAP AI SDK class inventory", () => {

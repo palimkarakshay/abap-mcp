@@ -274,24 +274,33 @@ deterministic makes it the perfect referee between two LLMs.
 ### Offline-verify then write in-system with SAP ADT MCP / abap-adt-mcp
 
 abap-mcp never touches a system; SAP's official ADT MCP server (GA, ships in ADT for Eclipse/VS
-Code) and the community `abap-adt-mcp` do — and neither has an offline lint, readiness grade, or
-released-API check of its own. Run both side by side:
+Code; 36 tools since language server 1.3, October 2026 — names below are from SAP's TechEd 2026
+AD100 slides) and the community `abap-adt-mcp` do — and neither has an offline lint, readiness
+grade, released-API check, RAP BDEF check or release knowledge of its own. Run both side by side:
 
-1. **Offline first.** `fix_abap` → `lint_abap` → `check_cloud_readiness` (or `scaffold_rap_bo` /
-   `scaffold_abap_unit` / `scaffold_abap_ai_sdk` for new objects) until the files are clean —
-   entirely local, no credentials touched yet.
-2. **Write and activate in the system.** Hand the same files to SAP's official server
-   (`abap_creation-create_object`, `abap_activate_objects`) or `abap-adt-mcp`
-   (`setObjectSource`, `activateByName`).
-3. **Run the real tests.** `abap_run_unit_tests` / `abap_run_atc` (or `unitTestRun` /
-   `createAtcRun` on `abap-adt-mcp`) — the real ABAP Unit and ATC runs abap-mcp cannot perform.
-4. **Verify again, offline.** If the online server returned modified source, `compare_abap` or
-   `check_cloud_readiness` it before calling the change done — the loop is provable from both ends.
+1. **Read.** `abap_object_list_file_uris` + `abap_read_file` on SAP's server (or
+   `getObjectSource` on `abap-adt-mcp`). The file names that come back (`zcl_x.clas.abap`,
+   `zr_x.bdef.asbdef`, `zi_x.ddls.asddls`) are the ones abap-mcp expects — pass them through.
+2. **Offline gate.** `fix_abap` → `lint_abap` → `check_cloud_readiness` / `check_released_api`
+   (Cloud targets) → `check_rap_behavior` (BDEF/SRVD), or `scaffold_rap_bo` / `scaffold_abap_unit`
+   / `scaffold_abap_ai_sdk` for new objects — until the text is clean, entirely local.
+3. **Write, check, activate in the system.** `abap_object_edit_file` (exact-string replace;
+   needs allow-list level 3, "restricted editing") or `abap_creation-create_object`, then
+   `abap_object_check` → `abap_object_activate` (or `setObjectSource` / `activateByName`).
+4. **Run the real tests.** `abap_unit_run_tests`, `abap_atc_run_start` / `abap_atc_run_get_result`,
+   `abap_atc_quickfixes_apply` (or `unitTestRun` / `createAtcRun` on `abap-adt-mcp`) — the real
+   ABAP Unit and ATC runs abap-mcp cannot perform. A dump? `abap_feed_query` reads it.
+5. **Verify again, offline.** `compare_abap` the activated source against what you started with,
+   or `check_cloud_readiness` it before calling the change done — the loop is provable from both ends.
 
-With an assistant: *"Lint and grade this class with abap-mcp, then use SAP's ADT MCP server to
-write, activate and run ATC on it, then compare_abap the result against what you started with."*
-`get_abap_agent_rules({ pairedWith: ["sap-adt-mcp"] })` emits this division of labour as a paste-
-ready AGENTS.md block for the repo.
+At allow-list level 2 (read-only, SAP's recommended first step) the recipe stops after step 2: the
+agent reports findings and proposed edits, a human applies them. Never ask for level 4 (fully open).
+
+With an assistant: *"Read ZCL_TRAVEL_HELPER with SAP's ADT MCP server, lint and grade it with
+abap-mcp, apply the fixes with abap_object_edit_file, check, activate, run ATC, then compare_abap
+the result against what you started with."*
+`get_abap_agent_rules({ pairedWith: ["sap-adt-mcp"] })` emits this composed loop and the allow-list
+rule as a paste-ready AGENTS.md block for the repo.
 
 ### The unit-test loop with run_abap_unit
 
