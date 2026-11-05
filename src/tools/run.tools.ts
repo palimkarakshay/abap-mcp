@@ -58,7 +58,8 @@ export const runAbapUnitTool = defineTool({
     "no AMDP, no authority checks and no locks; it does not connect to a system, does not activate anything, does not " +
     "run ATC, and cannot prove the code behaves the same on SAP's kernel — a green run is evidence about pure logic, " +
     "and ABAP Unit on a real system remains authoritative. Constructs it cannot execute come back in `unsupported` " +
-    "rather than as a false pass. Takes ~4 s per call (parse + transpile dominate). " +
+    "rather than as a false pass. One object that will not transpile no longer stops the batch: it comes back in " +
+    "`excludedObjects` and the healthy classes still run, so treat a non-empty list as a failed run. Takes ~4 s per call (parse + transpile dominate). " +
     'Example: run_abap_unit({ "files": [ { "filename": "zcl_calc.clas.abap", "source": "CLASS zcl_calc DEFINITION PUBLIC FINAL CREATE PUBLIC.\\n…" }, { "filename": "zcl_calc.clas.testclasses.abap", "source": "CLASS ltcl_calc DEFINITION FINAL FOR TESTING…" } ] }).',
   inputSchema: {
     files: filesField,
@@ -133,6 +134,15 @@ export const runAbapUnitTool = defineTool({
     transpileIssues: z
       .array(z.unknown())
       .describe("Parser / syntax problems at open-abap level that stopped or endangered the transpile."),
+    excludedObjects: z
+      .array(
+        z.object({
+          object: z.string().describe("The ABAP object left out of the run, upper-cased."),
+          files: z.array(z.string()).describe("The submitted files that make up the object."),
+          reason: z.string().describe("The first transpile problem; the rest are in transpileIssues."),
+        }),
+      )
+      .describe("Objects that would not transpile and were held back so the rest of the batch could run, including classes that depended on them. A non-empty list is a failed run even when every row is green, because a parser error can hide an object's tests entirely."),
     durationMs: z
       .object({
         parse: z.number().describe("Registry parse, including the bundled library."),
@@ -194,6 +204,9 @@ export const runAbapUnitTool = defineTool({
         `in ${result.durationMs.parse + result.durationMs.transpile + result.durationMs.execute} ms` +
         (result.unsupported.length > 0 ? `; ${result.unsupported.length} construct(s) cannot run offline` : "") +
         (result.transpileIssues.length > 0 ? `; ${result.transpileIssues.length} transpile issue(s)` : "") +
+        (result.excludedObjects.length > 0
+          ? `; ${result.excludedObjects.length} object(s) excluded: ${result.excludedObjects.map((x) => x.object).join(", ")}`
+          : "") +
         `. ${result.scopeNote}`
       : `Offline execution unavailable (${result.unavailable?.kind ?? "unknown"}): ${result.unavailable?.message ?? ""} ${result.unavailable?.hint ?? ""}`;
 

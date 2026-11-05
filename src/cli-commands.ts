@@ -566,10 +566,13 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
       // kept the registry from ever finding one — must never read as a quiet
       // pass: there is nothing here for "0 failed, 0 errored" to be honest about.
       const noMethodsFound = result.available && result.results.length === 0;
+      // A held-back object may have no method row at all (a parser error hides its tests), so a
+      // green table is not enough: anything left out of the run fails the gate.
+      const anyExcluded = result.excludedObjects.length > 0;
       if (flags.has("json")) {
         io.out(JSON.stringify(result, null, 2));
         if (!result.available) return 1;
-        if (noMethodsFound) return 1;
+        if (noMethodsFound || anyExcluded) return 1;
         return result.failed + result.errored > 0 ? 1 : 0;
       }
 
@@ -585,6 +588,7 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
       }
       for (const issue of result.transpileIssues) io.err(`transpile ${fmtFinding(issue)}`);
       for (const u of result.unsupported) io.err(`unsupported ${u.file}: ${u.reason}`);
+      for (const x of result.excludedObjects) io.err(`excluded ${x.object}: ${x.reason}`);
       let currentClass = "";
       for (const r of result.results) {
         const cls = `${r.className}=>${r.testClassName}`;
@@ -609,7 +613,8 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
       const total = result.durationMs.parse + result.durationMs.transpile + result.durationMs.execute;
       io.out(
         `\n${result.results.length} test method(s): ${result.passed} passed, ${result.failed} failed, ` +
-          `${result.errored} errored, ${result.skipped} skipped in ${(total / 1000).toFixed(1)}s ` +
+          `${result.errored} errored, ${result.skipped} skipped` +
+          `${anyExcluded ? `, ${result.excludedObjects.length} object(s) excluded` : ""} in ${(total / 1000).toFixed(1)}s ` +
           `(parse ${result.durationMs.parse} ms, transpile ${result.durationMs.transpile} ms, run ${result.durationMs.execute} ms)`,
       );
       if (result.lint.findings.length > 0) {
@@ -619,7 +624,7 @@ export function cmdUnittest(argv: string[], io: CliIo): number | Promise<number>
       }
       io.out(`\n${result.scopeNote}`);
       if (!result.available) return 1;
-      if (noMethodsFound) return 1;
+      if (noMethodsFound || anyExcluded) return 1;
       return result.failed + result.errored > 0 ? 1 : 0;
     })();
   }

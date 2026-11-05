@@ -300,6 +300,90 @@ describe("runAbapUnit — only filter", () => {
   });
 });
 
+// One object that will not transpile used to turn every class in the batch into an error.
+const adderClass = (name: string, body: string): string => `CLASS ${name} DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS add IMPORTING a TYPE i b TYPE i RETURNING VALUE(r) TYPE i.
+ENDCLASS.
+CLASS ${name} IMPLEMENTATION.
+  METHOD add.
+    ${body}
+  ENDMETHOD.
+ENDCLASS.
+`;
+const adderTests = (name: string): string => `CLASS ltc_add DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS adds FOR TESTING.
+ENDCLASS.
+CLASS ltc_add IMPLEMENTATION.
+  METHOD adds.
+    cl_abap_unit_assert=>assert_equals( act = NEW ${name}( )->add( a = 1 b = 2 ) exp = 3 ).
+  ENDMETHOD.
+ENDCLASS.
+`;
+const adder = (name: string, body: string): { filename: string; source: string }[] => [
+  { filename: `${name}.clas.abap`, source: adderClass(name, body) },
+  { filename: `${name}.clas.testclasses.abap`, source: adderTests(name) },
+];
+
+describe("runAbapUnit — isolating objects that will not transpile", () => {
+  const statusOf = (result: UnitRunResult, cls: string): string | undefined =>
+    result.results.find((r) => r.className === cls)?.status;
+
+  it("runs the healthy class, and holds back the bad one and whatever depends on it", async () => {
+    const result = await runAbapUnit([
+      ...adder("zcl_good", "r = a + b."),
+      ...adder("zcl_bad", "r = a + nope."),
+      ...adder("zcl_dep", "r = NEW zcl_bad( )->add( a = a b = b )."),
+    ]);
+
+    expect(statusOf(result, "ZCL_GOOD")).toBe("pass");
+    expect(statusOf(result, "ZCL_BAD")).toBe("error");
+    expect(statusOf(result, "ZCL_DEP")).toBe("error");
+    expect(result.excludedObjects.map((x) => x.object).sort()).toEqual(["ZCL_BAD", "ZCL_DEP"]);
+    const bad = result.excludedObjects.find((x) => x.object === "ZCL_BAD")!;
+    expect(bad.files.sort()).toEqual(["zcl_bad.clas.abap", "zcl_bad.clas.testclasses.abap"]);
+    expect(bad.reason).toMatch(/zcl_bad\.clas\.abap:\d+: .*nope/);
+    expect(result.results.find((r) => r.className === "ZCL_BAD")!.message).toContain("nope");
+    expect(result.excludedObjects.find((x) => x.object === "ZCL_DEP")!.reason).toContain("depends on ZCL_BAD");
+  }, 60_000);
+
+  it("reports a class a parser error kept out of test discovery, so a green table cannot pass as clean", async () => {
+    const result = await runAbapUnit([
+      ...adder("zcl_good", "r = a + b."),
+      { filename: "zcl_broken.clas.abap", source: adderClass("zcl_broken", "r = = a +") },
+    ]);
+
+    expect(result.passed).toBe(1);
+    expect(result.results).toHaveLength(1);
+    expect(result.excludedObjects.map((x) => x.object)).toEqual(["ZCL_BROKEN"]);
+  }, 60_000);
+
+  it("follows a dependency chain, so nothing downstream reaches the runner and ends the run", async () => {
+    const result = await runAbapUnit([
+      ...adder("zcl_bad", "r = a + nope."),
+      ...adder("zcl_mid", "r = NEW zcl_bad( )->add( a = a b = b )."),
+      ...adder("zcl_top", "r = NEW zcl_mid( )->add( a = a b = b )."),
+      ...adder("zcl_zz_good", "r = a + b."),
+    ]);
+
+    expect(statusOf(result, "ZCL_ZZ_GOOD")).toBe("pass");
+    expect(result.excludedObjects.map((x) => x.object).sort()).toEqual(["ZCL_BAD", "ZCL_MID", "ZCL_TOP"]);
+  }, 60_000);
+
+  it("lists each transpile issue once", async () => {
+    const result = await runAbapUnit([...adder("zcl_bad", "r = a + nope.")]);
+    const keys = result.transpileIssues.map((i) => `${i.file}|${i.line}|${i.rule}|${i.message}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  }, 60_000);
+
+  it("leaves excludedObjects empty on a clean batch", async () => {
+    const result = await runAbapUnit([...adder("zcl_good", "r = a + b.")]);
+    expect(result.excludedObjects).toEqual([]);
+    expect(result.passed).toBe(1);
+  }, 60_000);
+});
+
 // `WRITE '@KERNEL ...'.` is @abaplint/transpiler's own raw-JavaScript escape hatch (see
 // KERNEL_DIRECTIVE_RE in src/abap/run.ts) — the string after "@KERNEL " is emitted verbatim as
 // JavaScript into the module the child executes. This must never reach the transpiler.
