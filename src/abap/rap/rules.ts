@@ -1212,7 +1212,7 @@ const CONFIRMED_RULES: RapRule[] = [
     requires: ["base-bdef"],
     sourceUrl: URL_FEATURE_TABLES,
     docsAnchor: "rap076",
-    hint: 'Add "use draft;" (or "use draft as dependent;" for a non-root entity in a cross-BO draft scope).',
+    hint: 'Add "use draft;" (or "use collaborative draft;" on a collaborative-draft base, or "use draft as dependent;" for a non-root entity in a cross-BO draft scope).',
     check(ctx) {
       if (ctx.file.ast.implementationType !== "projection") return;
       const root = rootOf(ctx.file);
@@ -1220,7 +1220,8 @@ const CONFIRMED_RULES: RapRule[] = [
       const base = ctx.resolveBase(root);
       if (base === undefined || !isDraftEnabled(base.file)) return;
       const uses = [...usesOf(root), ...ctx.file.ast.headerUses];
-      if (uses.some((u) => u.what === "draft" || u.what === "draft-as-dependent")) return;
+      // "use collaborative draft;" (BDL 2025+, SAP teched2026-AD260) exposes draft handling just as "use draft;" does.
+      if (uses.some((u) => u.what === "draft" || u.what === "collaborative-draft" || u.what === "draft-as-dependent")) return;
       if (ctx.mayBeHiddenBy(root, ["USE"])) return;
       ctx.report({
         range: root.entity.range,
