@@ -295,7 +295,21 @@ export const checkCloudReadinessTool = defineTool({
       .array(z.unknown())
       .describe("Findings that fail even at the baseline version — fix first, they are not migration items."),
     releasedApiFindings: z
-      .array(z.unknown())
+      .array(
+        z.object({
+          object: z.string().describe("Referenced object name, upper-cased."),
+          objectType: z.string().describe('SAP object type: "TABL" or "FUNC".'),
+          state: z.enum(["deprecated", "not-released"]).describe("Released-API state from the bundled snapshot."),
+          successor: z.string().optional().describe("Released successor, when one is known."),
+          successorSource: z
+            .enum(["sap", "curated", "none"])
+            .describe("Where the successor came from: SAP's snapshot, the curated map, or none available."),
+          edition: z.enum(["s4hc", "btp", "pce"]).describe("Edition the state was looked up against."),
+          file: z.string().describe("File the reference is in."),
+          line: z.number().describe("Line of the reference."),
+          note: z.string().describe("Why this was flagged."),
+        }),
+      )
       .describe(
         "Released-API observations from the bundled SAP Cloudification snapshot (deprecated-API usage, direct non-released table access with successor hints, and which edition/source answered each one). Informational — NOT counted in cloudBlockerCount or score.",
       ),
