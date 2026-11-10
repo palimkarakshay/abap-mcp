@@ -1,7 +1,7 @@
 {
-  "curatedDate": "2026-09-10",
+  "curatedDate": "2026-11-02",
   "description": "Bundled Clean Core / released-API governance knowledge: SAP's Clean Core Level A-D model, the retired 3-tier framing, release contracts C0-C4, the real ATC check and variant vocabulary, and the SAP/abap-atc-cr-cv-s4hc Cloudification Repository file and schema inventory. Original abap-mcp prose over cited sources.",
-  "scopeNote": "bundled knowledge curated 2026-09-10; the target system's release notes are authoritative",
+  "scopeNote": "bundled knowledge curated 2026-11-02 (TechEd 2026 refresh of the 2026-09-10 pack); the target system's release notes are authoritative",
   "entries": [
     {
       "id": "clean-core-level-a",
@@ -12,7 +12,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["level a", "abap cloud", "released apis", "clean core", "sap build"]
+      "keywords": [
+        "level a",
+        "abap cloud",
+        "released apis",
+        "clean core",
+        "sap build"
+      ]
     },
     {
       "id": "clean-core-level-b",
@@ -23,7 +29,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["level b", "classic abap", "classic api", "priority 3", "recommended technology"]
+      "keywords": [
+        "level b",
+        "classic abap",
+        "classic api",
+        "priority 3",
+        "recommended technology"
+      ]
     },
     {
       "id": "clean-core-level-c",
@@ -34,7 +46,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["level c", "internal objects", "conditionally clean", "priority 2", "changelog check"]
+      "keywords": [
+        "level c",
+        "internal objects",
+        "conditionally clean",
+        "priority 2",
+        "changelog check"
+      ]
     },
     {
       "id": "clean-core-level-d",
@@ -45,7 +63,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["level d", "modification", "implicit enhancement", "priority 1", "technical debt"]
+      "keywords": [
+        "level d",
+        "modification",
+        "implicit enhancement",
+        "priority 1",
+        "technical debt"
+      ]
     },
     {
       "id": "levels-replace-three-tier",
@@ -55,7 +79,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["3-tier model", "a-d levels", "august 2025", "whitepaper", "extensibility guide"]
+      "keywords": [
+        "3-tier model",
+        "a-d levels",
+        "august 2025",
+        "whitepaper",
+        "extensibility guide"
+      ]
     },
     {
       "id": "three-tier-model-historical",
@@ -65,7 +95,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-q-a/3-tier-extensibility-model-for-sap-s-4hana-private-cloud-and-on-premise/qaq-p/12728070",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["tier 1", "tier 2", "tier 3", "historical", "cloud api enablement"]
+      "keywords": [
+        "tier 1",
+        "tier 2",
+        "tier 3",
+        "historical",
+        "cloud api enablement"
+      ]
     },
     {
       "id": "tier-two-wrappers-survive",
@@ -75,7 +111,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["wrapper", "tier 2", "package governance", "c1 release", "custom wrapper"]
+      "keywords": [
+        "wrapper",
+        "tier 2",
+        "package governance",
+        "c1 release",
+        "custom wrapper"
+      ]
     },
     {
       "id": "package-guidance-cloud-vs-classic",
@@ -85,7 +127,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["software component", "package", "language version", "home package", "wrapper package"]
+      "keywords": [
+        "software component",
+        "package",
+        "language version",
+        "home package",
+        "wrapper package"
+      ]
     },
     {
       "id": "release-contract-c0",
@@ -95,7 +143,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["c0", "extend", "extension point", "release contract", "enhancement"]
+      "keywords": [
+        "c0",
+        "extend",
+        "extension point",
+        "release contract",
+        "enhancement"
+      ]
     },
     {
       "id": "release-contract-c1",
@@ -105,7 +159,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["c1", "system internal", "stable interface", "release contract", "cloud development"]
+      "keywords": [
+        "c1",
+        "system internal",
+        "stable interface",
+        "release contract",
+        "cloud development"
+      ]
     },
     {
       "id": "release-contract-c2",
@@ -115,7 +175,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["c2", "remote api", "external consumer", "release contract", "upgrade stability"]
+      "keywords": [
+        "c2",
+        "remote api",
+        "external consumer",
+        "release contract",
+        "upgrade stability"
+      ]
     },
     {
       "id": "release-contract-c3",
@@ -126,7 +192,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["c3", "configuration content", "business configuration", "release contract", "persistence"]
+      "keywords": [
+        "c3",
+        "configuration content",
+        "business configuration",
+        "release contract",
+        "persistence"
+      ]
     },
     {
       "id": "release-contract-c4",
@@ -136,7 +208,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/release-contracts",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["c4", "amdp", "database procedure", "release contract", "badi"]
+      "keywords": [
+        "c4",
+        "amdp",
+        "database procedure",
+        "release contract",
+        "badi"
+      ]
     },
     {
       "id": "c1-is-the-consumption-gate",
@@ -146,7 +224,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/released-apis",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["c1", "visibility", "restricted language version", "released api", "consumption"]
+      "keywords": [
+        "c1",
+        "visibility",
+        "restricted language version",
+        "released api",
+        "consumption"
+      ]
     },
     {
       "id": "released-api-type-rule",
@@ -156,7 +240,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/released-apis",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["released api", "type release", "data reference", "generic framework", "software component"]
+      "keywords": [
+        "released api",
+        "type release",
+        "data reference",
+        "generic framework",
+        "software component"
+      ]
     },
     {
       "id": "abap-language-versions",
@@ -166,7 +256,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/abap-language-versions",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["abap for cloud development", "language version", "client isolation", "key user", "standard abap"]
+      "keywords": [
+        "abap for cloud development",
+        "language version",
+        "client isolation",
+        "key user",
+        "standard abap"
+      ]
     },
     {
       "id": "abap-cloud-access-rule",
@@ -176,7 +272,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/released-apis",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["access rule", "same software component", "released api", "cds abstraction", "cloud blocker"]
+      "keywords": [
+        "access rule",
+        "same software component",
+        "released api",
+        "cds abstraction",
+        "cloud blocker"
+      ]
     },
     {
       "id": "atc-check-usage-of-released-apis",
@@ -186,7 +288,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["usage of released apis", "cloud readiness", "atc check", "public edition", "cloudification repository"]
+      "keywords": [
+        "usage of released apis",
+        "cloud readiness",
+        "atc check",
+        "public edition",
+        "cloudification repository"
+      ]
     },
     {
       "id": "atc-check-usage-of-apis",
@@ -196,7 +304,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["usage of apis", "sycm_usage_of_apis", "sap note 3565942", "clean core", "private edition"]
+      "keywords": [
+        "usage of apis",
+        "sycm_usage_of_apis",
+        "sap note 3565942",
+        "clean core",
+        "private edition"
+      ]
     },
     {
       "id": "atc-usage-of-apis-replaces-released",
@@ -206,18 +320,32 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["usage of apis", "replaces", "clean core variant", "atc", "scoped"]
+      "keywords": [
+        "usage of apis",
+        "replaces",
+        "clean core variant",
+        "atc",
+        "scoped"
+      ]
     },
     {
       "id": "atc-variant-abap-clean-core-development",
       "topic": "atc",
       "title": "Check variant ABAP_CLEAN_CORE_DEVELOPMENT",
       "summary": "The clean-core development variant, for remote ATC on the BTP ABAP environment and for ATC on S/4HANA 2025 FPS01 or higher, private cloud or on premise.",
-      "supersedes": ["ABAP_CLOUD_DEVELOPMENT_3TIER"],
+      "supersedes": [
+        "ABAP_CLOUD_DEVELOPMENT_3TIER"
+      ],
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["abap_clean_core_development", "check variant", "fps01", "remote atc", "clean core"]
+      "keywords": [
+        "abap_clean_core_development",
+        "check variant",
+        "fps01",
+        "remote atc",
+        "clean core"
+      ]
     },
     {
       "id": "atc-variant-abap-clean-core-readiness",
@@ -227,18 +355,34 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["abap_clean_core_readiness", "ecc", "s4hana 2023", "remote atc", "readiness"]
+      "keywords": [
+        "abap_clean_core_readiness",
+        "ecc",
+        "s4hana 2023",
+        "remote atc",
+        "readiness"
+      ]
     },
     {
       "id": "atc-variant-deprecations",
       "topic": "atc",
       "title": "Three deprecated ATC check variants and their successors",
       "summary": "SAP's own released-object feed records ABAP_CLOUD_DEVELOPMENT_3TIER superseded by ABAP_CLEAN_CORE_DEVELOPMENT, SAP_CP_READINESS by ABAP_CLOUD_READINESS, and SAP_CLOUD_PLATFORM_ATC_DEFAULT by ABAP_CLOUD_DEVELOPMENT_DEFAULT.",
-      "supersedes": ["ABAP_CLOUD_DEVELOPMENT_3TIER", "SAP_CP_READINESS", "SAP_CLOUD_PLATFORM_ATC_DEFAULT"],
+      "supersedes": [
+        "ABAP_CLOUD_DEVELOPMENT_3TIER",
+        "SAP_CP_READINESS",
+        "SAP_CLOUD_PLATFORM_ATC_DEFAULT"
+      ],
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["deprecated variant", "successor", "sap_cp_readiness", "abap_cloud_readiness", "chkv"]
+      "keywords": [
+        "deprecated variant",
+        "successor",
+        "sap_cp_readiness",
+        "abap_cloud_readiness",
+        "chkv"
+      ]
     },
     {
       "id": "atc-sap-cp-readiness-legacy",
@@ -248,7 +392,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-q-a/atc-check-variants-sap-cp-readiness-vs-abap-cloud-readiness-which-one-to/qaq-p/13995883",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["sap_cp_readiness", "abap_cloud_readiness", "ci_no_order_by", "deprecated", "legacy variant"]
+      "keywords": [
+        "sap_cp_readiness",
+        "abap_cloud_readiness",
+        "ci_no_order_by",
+        "deprecated",
+        "legacy variant"
+      ]
     },
     {
       "id": "atc-no-api-release-state-check",
@@ -258,7 +408,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["api_release_state_check", "hallucination", "wrong identifier", "atc check name", "honesty"]
+      "keywords": [
+        "api_release_state_check",
+        "hallucination",
+        "wrong identifier",
+        "atc check name",
+        "honesty"
+      ]
     },
     {
       "id": "atc-provider-side-release-checks",
@@ -268,7 +424,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-btp-abap-environment-release-2508/ba-p/14182635",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["ars_cmp_atc", "consistency check", "compatibility check", "provider", "released api"]
+      "keywords": [
+        "ars_cmp_atc",
+        "consistency check",
+        "compatibility check",
+        "provider",
+        "released api"
+      ]
     },
     {
       "id": "atc-recommended-variant-recipe",
@@ -278,7 +440,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["variant recipe", "ci_critical_statements", "ci_search_cust_modifications", "sycm_usage_of_apis", "abap_cloud_development_default"]
+      "keywords": [
+        "variant recipe",
+        "ci_critical_statements",
+        "ci_search_cust_modifications",
+        "sycm_usage_of_apis",
+        "abap_cloud_development_default"
+      ]
     },
     {
       "id": "atc-four-recommended-checks",
@@ -288,7 +456,13 @@
       "sourceUrl": "https://help.sap.com/docs/btp/btp-developers-guide/keep-clean-core-governance-with-abap-test-cockpit",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["recommended checks", "enhancement technologies", "customer modifications", "critical statements", "cva"]
+      "keywords": [
+        "recommended checks",
+        "enhancement technologies",
+        "customer modifications",
+        "critical statements",
+        "cva"
+      ]
     },
     {
       "id": "atc-blocking-mode-governance",
@@ -298,7 +472,13 @@
       "sourceUrl": "https://help.sap.com/docs/btp/btp-developers-guide/keep-clean-core-governance-with-abap-test-cockpit",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["blocking mode", "governance", "exemption", "baseline", "priority 1"]
+      "keywords": [
+        "blocking mode",
+        "governance",
+        "exemption",
+        "baseline",
+        "priority 1"
+      ]
     },
     {
       "id": "atc-partner-classic-apis",
@@ -308,7 +488,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["partner api", "sycm_api_classification_managr", "sap note 3630552", "namespace", "pull request"]
+      "keywords": [
+        "partner api",
+        "sycm_api_classification_managr",
+        "sap note 3630552",
+        "namespace",
+        "pull request"
+      ]
     },
     {
       "id": "atc-partner-folder-inventory",
@@ -318,7 +504,13 @@
       "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src/partner",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["partner folder", "objectclassifications", "namespace", "inventory", "saar"]
+      "keywords": [
+        "partner folder",
+        "objectclassifications",
+        "namespace",
+        "inventory",
+        "saar"
+      ]
     },
     {
       "id": "cloudification-repository-overview",
@@ -329,7 +521,13 @@
       "sourceKind": "sap-github",
       "licence": "Apache-2.0",
       "confidence": "confirmed",
-      "keywords": ["cloudification repository", "apache-2.0", "released api list", "classic api list", "data source"]
+      "keywords": [
+        "cloudification repository",
+        "apache-2.0",
+        "released api list",
+        "classic api list",
+        "data source"
+      ]
     },
     {
       "id": "cloudification-src-inventory",
@@ -339,7 +537,13 @@
       "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["src inventory", "objectreleaseinfolatest", "btplatest", "pcelatest", "file list"]
+      "keywords": [
+        "src inventory",
+        "objectreleaseinfolatest",
+        "btplatest",
+        "pcelatest",
+        "file list"
+      ]
     },
     {
       "id": "cloudification-no-src-classifications-toon",
@@ -349,7 +553,13 @@
       "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["toon", "404", "broken link", "readme", "archive"]
+      "keywords": [
+        "toon",
+        "404",
+        "broken link",
+        "readme",
+        "archive"
+      ]
     },
     {
       "id": "cloudification-archive-inventory",
@@ -359,7 +569,13 @@
       "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src/archive",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["archive", "yymm", "snapshot", "csv", "3tiermodel"]
+      "keywords": [
+        "archive",
+        "yymm",
+        "snapshot",
+        "csv",
+        "3tiermodel"
+      ]
     },
     {
       "id": "cloudification-no-2608-archive",
@@ -369,7 +585,13 @@
       "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src/archive",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["2608", "missing file", "archive", "snapshot gap", "as of date"]
+      "keywords": [
+        "2608",
+        "missing file",
+        "archive",
+        "snapshot gap",
+        "as of date"
+      ]
     },
     {
       "id": "cloudification-edition-file-mapping",
@@ -379,7 +601,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/README.md",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["edition", "btp", "pce", "public edition", "feature pack stack"]
+      "keywords": [
+        "edition",
+        "btp",
+        "pce",
+        "public edition",
+        "feature pack stack"
+      ]
     },
     {
       "id": "cloudification-readme-broken-fps-url",
@@ -389,7 +617,13 @@
       "sourceUrl": "https://github.com/SAP/abap-atc-cr-cv-s4hc/tree/main/src",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["broken url", "pce2025", "fps00", "readme error", "configuration"]
+      "keywords": [
+        "broken url",
+        "pce2025",
+        "fps00",
+        "readme error",
+        "configuration"
+      ]
     },
     {
       "id": "object-release-info-schema",
@@ -399,7 +633,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["formatversion 1", "objectreleaseinfo", "successors", "successorconceptname", "schema"]
+      "keywords": [
+        "formatversion 1",
+        "objectreleaseinfo",
+        "successors",
+        "successorconceptname",
+        "schema"
+      ]
     },
     {
       "id": "object-release-info-states",
@@ -409,7 +649,14 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["released", "nottoberelease", "deprecated", "oneobject", "multipleobjects", "concept"]
+      "keywords": [
+        "released",
+        "nottoberelease",
+        "deprecated",
+        "oneobject",
+        "multipleobjects",
+        "concept"
+      ]
     },
     {
       "id": "object-classifications-schema",
@@ -419,7 +666,14 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/schema/classicAPI-schema.json",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["classicapi-schema", "formatversion 2", "classicapi", "noapi", "internalapi", "labels"]
+      "keywords": [
+        "classicapi-schema",
+        "formatversion 2",
+        "classicapi",
+        "noapi",
+        "internalapi",
+        "labels"
+      ]
     },
     {
       "id": "object-classifications-generated-from",
@@ -429,7 +683,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/schema/classicAPI-schema.json",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["if_ycm_classic_api_list_v2", "autogenerated", "no schema", "objectreleaseinfo", "provenance"]
+      "keywords": [
+        "if_ycm_classic_api_list_v2",
+        "autogenerated",
+        "no schema",
+        "objectreleaseinfo",
+        "provenance"
+      ]
     },
     {
       "id": "cloudification-feed-statistics",
@@ -439,7 +699,13 @@
       "sourceUrl": "https://raw.githubusercontent.com/SAP/abap-atc-cr-cv-s4hc/main/src/objectReleaseInfoLatest.json",
       "sourceKind": "sap-github",
       "confidence": "confirmed",
-      "keywords": ["statistics", "entry count", "37030", "8588", "internalapi"]
+      "keywords": [
+        "statistics",
+        "entry count",
+        "37030",
+        "8588",
+        "internalapi"
+      ]
     },
     {
       "id": "state-to-level-to-priority",
@@ -449,7 +715,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/object-release-state-in-cloudification-repository-viewer-for-clean-core/ba-p/14350668",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["state mapping", "level", "atc priority", "noapi", "classic api"]
+      "keywords": [
+        "state mapping",
+        "level",
+        "atc priority",
+        "noapi",
+        "classic api"
+      ]
     },
     {
       "id": "state-precedence-rule",
@@ -459,7 +731,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/object-release-state-in-cloudification-repository-viewer-for-clean-core/ba-p/14350668",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["precedence", "two states", "classic api", "released", "per release"]
+      "keywords": [
+        "precedence",
+        "two states",
+        "classic api",
+        "released",
+        "per release"
+      ]
     },
     {
       "id": "cloudification-viewer",
@@ -469,7 +747,13 @@
       "sourceUrl": "https://sap.github.io/abap-atc-cr-cv-s4hc/",
       "sourceKind": "sap-github",
       "confidence": "reported",
-      "keywords": ["viewer", "browser", "filter", "labels", "transactional-consistent"]
+      "keywords": [
+        "viewer",
+        "browser",
+        "filter",
+        "labels",
+        "transactional-consistent"
+      ]
     },
     {
       "id": "cloudification-tools-repo",
@@ -480,7 +764,13 @@
       "sourceKind": "sap-github",
       "licence": "Apache-2.0",
       "confidence": "confirmed",
-      "keywords": ["exemption migration", "tools repo", "abapgit", "sibling repository", "clean core"]
+      "keywords": [
+        "exemption migration",
+        "tools repo",
+        "abapgit",
+        "sibling repository",
+        "clean core"
+      ]
     },
     {
       "id": "project-kernseife",
@@ -491,7 +781,13 @@
       "sourceKind": "sap-github",
       "licence": "Apache-2.0",
       "confidence": "confirmed",
-      "keywords": ["kernseife", "custom atc check", "scoring", "technical debt", "open source"]
+      "keywords": [
+        "kernseife",
+        "custom atc check",
+        "scoring",
+        "technical debt",
+        "open source"
+      ]
     },
     {
       "id": "clean-core-kpis",
@@ -501,7 +797,13 @@
       "sourceUrl": "https://community.sap.com/t5/enterprise-resource-planning-blog-posts-by-sap/new-clean-core-extensibility-kpis-arrive-on-the-rise-with-sap-dashboard/ba-p/14257352",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["clean core share", "technical debt score", "cloud alm", "rise dashboard", "kpi"]
+      "keywords": [
+        "clean core share",
+        "technical debt score",
+        "cloud alm",
+        "rise dashboard",
+        "kpi"
+      ]
     },
     {
       "id": "clean-core-kpi-import-constraints",
@@ -511,7 +813,13 @@
       "sourceUrl": "https://community.sap.com/t5/enterprise-resource-planning-blog-posts-by-sap/new-clean-core-extensibility-kpis-arrive-on-the-rise-with-sap-dashboard/ba-p/14257352",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["manual import", "100 mb", "cloud alm", "atc export", "dashboard"]
+      "keywords": [
+        "manual import",
+        "100 mb",
+        "cloud alm",
+        "atc export",
+        "dashboard"
+      ]
     },
     {
       "id": "custom-code-app-split",
@@ -521,7 +829,13 @@
       "sourceUrl": "https://help.sap.com/docs/btp/sap-business-technology-platform/custom-code-migration",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["analyze custom code", "custom code migration", "fiori app", "project type", "2508"]
+      "keywords": [
+        "analyze custom code",
+        "custom code migration",
+        "fiori app",
+        "project type",
+        "2508"
+      ]
     },
     {
       "id": "edition-names",
@@ -531,7 +845,15 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-cloud-background-concepts-and-overview/cloud-optimized-abap-language",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["public edition", "private edition", "on premise", "btp abap environment", "edition names"]
+      "keywords": [
+        "public edition",
+        "private edition",
+        "on premise",
+        "btp abap environment",
+        "edition names",
+        "baip",
+        "business ai platform"
+      ]
     },
     {
       "id": "abap-mcp-grade-is-not-sap-level",
@@ -541,7 +863,13 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-extensibility-guide-clean-core-for-sap-s-4hana-cloud-august-2025/ba-p/14175399",
       "sourceKind": "sap-blog",
       "confidence": "confirmed",
-      "keywords": ["grade meaning", "blocker density", "not sap level", "honesty", "disambiguation"]
+      "keywords": [
+        "grade meaning",
+        "blocker density",
+        "not sap level",
+        "honesty",
+        "disambiguation"
+      ]
     },
     {
       "id": "abapdocu-url-retirement",
@@ -551,7 +879,13 @@
       "sourceUrl": "https://help.sap.com/docs/abap-cloud/abap-keyword/abap-apis",
       "sourceKind": "help.sap.com",
       "confidence": "confirmed",
-      "keywords": ["abapdocu", "dead link", "url change", "abap keyword documentation", "migration"]
+      "keywords": [
+        "abapdocu",
+        "dead link",
+        "url change",
+        "abap keyword documentation",
+        "migration"
+      ]
     },
     {
       "id": "clean-core-sap-notes",
@@ -561,7 +895,73 @@
       "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-test-cockpit-atc-recommendations-for-governance-of-clean-core-abap/ba-p/14186130",
       "sourceKind": "sap-blog",
       "confidence": "reported",
-      "keywords": ["sap notes", "3565942", "3627152", "3630552", "note analyzer"]
+      "keywords": [
+        "sap notes",
+        "3565942",
+        "3627152",
+        "3630552",
+        "note analyzer"
+      ]
+    },
+    {
+      "id": "api-policy-is-not-clean-core-level-e",
+      "topic": "governance",
+      "title": "SAP's API policy is not a clean core level",
+      "summary": "Clean core grades best practice (Levels A to D); SAP's API policy is contractual compliance about which interfaces may be consumed at all. Policy-forbidden interfaces get no level and there is no 'level E'. Source: TechEd 2026 session TM108.",
+      "atcPriority": "n/a (contractual, not an ATC finding)",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-sessions-at-sap-teched-2026/ba-p/14493999",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "api policy",
+        "level e",
+        "odp-rfc",
+        "sap note 3255746",
+        "contractual",
+        "agentic access",
+        "tm108",
+        "teched 2026"
+      ],
+      "detail": "Examples SAP gives of policy-forbidden use: ODP-RFC for data extraction (SAP Note 3255746) and unendorsed agentic or AI access to internal objects. These are off-limits regardless of context; a policy breach sits outside the A to D model, not at its bottom."
+    },
+    {
+      "id": "clean-core-integration-white-paper-2026",
+      "topic": "governance",
+      "title": "Clean core integration white paper (new, TechEd 2026)",
+      "summary": "TechEd 2026 (TM108) announced a separate clean core integration white paper next to an updated extensibility white paper that now rates over one hundred frameworks and patterns. Key-user extensibility alone no longer counts as clean core; an ATC check backs the classification.",
+      "atcPriority": "see the white paper's per-pattern table",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-sessions-at-sap-teched-2026/ba-p/14493999",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "integration white paper",
+        "extensibility white paper",
+        "key user extensibility",
+        "100 frameworks",
+        "tm108",
+        "teched 2026",
+        "cloud erp private"
+      ],
+      "detail": "Integration gets its own grading because the extensibility levels never covered interfaces, and SAP's API policy applies there. Private-edition teams should read both papers before classifying an extension."
+    },
+    {
+      "id": "baip-product-rename-2026",
+      "topic": "editions",
+      "title": "SAP BTP ABAP environment renamed SAP Business AI Platform, ABAP environment (BAIP)",
+      "summary": "Since the Sapphire 2026 platform rename, SAP BTP ABAP environment is called SAP Business AI Platform, ABAP environment (BAIP). SAP says licences, features and positioning are unchanged. abap-mcp keeps the edition key btp; this row makes searches for the new name find the older rows.",
+      "atcPriority": "n/a",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-new-product-name/ba-p/14492854",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "baip",
+        "business ai platform",
+        "btp abap environment",
+        "rename",
+        "sapphire 2026",
+        "edition btp",
+        "steampunk"
+      ]
     }
   ]
 }
