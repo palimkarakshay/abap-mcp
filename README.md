@@ -31,14 +31,18 @@ list and abaplint rule data are package-bundled. An optional guarded Streamable 
 the same tools available to remote clients such as ChatGPT web; in that mode, source text is sent
 to the machine you host. See [privacy and data handling](PRIVACY.md).
 
-## Why this exists
+## Why this exists — the offline companion to SAP's official ADT MCP server
 
-Every other ABAP MCP server is either a **bridge to a live SAP system** (ADT/RFC — needs
-credentials, a system, and trust) or a **documentation search**. But AI coding agents spend most
-of their time where the *files* are — editing abapGit repos, reviewing diffs, generating code —
-long before anything reaches a system. This server gives agents the missing feedback loop at that
-layer:
+SAP's own [ADT MCP server](https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/mcp-tools)
+(inside ADT for Eclipse and VS Code, 36 tools since October 2026) is the right way for an agent to
+read, edit, check, activate, transport and test ABAP **in a system**. It needs a system, credentials
+and an admin's allow-list, and it has no offline lint, readiness grade, released-API cross-check, RAP
+BDEF check or release knowledge of its own. AI coding agents spend most of their time where the
+*files* are — git checkouts, pull requests, CI, evals — and at SAP's default allow-list levels
+(closed or read-only) they cannot write anyway. abap-mcp is the other half: the deterministic gate an
+agent runs on the text **before** every write and the knowledge it asks **instead of** guessing.
 
+- *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
 - *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
 - *"Fix this block automatically — casing, obsolete syntax."* → `fix_abap` (deterministic, parser-guaranteed)
 - *"How far is this classic report from ABAP Cloud? Grade it."* → `check_cloud_readiness` (A–D)
@@ -209,7 +213,11 @@ The full offline loop an agent can run before anything reaches a system:
 4. **Readiness** — `check_cloud_readiness` / `plan_cloud_migration` to grade the result and size
    what's left; `compare_abap` proves the rework didn't regress.
 5. **Hand off** — pair with SAP's official ADT MCP server or `abap-adt-mcp` for the in-system half
-   (write, activate, ATC, a real ABAP Unit run) — see [Related projects](#related-projects).
+   (`abap_object_edit_file`, `abap_object_check`, `abap_object_activate`, `abap_unit_run_tests`,
+   `abap_atc_run_start`) — see [Related projects](#related-projects). With SAP's server paired,
+   `get_abap_agent_rules({ pairedWith: ["sap-adt-mcp"] })` emits the composed loop (read with SAP's
+   server → check with abap-mcp → edit, check, activate, test with SAP's server) and the allow-list
+   level it needs; the file names SAP's server hands back are accepted by every abap-mcp tool as-is.
 
 ## Tools
 
@@ -341,16 +349,20 @@ organization's own SAP AI Core contract, never to abap-mcp's authors. Read
   transpile-and-run pipeline previewed what `run_abap_unit` (v0.11) now ships natively in this
   server, on the same abaplint transpiler + open-abap-core foundation.
 - [SAP's official ADT MCP server](https://help.sap.com/docs/abap-ai/generative-ai-in-abap-cloud/mcp-tools)
-  (GA, ships inside ADT for Eclipse and VS Code; 20 tools across 8 toolsets, 18 licence-free) —
-  writes, activates and tests ABAP in a real system (`abap_creation-create_object`,
-  `abap_activate_objects`, `abap_run_unit_tests`, `abap_run_atc`, …), with no offline lint,
-  readiness grade or released-API cross-check of its own.
+  (GA since Q2 2026, ships inside ADT for Eclipse and VS Code; 36 tools since language server 1.3 /
+  ADT for VS Code 1.2, October 2026, 16 of them new: `abap_read_file`, `abap_object_edit_file`,
+  `abap_object_check`, `abap_repository_search_object`, ATC exemptions, short-dump feeds) — reads,
+  edits, activates and tests ABAP in a real system behind a four-level allow-list (closed by default),
+  with no offline lint, readiness grade, released-API cross-check or release knowledge of its own.
+  `search_sap_knowledge("adt mcp server")` returns the full tool list, the safety levels and SAP's
+  Q1 2027 roadmap (where-used, source search, trace reading).
 - [abap-adt-mcp](https://github.com/williansaez/abap-adt-mcp) by Willian Saez (MIT) — the
   community equivalent, 173 online tools over the same ADT REST API, same live-system trust model.
 - **Pairing.** abap-mcp verifies offline, before and after: `lint_abap` / `check_cloud_readiness` /
-  `compare_abap` on code before it is written to a system, then again on what SAP's official server
-  or `abap-adt-mcp` just wrote, activated or ran ATC against. Neither online server needs abap-mcp,
-  and abap-mcp never needs credentials — see the recipe in
+  `check_rap_behavior` / `compare_abap` on code read with `abap_read_file` before it is written back
+  with `abap_object_edit_file`, then again on what SAP's official server or `abap-adt-mcp` just
+  activated or ran ATC against. Neither online server needs abap-mcp, and abap-mcp never needs
+  credentials — see the recipe in
   [docs/COOKBOOK.md](docs/COOKBOOK.md#offline-verify-then-write-in-system-with-sap-adt-mcp--abap-adt-mcp)
   and `get_abap_agent_rules` for the rule text to paste into a repo's AGENTS.md.
 
