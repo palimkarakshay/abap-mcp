@@ -1,0 +1,10 @@
+projection implementation in class zbp_c_demo unique;
+strict ( 2 );
+use collaborative draft;
+
+define behavior for ZC_Demo alias Demo
+{
+  use create;
+  use update;
+  use delete;
+}

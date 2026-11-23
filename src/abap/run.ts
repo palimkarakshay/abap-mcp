@@ -62,6 +62,12 @@ const MAX_CHILD_OUTPUT_BYTES = 4_000_000;
 const MAX_MESSAGE_CHARS = 2_000;
 /** open-abap is the transpiler's own language level; the caller's level is linted separately. */
 const LIB_SYNTAX_VERSION = "open-abap";
+/**
+ * Retries after holding objects back. Each round reparses the bundled library (over a second), and
+ * one round per link of a dependency chain is enough, so a low cap keeps a bad batch from eating
+ * the caller's time.
+ */
+const MAX_EXCLUSION_ROUNDS = 4;
 
 /**
  * `WRITE '@KERNEL ...'.` is @abaplint/transpiler's own escape hatch: the text after `@KERNEL `
@@ -105,6 +111,16 @@ export interface UnitRunUnavailable {
   hint: string;
 }
 
+/** An ABAP object left out of the run because it would not transpile. Never a pass. */
+export interface UnitExcludedObject {
+  /** Object name, upper-cased (the class, interface or program). */
+  object: string;
+  /** The submitted files that make up the object. */
+  files: string[];
+  /** The first problem the transpiler reported; the rest are in `transpileIssues`. */
+  reason: string;
+}
+
 export interface UnitRunResult {
   /** False when the run could not even be attempted (see `unavailable`). */
   available: boolean;
@@ -120,6 +136,12 @@ export interface UnitRunResult {
   lint: { findings: Finding[]; abapVersion: AbapVersion };
   /** Parser / syntax problems that stopped or endangered the transpile, at open-abap level. */
   transpileIssues: Finding[];
+  /**
+   * Objects held back so the rest of the batch could still run. Their methods come back as
+   * "error", but an object whose syntax broke before any test was discovered has no method row
+   * at all, so a caller must treat a non-empty list as a failed run even when every row is green.
+   */
+  excludedObjects: UnitExcludedObject[];
   durationMs: { parse: number; transpile: number; execute: number };
   scopeNote: string;
   /**
@@ -202,6 +224,48 @@ function toFinding(issue: abaplint.Issue, lines: Map<string, string[]>): Finding
  * same Finding shape the rest of the server speaks, so a failed transpile is
  * actionable instead of opaque.
  */
+/** The object a source file belongs to: `zcl_x.clas.testclasses.abap` and `zcl_x.clas.abap` are one object. */
+function objectOfFile(filename: string): string {
+  const base = filename.split(/[\\/]/).pop() ?? filename;
+  return (base.split(".")[0] ?? base).toUpperCase();
+}
+
+/**
+ * Objects that mention a held-back object, directly or through each other, mapped to the object
+ * they depend on. These must go too: the transpiler accepts the reference as an unknown type, and
+ * calling it then throws outside ABAP's exception handling and ends the run for every class still
+ * queued behind it. A plain word match over-approximates (a comment counts), which is the safe
+ * direction here: the run has already failed on the original object.
+ */
+function dependentsOf(heldBack: string[], sources: { filename: string; source: string }[]): Map<string, string> {
+  const objects = new Map<string, string>();
+  for (const f of sources) {
+    const object = objectOfFile(f.filename);
+    objects.set(object, `${objects.get(object) ?? ""}\n${f.source}`);
+  }
+  const dependents = new Map<string, string>();
+  const queue = [...heldBack];
+  for (let held = queue.shift(); held !== undefined; held = queue.shift()) {
+    const reference = new RegExp(`(?<![\\w/#])${held.replace(/[^\w/#]/g, "\\$&")}(?![\\w/#])`, "i");
+    for (const [object, source] of objects) {
+      if (heldBack.includes(object) || dependents.has(object) || !reference.test(source)) continue;
+      dependents.set(object, held);
+      queue.push(object);
+    }
+  }
+  return dependents;
+}
+
+function dedupeFindings(findings: Finding[]): Finding[] {
+  const seen = new Set<string>();
+  return findings.filter((f) => {
+    const key = `${f.file}|${f.line}|${f.rule}|${f.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function findingsFromTranspileError(err: unknown): Finding[] {
   const raw = err instanceof Error ? err.message : String(err);
   const out: Finding[] = [];
@@ -541,6 +605,7 @@ export async function runAbapUnit(
     unsupported: [],
     lint: { findings: lintFindings, abapVersion },
     transpileIssues: [],
+    excludedObjects: [],
     durationMs: { parse: 0, transpile: 0, execute: 0 },
     scopeNote: RUN_SCOPE_NOTE,
     sandbox: NODE_PERMISSION_MODEL_AVAILABLE ? "node-permission" : "none",
@@ -600,37 +665,48 @@ export async function runAbapUnit(
     return summarize(result);
   }
 
-  const registry = new abaplint.Registry(
-    new abaplint.Config(
-      JSON.stringify({
-        global: {
-          files: "/**/*.*",
-          skipGeneratedGatewayClasses: true,
-          skipGeneratedPersistentClasses: true,
-          skipGeneratedFunctionGroups: true,
-        },
-        syntax: { version: LIB_SYNTAX_VERSION, errorNamespace: "^(Z|Y|LCL_|TY_|LIF_)" },
-        rules: { parser_error: true, unknown_types: true, check_syntax: true },
-      }),
-    ),
-  );
-  const parseStart = Date.now();
-  for (const f of library.files) {
-    registry.addDependency(new abaplint.MemoryFile(f.name, f.content));
-  }
+  // A fresh registry per attempt: the transpiler is handed the registry and an
+  // exclusion must leave no trace of the object it removes.
+  const parseRegistry = (sources: typeof runnable): abaplint.IRegistry => {
+    const parseStart = Date.now();
+    const reg = new abaplint.Registry(
+      new abaplint.Config(
+        JSON.stringify({
+          global: {
+            files: "/**/*.*",
+            skipGeneratedGatewayClasses: true,
+            skipGeneratedPersistentClasses: true,
+            skipGeneratedFunctionGroups: true,
+          },
+          syntax: { version: LIB_SYNTAX_VERSION, errorNamespace: "^(Z|Y|LCL_|TY_|LIF_)" },
+          rules: { parser_error: true, unknown_types: true, check_syntax: true },
+        }),
+      ),
+    );
+    for (const f of library.files) {
+      reg.addDependency(new abaplint.MemoryFile(f.name, f.content));
+    }
+    for (const f of sources) {
+      reg.addFile(new abaplint.MemoryFile(f.filename, f.source));
+    }
+    reg.parse();
+    result.durationMs.parse += Date.now() - parseStart;
+    return reg;
+  };
+
+  let registry = parseRegistry(runnable);
   const userLines = new Map<string, string[]>();
   for (const f of runnable) {
-    registry.addFile(new abaplint.MemoryFile(f.filename, f.source));
     userLines.set(f.filename, f.source.split("\n"));
   }
-  registry.parse();
-  result.durationMs.parse = Date.now() - parseStart;
 
   // Only the caller's files can be at fault; the library is a fixed dependency.
-  result.transpileIssues = registry
-    .findIssues()
-    .filter((i) => userLines.has(i.getFilename()))
-    .map((i) => toFinding(i, userLines));
+  result.transpileIssues = dedupeFindings(
+    registry
+      .findIssues()
+      .filter((i) => userLines.has(i.getFilename()))
+      .map((i) => toFinding(i, userLines)),
+  );
   result.unsupported.push(...findUnsupported(registry));
 
   const methods = discoverTestMethods(registry);
@@ -653,34 +729,79 @@ export async function runAbapUnit(
   }
   if (selected.size === 0) return summarize(result);
 
-  const transpileStart = Date.now();
-  let output: import("@abaplint/transpiler").IOutput;
-  try {
-    output = await new Transpiler({
-      addFilenames: true,
-      addCommonJS: true,
-      // Unknown (SAP-system) types become runtime errors rather than compile
-      // errors: an agent gets per-method feedback on the code that DOES run,
-      // instead of one wall-of-text failure for the whole submission.
-      unknownTypes: "runtimeError" as import("@abaplint/transpiler").UnknownTypesEnum,
-    }).run(registry);
-  } catch (err) {
-    result.durationMs.transpile = Date.now() - transpileStart;
-    result.transpileIssues.push(...findingsFromTranspileError(err));
+  const reportNotExecuted = (keep: (m: TestMethod) => boolean, message: string): void => {
     for (const m of methods) {
-      if (!selected.has(methodKey(m))) continue;
+      if (!selected.has(methodKey(m)) || !keep(m)) continue;
+      selected.delete(methodKey(m));
       result.results.push({
         className: m.className,
         testClassName: m.testClassName,
         methodName: m.methodName,
         status: "error",
-        message: "not executed: the sources could not be transpiled — see transpileIssues",
+        message,
         runtimeMs: 0,
       });
     }
-    return summarize(result);
+  };
+
+  // The transpiler validates the whole registry and throws on the first object
+  // it dislikes, which would hide every healthy class in the batch. So the
+  // objects it names are held back and the rest are tried again. The next round
+  // catches anything the reference scan in dependentsOf could not see.
+  let active = runnable;
+  let output: import("@abaplint/transpiler").IOutput | undefined;
+  for (let attempt = 0; attempt <= MAX_EXCLUSION_ROUNDS && output === undefined; attempt++) {
+    const transpileStart = Date.now();
+    try {
+      output = await new Transpiler({
+        addFilenames: true,
+        addCommonJS: true,
+        // Unknown (SAP-system) types become runtime errors rather than compile
+        // errors: an agent gets per-method feedback on the code that DOES run,
+        // instead of one wall-of-text failure for the whole submission.
+        unknownTypes: "runtimeError" as import("@abaplint/transpiler").UnknownTypesEnum,
+      }).run(registry);
+      result.durationMs.transpile += Date.now() - transpileStart;
+    } catch (err) {
+      result.durationMs.transpile += Date.now() - transpileStart;
+      const findings = findingsFromTranspileError(err);
+      result.transpileIssues = dedupeFindings([...result.transpileIssues, ...findings]);
+
+      const activeObjects = new Set(active.map((f) => objectOfFile(f.filename)));
+      const named = new Set(findings.filter((f) => f.file !== "").map((f) => objectOfFile(f.file)));
+      const culprits = [...named].filter((o) => activeObjects.has(o));
+      // No object to blame, or the rounds ran out: this batch cannot be split further.
+      if (culprits.length === 0 || attempt === MAX_EXCLUSION_ROUNDS) {
+        reportNotExecuted(() => true, "not executed: the sources could not be transpiled — see transpileIssues");
+        return summarize(result);
+      }
+
+      const dependents = dependentsOf(culprits, active);
+      const reasons = new Map<string, string>();
+      for (const object of culprits) {
+        const finding = findings.find((f) => f.file !== undefined && objectOfFile(f.file) === object);
+        reasons.set(object, finding === undefined ? "could not be transpiled" : `${finding.file}:${finding.line}: ${finding.message}`);
+      }
+      for (const [object, dependsOn] of dependents) {
+        reasons.set(object, `depends on ${dependsOn}, which was left out of the run`);
+      }
+      for (const [object, reason] of reasons) {
+        result.excludedObjects.push({
+          object,
+          files: active.filter((f) => objectOfFile(f.filename) === object).map((f) => f.filename),
+          reason,
+        });
+        reportNotExecuted(
+          (m) => m.className.toUpperCase() === object,
+          `not executed: ${object} was left out of the run — ${reason}`,
+        );
+      }
+      active = active.filter((f) => !reasons.has(objectOfFile(f.filename)));
+      if (active.length === 0 || selected.size === 0) return summarize(result);
+      registry = parseRegistry(active);
+    }
   }
-  result.durationMs.transpile = Date.now() - transpileStart;
+  if (output === undefined) return summarize(result);
 
   const dir = mkdtempSync(join(tmpdir(), TEMP_DIR_PREFIX));
   try {

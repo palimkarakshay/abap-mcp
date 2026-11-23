@@ -56,7 +56,7 @@ const AREAS: readonly AreaSpec[] = [
     fileName: "abap-release-deltas",
     fileTitle: "ABAP Cloud / RAP release deltas",
     fileDescription:
-      "Every verified release-delta row for the 2502 to 2608 trains plus ABAP Platform 2025, each with an original summary, the cited SAP source URL and a confidence flag.",
+      "Every verified release-delta row for the 2502 to 2611 trains plus ABAP Platform 2025, each with an original summary, the cited SAP source URL and a confidence flag.",
     records: () => releaseDeltas() as unknown as readonly Record<string, unknown>[],
   },
   {

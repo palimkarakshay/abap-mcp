@@ -76,6 +76,20 @@ const EXTRA_CASES: Record<string, ToolExample[]> = {
     { description: "pce edition", arguments: { files: FILES, edition: "pce" } },
   ],
   plan_cloud_migration: [{ description: "full plan", arguments: { files: FILES } }],
+  run_abap_unit: [
+    {
+      description: "a batch with an excluded object",
+      arguments: {
+        files: [
+          {
+            filename: "zcl_bad.clas.abap",
+            source:
+              "CLASS zcl_bad DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS m.\nENDCLASS.\nCLASS zcl_bad IMPLEMENTATION.\n  METHOD m.\n    nope = 1.\n  ENDMETHOD.\nENDCLASS.",
+          },
+        ],
+      },
+    },
+  ],
   lint_abap: [{ description: "full preset", arguments: { files: FILES, preset: "full" } }],
   fix_abap: [{ description: "fixable source", arguments: { files: FILES } }],
   check_released_api: [
@@ -98,6 +112,22 @@ describe("output-schema contract (client lists tools first)", () => {
       }, 60_000);
     }
   }
+});
+
+describe("declared result shapes", () => {
+  it("check_cloud_readiness declares each released-API finding's fields, so callers can see the name is `object`", async () => {
+    const client = await listedClient();
+    const { tools } = await client.listTools();
+    const tool = tools.find((t) => t.name === "check_cloud_readiness")!;
+    const findings = (tool.outputSchema as { properties: Record<string, { items?: { properties?: object; required?: string[] } }> })
+      .properties["releasedApiFindings"]!;
+    expect(Object.keys(findings.items!.properties!)).toContain("object");
+    expect(findings.items!.required).toContain("object");
+
+    const result = await client.callTool({ name: "check_cloud_readiness", arguments: { files: FILES } });
+    const rows = (result.structuredContent as { releasedApiFindings: { object: string }[] }).releasedApiFindings;
+    expect(rows.map((r) => r.object)).toContain("MARA");
+  }, 60_000);
 });
 
 describe("input-schema hygiene", () => {
