@@ -571,3 +571,66 @@ describe("collectFiles with the same object file in two folders", () => {
     expect(out.join("\n")).toContain("across 1 file(s)");
   });
 });
+
+describe("abapGit dictionary XML and metadata extension names", () => {
+  const TABL_XML = `﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_TABL" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DD02V><TABNAME>ZDEMO_T</TABNAME><DDLANGUAGE>E</DDLANGUAGE><TABCLASS>TRANSP</TABCLASS><DDTEXT>demo</DDTEXT><CONTFLAG>A</CONTFLAG><EXCLASS>1</EXCLASS></DD02V>
+   <DD09L><TABNAME>ZDEMO_T</TABNAME><AS4LOCAL>A</AS4LOCAL><TABKAT>0</TABKAT><TABART>APPL0</TABART><BUFALLOW>N</BUFALLOW></DD09L>
+   <DD03P_TABLE>
+    <DD03P><FIELDNAME>ID</FIELDNAME><KEYFLAG>X</KEYFLAG><ADMINFIELD>0</ADMINFIELD><INTTYPE>C</INTTYPE><INTLEN>000020</INTLEN><NOTNULL>X</NOTNULL><DATATYPE>CHAR</DATATYPE><LENG>000010</LENG><MASK>  CHAR</MASK></DD03P>
+   </DD03P_TABLE>
+  </asx:values>
+ </asx:abap>
+</abapGit>
+`;
+  const VIEW = "define view entity ZI_DEMO as select from zdemo_t { key id as Id }\n";
+
+  it("resolves a CDS view's table from its .tabl.xml", () => {
+    const dir = tmpWith({ "zdemo_t.tabl.xml": TABL_XML, "zi_demo.ddls.asddls": VIEW });
+    const { out, io: o } = io();
+    runCli(["lint", dir, "--json", "--preset", "syntax-only"], { ...o, err: () => {} });
+    const report = JSON.parse(out.join("\n")) as { files: number; findings: { rule: string; message: string }[] };
+    expect(report.files).toBe(2);
+    expect(report.findings.filter((f) => /not found/.test(f.message))).toEqual([]);
+  });
+
+  it("without the .tabl.xml, the table DDL source is named as the gap", () => {
+    const dir = tmpWith({ "zdemo_t.tabl.asddls": "define table zdemo_t { key id : abap.char(10) not null; }\n", "zi_demo.ddls.asddls": VIEW });
+    const { err, io: o } = io();
+    runCli(["lint", dir, "--json", "--preset", "syntax-only"], o);
+    expect(err.join("\n")).toContain("zdemo_t.tabl.xml (missing");
+  });
+
+  it("is quiet about a table DDL source whose .tabl.xml is present", () => {
+    const dir = tmpWith({ "zdemo_t.tabl.xml": TABL_XML, "zdemo_t.tabl.asddls": "define table zdemo_t {}\n", "zi_demo.ddls.asddls": VIEW });
+    const { err, io: o } = io();
+    runCli(["lint", dir, "--json", "--preset", "syntax-only"], o);
+    expect(err.join("\n")).not.toContain("zdemo_t.tabl");
+  });
+
+  it("reads metadata extensions under abapGit's .ddlx.asddlxs name", () => {
+    const dir = tmpWith({ "zc_demo.ddlx.asddlxs": "@Metadata.layer: #CORE\nannotate entity ZC_DEMO with { }\n" });
+    const { out, io: o } = io();
+    runCli(["lint", dir, "--json"], { ...o, err: () => {} });
+    expect((JSON.parse(out.join("\n")) as { files: number }).files).toBe(1);
+  });
+});
+
+describe("findings that describe missing input metadata, not the code", () => {
+  it("drops description_empty 'XML file not found' and superclass_final on an SAP superclass", () => {
+    const dir = tmpWith({
+      "zbp_demo.clas.abap": "CLASS zbp_demo DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zr_demo.\nENDCLASS.\nCLASS zbp_demo IMPLEMENTATION.\nENDCLASS.\n",
+      "zbp_demo.clas.locals_imp.abap": "CLASS lhc_demo DEFINITION INHERITING FROM cl_abap_behavior_handler.\nENDCLASS.\nCLASS lhc_demo IMPLEMENTATION.\nENDCLASS.\n",
+      "zcl_demo_run.clas.abap": "CLASS zcl_demo_run DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    INTERFACES if_oo_adt_classrun.\nENDCLASS.\nCLASS zcl_demo_run IMPLEMENTATION.\n  METHOD if_oo_adt_classrun~main.\n  ENDMETHOD.\nENDCLASS.\n",
+    });
+    const { out, io: o } = io();
+    runCli(["lint", dir, "--json", "--abap-version", "Cloud"], { ...o, err: () => {} });
+    const msgs = (JSON.parse(out.join("\n")) as { findings: { rule: string; message: string }[] }).findings;
+    expect(msgs.filter((f) => f.rule === "description_empty" && /XML file not found/.test(f.message))).toEqual([]);
+    expect(msgs.filter((f) => f.rule === "superclass_final" && /cl_abap_behavior_handler/i.test(f.message))).toEqual([]);
+    expect(msgs.filter((f) => f.rule === "implement_methods" && /if_oo_adt_classrun/i.test(f.message))).toEqual([]);
+  });
+});

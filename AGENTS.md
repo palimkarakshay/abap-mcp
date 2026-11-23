@@ -125,7 +125,7 @@ line: **SAP**. **Public MIT** repo (`github.com/palimkarakshay/abap-mcp`); npm p
   OWN `aic-stubs` — never SAP's real surface) | `"rap-checker"` (parsed by abap-mcp's own BDL/SDL
   parser at a stamped `grammarVersion` AND clean under the rule set at a stamped `rulesVersion`;
   never claims abaplint parsed it, that SAP would accept it, or that it would activate) |
-  `"template"` (golden-tested only — the `.ddlx.asddlx`, and any BDEF/SRVD with findings).
+  `"template"` (golden-tested only — the `.ddlx.asddlxs`, and any BDEF/SRVD with findings).
 - The RAP checker is deliberately two-tier: punctuation breakage = `RAP-PARSE` (error), a
   well-formed statement outside our grammar = `RAP000` (**info**, "a limit of the checker"). Rules
   saying "X must be declared" suppress themselves when an unreadable statement could have been X

@@ -311,7 +311,7 @@ define service ${serviceDef} {
     { filename: `${behaviorClass}.clas.locals_imp.abap`, content: clasLocals, validated: "abaplint" },
     { filename: `${projView.toLowerCase()}.ddls.asddls`, content: projDdls, validated: "abaplint" },
     { filename: `${projView.toLowerCase()}.bdef.asbdef`, content: projBdef, validated: "template" },
-    { filename: `${projView.toLowerCase()}.ddlx.asddlx`, content: ddlx, validated: "template" },
+    { filename: `${projView.toLowerCase()}.ddlx.asddlxs`, content: ddlx, validated: "template" },
     { filename: `${serviceDef.toLowerCase()}.srvd.srvdsrv`, content: srvd, validated: "template" },
   ];
 
@@ -332,7 +332,7 @@ define service ${serviceDef} {
 
   // The label is never the optimistic default (spec §1.4): "rap-checker" only
   // when the checker ran and returned nothing at error or warning severity.
-  // `.ddlx.asddlx` stays "template" — nothing checks metadata extensions.
+  // `.ddlx.asddlxs` stays "template" — nothing checks metadata extensions.
   const rapClean = rapFindings.every((f) => f.severity === "info");
   if (rapClean) {
     for (const file of files) {

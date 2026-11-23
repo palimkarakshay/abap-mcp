@@ -87,3 +87,18 @@ ENDCLASS.
     expect(report.matchNote).toMatch(/functionally\s+equivalent/i);
   });
 });
+
+describe("compareAbap after a pure re-alignment", () => {
+  // Found on ZAX_RTR (2026-11-23): fix_abap re-aligned a TYPE column, the same abapdoc /
+  // no_prefixes findings came back as resolved AND introduced because the line text changed.
+  it("does not count a finding on a re-aligned, re-cased line as resolved plus introduced", () => {
+    const before = [{ filename: "zcl_align.clas.abap", source:
+      "CLASS zcl_align DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    CLASS-METHODS run IMPORTING iv_a TYPE i\n                      RETURNING VALUE(rv_b) TYPE i.\nENDCLASS.\nCLASS zcl_align IMPLEMENTATION.\n  METHOD run.\n    rv_b = iv_a.\n  ENDMETHOD.\nENDCLASS.\n" }];
+    const after = [{ filename: "zcl_align.clas.abap", source: before[0]!.source
+      .replace("CLASS-METHODS run IMPORTING iv_a TYPE i", "class-methods run importing iv_a          type i")
+      .replace("RETURNING VALUE(rv_b) TYPE i.", "returning value(rv_b) type i.") }];
+    const r = compareAbap(before, after, { version: "Cloud", preset: "full" });
+    const both = r.resolved.filter((x) => r.introduced.some((y) => y.rule === x.rule && y.message === x.message));
+    expect(both).toEqual([]);
+  });
+});

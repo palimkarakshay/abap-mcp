@@ -54,12 +54,16 @@ export interface CompareReport {
 }
 
 export const MATCH_NOTE =
-  "Findings are matched by rule + message + offending line text, not line numbers — moved-but-unchanged code does " +
+  "Findings are matched by rule + message + offending line text (whitespace and case ignored), not line numbers — moved-but-unchanged code does " +
   "not count as resolved or introduced. Lint numbers use the requested preset; blocker count, score and grade come " +
   "from the same objective dual-parse diff as check_cloud_readiness. Lint-clean does not mean functionally " +
   "equivalent — behavior can change while every number here improves.";
 
-const findingKey = (f: Finding): string => [f.rule, f.message, f.excerpt].join("\u0000");
+// The line text is normalized (whitespace collapsed, case folded, first 60 chars) because
+// fix_abap and format_abap re-align and re-case lines without changing what they say: a finding on
+// such a line is the same finding, not one resolved plus one introduced.
+const normalizeExcerpt = (e: string): string => e.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 60);
+const findingKey = (f: Finding): string => [f.rule, f.message, normalizeExcerpt(f.excerpt ?? "")].join("\u0000");
 
 function diffFindings(
   before: Finding[],
