@@ -9,10 +9,10 @@
 import { scaffoldAbapAiSdk } from "./abap/aisdk.js";
 import type { AisdkInteraction } from "./abap/aisdk.js";
 import type { AbapSource } from "./abap/engine.js";
-import { MAX_FILE_CHARS } from "./abap/engine.js";
+import { CLI_MAX_FILES, MAX_FILE_CHARS } from "./abap/engine.js";
 import { KNOWLEDGE_RELEASES, explainAbapRelease, lookupSapKnowledge } from "./abap/knowledge.js";
 import type { KnowledgeArea, KnowledgeRelease } from "./abap/knowledge.js";
-import { MAX_RAP_FILES, checkRapBehavior } from "./abap/rap/index.js";
+import { checkRapBehavior } from "./abap/rap/index.js";
 import { buildAgentRules } from "./tools/agent-rules.tools.js";
 
 export interface ExtraCliIo {
@@ -226,11 +226,10 @@ export function cmdRapcheck(argv: string[], io: ExtraCliIo): number {
     return 2;
   }
 
-  // One call keeps the cross-file rules working; the library cap is the only
-  // ceiling (a bigger sweep is checked in batches of MAX_RAP_FILES, each
-  // batch self-contained — the same trade cmdLint makes with MAX_FILES).
+  // One call keeps the cross-file rules working (SRVD exposures, projection bases). The CLI reads
+  // from disk, so it uses CLI_MAX_FILES, not the MCP per-call cap. Batches only beyond that.
   const batches: AbapSource[][] = [];
-  for (let i = 0; i < files.length; i += MAX_RAP_FILES) batches.push(files.slice(i, i + MAX_RAP_FILES));
+  for (let i = 0; i < files.length; i += CLI_MAX_FILES) batches.push(files.slice(i, i + CLI_MAX_FILES));
 
   const reports = batches.map((batch) =>
     checkRapBehavior(
@@ -238,6 +237,7 @@ export function cmdRapcheck(argv: string[], io: ExtraCliIo): number {
       {
         ...(releaseRaw !== undefined ? { abapRelease: releaseRaw as KnowledgeRelease } : {}),
         ...(flags.has("strict") ? { strict: true } : {}),
+        maxFiles: CLI_MAX_FILES,
       },
     ),
   );

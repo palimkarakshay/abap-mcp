@@ -507,3 +507,67 @@ describe("<command> --help", () => {
     expect(out.join("\n")).toContain("Usage: abap-mcp setup");
   });
 });
+
+/**
+ * Regression (2026-11-23, found sweeping the ZAX_WTC package): the CLI split a directory into
+ * batches of the MCP per-call caps (32 for lint/readiness, 64 for rapcheck). Cross-file checks
+ * then failed at batch edges (SRVD006 "exposed entity not found", abaplint "CDS source not
+ * found"), and each batch's 500-finding cap silently dropped findings.
+ */
+describe("CLI sweeps are one call, not MCP-sized batches", () => {
+  function viewDir(count: number): Record<string, string> {
+    const files: Record<string, string> = {};
+    for (let i = 0; i < count; i++) {
+      const n = `zi_v${String(i).padStart(3, "0")}`;
+      files[`${n}.ddls.asddls`] = `define root view entity ${n.toUpperCase()} as select from zdemo_t { key id }\n`;
+    }
+    // Sorts after every view, so with batching it never shares a batch with zi_v000.
+    files["zz_demo_sd.srvd.srvdsrv"] = "define service ZZ_DEMO_SD {\n  expose ZI_V000;\n}\n";
+    return files;
+  }
+
+  it("rapcheck resolves a service exposure across more than 64 files", () => {
+    const dir = tmpWith(viewDir(80));
+    const { out, io: o } = io();
+    runCli(["rapcheck", dir], { ...o, err: () => {} });
+    expect(out.join("\n")).not.toContain("SRVD006");
+  });
+
+  it("lint resolves a service exposure across more than 32 files", () => {
+    const dir = tmpWith(viewDir(40));
+    const { out, io: o } = io();
+    runCli(["lint", dir, "--json"], { ...o, err: () => {} });
+    const report = JSON.parse(out.join("\n")) as { findings: { rule: string }[] };
+    expect(report.findings.map((f) => f.rule)).not.toContain("rap/SRVD006");
+  });
+
+  it("lint reports more than 500 findings when the code has them", () => {
+    const body = Array.from({ length: 30 }, (_, i) => `    data lv_${i} type i.`).join("\n");
+    const files: Record<string, string> = {};
+    for (let i = 0; i < 25; i++) {
+      files[`zcl_many${i}.clas.abap`] =
+        `class zcl_many${i} definition public final create public.\n  public section.\n    methods run.\nendclass.\n` +
+        `class zcl_many${i} implementation.\n  method run.\n${body}\n  endmethod.\nendclass.\n`;
+    }
+    const dir = tmpWith(files);
+    const { out, io: o } = io();
+    runCli(["lint", dir, "--json"], { ...o, err: () => {} });
+    const report = JSON.parse(out.join("\n")) as { findings: unknown[] };
+    expect(report.findings.length).toBeGreaterThan(500);
+  });
+});
+
+describe("collectFiles with the same object file in two folders", () => {
+  it("keeps the first copy, skips the second with a message, and the sweep still runs", () => {
+    const root = mkdtempSync(join(tmpdir(), "abapmcp-dup-"));
+    const cls = "CLASS zcl_dup DEFINITION PUBLIC FINAL CREATE PUBLIC.\nENDCLASS.\nCLASS zcl_dup IMPLEMENTATION.\nENDCLASS.\n";
+    for (const sub of ["m2", "m3"]) {
+      mkdirSync(join(root, sub));
+      writeFileSync(join(root, sub, "zcl_dup.clas.abap"), cls);
+    }
+    const { out, err, io: o } = io();
+    expect(runCli(["readiness", root], o)).toBe(0);
+    expect(err.join("\n")).toMatch(/skip .*m3.*zcl_dup\.clas\.abap: same object file name as .*m2/);
+    expect(out.join("\n")).toContain("across 1 file(s)");
+  });
+});

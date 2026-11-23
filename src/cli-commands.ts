@@ -12,7 +12,7 @@ import { basename, extname, join } from "node:path";
 import { compareAbap } from "./abap/compare.js";
 import { McpToolError } from "./errors.js";
 import type { AbapSource, AbapVersion, Finding, FocusTag } from "./abap/engine.js";
-import { ABAP_VERSIONS, FOCUS_TAGS, MAX_FILE_CHARS, MAX_FILES, runAbaplint } from "./abap/engine.js";
+import { ABAP_VERSIONS, CLI_MAX_FILES, FOCUS_TAGS, MAX_FILE_CHARS, MAX_FILES, runAbaplint } from "./abap/engine.js";
 import { getObjectDependencies } from "./abap/deps.js";
 import { fixAbap } from "./abap/fix.js";
 import { outlineAbap, outlineToMermaid } from "./abap/outline.js";
@@ -42,6 +42,7 @@ export interface CliIo {
 /** Recursively collect analyzable sources from file/dir paths. */
 export function collectFiles(paths: string[], io: CliIo): AbapSource[] {
   const found: AbapSource[] = [];
+  const firstPathOf = new Map<string, string>();
   const visitedDirs = new Set<string>();
   const visit = (p: string): void => {
     const st = statSync(p);
@@ -52,7 +53,7 @@ export function collectFiles(paths: string[], io: CliIo): AbapSource[] {
       const real = realpathSync(p);
       if (visitedDirs.has(real)) return;
       visitedDirs.add(real);
-      for (const entry of readdirSync(p)) visit(join(p, entry));
+      for (const entry of readdirSync(p).sort()) visit(join(p, entry));
       return;
     }
     const name = basename(p).toLowerCase();
@@ -63,6 +64,14 @@ export function collectFiles(paths: string[], io: CliIo): AbapSource[] {
         io.err(`skip ${p}: ${source.length} chars exceeds the ${MAX_FILE_CHARS}-char cap (analyze it in parts)`);
         return;
       }
+      // One sweep = one registry, and abapGit names are object identities: a second file with the
+      // same name (an older copy in another folder) would make the whole run fail. Keep the first.
+      const first = firstPathOf.get(name);
+      if (first !== undefined) {
+        io.err(`skip ${p}: same object file name as ${first} (one sweep checks each object once)`);
+        return;
+      }
+      firstPathOf.set(name, p);
       found.push({ filename: name, source });
     } else if ([".abap", ".asddls", ".asbdef"].includes(extname(name))) {
       io.err(`skip ${p}: not an abapGit-style filename (e.g. zcl_x.clas.abap)`);
@@ -156,11 +165,12 @@ export function cmdLint(argv: string[], io: CliIo): number {
   const rapWanted = !flags.has("no-rap");
   const all: Finding[] = [];
   let rapChecked = false;
-  for (const batch of chunk(files, MAX_FILES)) {
-    all.push(...runAbaplint(batch, { version, preset, focus, rules }).findings);
+  // One registry for the whole sweep, never batches: cross-file rules fail at batch edges.
+  for (const batch of chunk(files, CLI_MAX_FILES)) {
+    all.push(...runAbaplint(batch, { version, preset, focus, rules, maxFiles: CLI_MAX_FILES, maxFindings: Infinity }).findings);
     if (rapWanted && containsRapFiles(batch)) {
       rapChecked = true;
-      all.push(...rapFindingsToLintFindings(checkRapBehavior(batch).findings));
+      all.push(...rapFindingsToLintFindings(checkRapBehavior(batch, { maxFiles: CLI_MAX_FILES, maxFindings: Infinity }).findings));
     }
   }
   if (flags.has("json")) {
@@ -242,7 +252,7 @@ export function cmdReadiness(argv: string[], io: CliIo): number {
   }
   const baseline = asVersion(flags.get("baseline"), "v758");
   const edition = asEdition(flags.get("edition"));
-  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline, edition));
+  const reports = chunk(files, CLI_MAX_FILES).map((b) => checkCloudReadiness(b, baseline, edition, CLI_MAX_FILES));
   const merged = mergeReadiness(reports, baseline);
   if (flags.has("json")) {
     io.out(JSON.stringify({ files: files.length, ...merged }, null, 2));
@@ -273,7 +283,7 @@ export function cmdPlan(argv: string[], io: CliIo): number {
   }
   const baseline = asVersion(flags.get("baseline"), "v758");
   const edition = asEdition(flags.get("edition"));
-  const reports = chunk(files, MAX_FILES).map((b) => checkCloudReadiness(b, baseline, edition));
+  const reports = chunk(files, CLI_MAX_FILES).map((b) => checkCloudReadiness(b, baseline, edition, CLI_MAX_FILES));
   const plan = planCloudMigration(mergeReadiness(reports, baseline));
   if (flags.has("json")) {
     io.out(JSON.stringify(plan, null, 2));

@@ -133,6 +133,8 @@ export interface RapCheckReport {
 export interface RapCheckOptions {
   /** Enables release gating (RAP900). One of `KNOWLEDGE_RELEASES`. */
   abapRelease?: KnowledgeRelease | undefined;
+  /** Per-call file cap. Defaults to MAX_RAP_FILES (the MCP bound); the CLI passes CLI_MAX_FILES. */
+  maxFiles?: number | undefined;
   /** Force the strict-mode rules on even where the BDEF omits `strict`. Default false. */
   strict?: boolean | undefined;
   /** Default `MAX_FINDINGS` (500), shared with `engine.ts`. */
@@ -219,9 +221,9 @@ interface ClassifiedFile {
   kind: RapFileKind;
 }
 
-function classifyAll(files: AbapSource[]): ClassifiedFile[] {
+function classifyAll(files: AbapSource[], maxFiles: number = MAX_RAP_FILES): ClassifiedFile[] {
   if (files.length === 0) throw new Error("Provide at least one source file.");
-  if (files.length > MAX_RAP_FILES) throw new Error(`At most ${MAX_RAP_FILES} files per call.`);
+  if (files.length > maxFiles) throw new Error(`At most ${maxFiles} files per call.`);
   const used = new Set<string>();
   return files.map((file, index) => {
     if (file.source.length > MAX_FILE_CHARS) {
@@ -403,7 +405,7 @@ function safeParse<TAst>(
  * an oversized file), exactly like `boundFiles()` in `engine.ts`.
  */
 export function checkRapBehavior(files: AbapSource[], opts: RapCheckOptions = {}): RapCheckReport {
-  const classified = classifyAll(files);
+  const classified = classifyAll(files, opts.maxFiles);
   const maxFindings = opts.maxFindings ?? MAX_FINDINGS;
 
   const bdefs: ParsedBdef[] = [];
