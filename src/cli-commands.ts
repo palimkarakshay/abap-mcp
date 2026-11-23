@@ -907,8 +907,32 @@ ${EXTRA_USAGE}
 
 Exit codes: 0 ok · 1 findings/validation failed · 2 usage error`;
 
+/** The USAGE lines for one subcommand (its row plus wrapped continuation lines), or null. */
+export function commandUsage(cmd: string): string | null {
+  const lines = USAGE.split("\n");
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i]!.trim();
+    if (t === `abap-mcp ${cmd}` || t.startsWith(`abap-mcp ${cmd} `) || t === cmd || t.startsWith(`${cmd} `)) {
+      out.push(lines[i]!);
+      // continuation lines are indented deeper than a command row and do not start a new command
+      while (i + 1 < lines.length && /^ {6,}\S/.test(lines[i + 1]!)) out.push(lines[++i]!);
+    }
+  }
+  return out.length > 0 ? `Usage:\n${out.join("\n")}` : null;
+}
+
 export function runCli(argv: string[], io: CliIo): number | Promise<number> | null {
   const [cmd, ...rest] = argv;
+  // `abap-mcp <cmd> --help` prints that command's usage instead of running it with "--help" as an
+  // argument. `setup` keeps its own handling (it must never fall through to registering).
+  if (cmd && cmd !== "setup" && (rest.includes("--help") || rest.includes("-h"))) {
+    const usage = commandUsage(cmd);
+    if (usage) {
+      io.out(usage);
+      return 0;
+    }
+  }
   switch (cmd) {
     case undefined:
     case "serve":
