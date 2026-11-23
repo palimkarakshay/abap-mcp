@@ -486,3 +486,24 @@ describe("cmdFix symlink safety", () => {
     expect(readFileSync(join(outside, "zfix.prog.abap"), "utf8")).toBe(FIXABLE);
   });
 });
+
+describe("<command> --help", () => {
+  // Regression: `release --help` used to run the query with "--help" as an argument.
+  for (const cmd of ["release", "knowledge", "lint", "released", "agent-rules", "rapcheck"]) {
+    it(`prints only ${cmd}'s usage and exits 0`, () => {
+      const { out, io: o } = io();
+      expect(runCli([cmd, "--help"], o)).toBe(0);
+      const text = out.join("\n");
+      expect(text).toMatch(/^Usage:\n/);
+      expect(text).toMatch(new RegExp(`(abap-mcp )?${cmd} `));
+      expect(text).not.toContain("release delta(s)");
+      if (cmd === "release") expect(text).not.toContain("released <names");
+    });
+  }
+
+  it("leaves setup --help to setup's own guard", () => {
+    const { out, io: o } = io();
+    expect(runCli(["setup", "--help"], o)).toBe(0);
+    expect(out.join("\n")).toContain("Usage: abap-mcp setup");
+  });
+});
