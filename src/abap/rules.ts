@@ -5,6 +5,7 @@
 import * as abaplint from "@abaplint/core";
 
 import { notFound } from "../errors.js";
+import { FAE_DOCS, FAE_RULE } from "./fae.js";
 
 export interface RuleSummary {
   key: string;
@@ -26,10 +27,39 @@ interface RuleMetadata {
   tags?: string[];
   badExample?: string;
   goodExample?: string;
+  docsUrl?: string;
 }
 
+/** Rules abap-mcp runs itself (namespaced keys, so no abaplint key can collide). */
+const OWN_RULES: RuleMetadata[] = [
+  {
+    key: FAE_RULE,
+    title: "FOR ALL ENTRIES compares fields of different type or length",
+    shortDescription:
+      "A SELECT … FOR ALL ENTRIES IN itab compares a column with an itab component of a different type or length; " +
+      "ABAP rejects this at activation.",
+    extendedInformation:
+      "ABAP requires each column compared with a FOR ALL ENTRIES component to have exactly the same type and length " +
+      "(CHAR 10 against CHAR 12 fails), and abaplint does not check it, so the error otherwise appears only on the SAP " +
+      "system. abap-mcp resolves the column from the table XML or CDS view in the input and the itab row from abaplint's " +
+      "scope or, inside a RAP handler, from the CDS view behind READ ENTITIES … RESULT. It reports only when both sides " +
+      "resolve. Fix with a range table, or copy the keys into a helper table typed like the column.",
+    tags: ["SingleFile"],
+    badExample:
+      "SELECT match_id FROM zmatch FOR ALL ENTRIES IN @lt_award   \" match_id CHAR 10\n" +
+      "  WHERE match_id = @lt_award-ref_id INTO TABLE @DATA(lt_hit). \" ref_id CHAR 12",
+    goodExample:
+      "DATA lt_r TYPE RANGE OF zmatch-match_id.\n" +
+      "lt_r = VALUE #( FOR a IN lt_award ( sign = 'I' option = 'EQ' low = a-ref_id ) ).\n" +
+      "IF lt_r IS NOT INITIAL.\n" +
+      "  SELECT match_id FROM zmatch WHERE match_id IN @lt_r INTO TABLE @DATA(lt_hit).\n" +
+      "ENDIF.",
+    docsUrl: FAE_DOCS,
+  },
+];
+
 function metadata(): RuleMetadata[] {
-  return abaplint.ArtifactsRules.getRules().map((r) => r.getMetadata() as RuleMetadata);
+  return [...abaplint.ArtifactsRules.getRules().map((r) => r.getMetadata() as RuleMetadata), ...OWN_RULES];
 }
 
 function toSummary(m: RuleMetadata): RuleSummary {
@@ -38,7 +68,7 @@ function toSummary(m: RuleMetadata): RuleSummary {
     title: m.title,
     shortDescription: m.shortDescription,
     tags: m.tags ?? [],
-    docsUrl: `https://rules.abaplint.org/${m.key}/`,
+    docsUrl: m.docsUrl ?? `https://rules.abaplint.org/${m.key}/`,
   };
 }
 
@@ -59,7 +89,7 @@ export function listRules(query?: string, tag?: string): RuleSummary[] {
 }
 
 export function explainRule(key: string): RuleDetail & { badExample?: string; goodExample?: string } {
-  const m = metadata().find((x) => x.key === key.toLowerCase());
+  const m = metadata().find((x) => x.key.toLowerCase() === key.toLowerCase());
   if (m === undefined) {
     throw notFound(`No abaplint rule named "${key}". Use list_abap_rules to browse valid keys.`, {
       key,
