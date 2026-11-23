@@ -1,18 +1,8 @@
 {
-  "curatedDate": "2026-11-02",
+  "curatedDate": "2026-11-23",
   "description": "Bundled ABAP Cloud / RAP release-delta knowledge base. One row per verified fact from the 2026-09-09 fact-checked research corpus. Every summary is original abap-mcp prose over a cited source — no SAP or blog text is reproduced. The target system's own release notes remain authoritative.",
-  "scopeNote": "bundled knowledge curated 2026-11-02 (rows unchanged since 2026-09-10; 2611 pending); the target system's release notes are authoritative",
-  "releaseOrder": [
-    "pre-2502",
-    "2502",
-    "2505",
-    "2508",
-    "platform-2025",
-    "2511",
-    "2602",
-    "2605",
-    "2608"
-  ],
+  "scopeNote": "bundled knowledge curated 2026-11-23 (2611 rows added from SAP's 2611 release blog and the 9.21 keyword news); the target system's release notes are authoritative",
+  "releaseOrder": 10,
   "releaseLabels": {
     "pre-2502": "before the 2502 release train (established feature, not a 2025-26 delta)",
     "2502": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2502 (ABAP 9.14, Feb 2025)",
@@ -22,7 +12,8 @@
     "2511": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2511 (ABAP 9.17, Nov 2025)",
     "2602": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2602 (ABAP 9.18, Feb 2026)",
     "2605": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2605 (ABAP 9.19, May 2026)",
-    "2608": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2608 (ABAP 9.20, Aug 2026)"
+    "2608": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2608 (ABAP 9.20, Aug 2026)",
+    "2611": "SAP BTP ABAP Environment (since 2026-09 named SAP Business AI Platform, ABAP environment / BAIP) 2611 (ABAP 9.21, Nov 2026, GA 2026-11-14)"
   },
   "deltas": [
     {
@@ -2167,6 +2158,225 @@
         "cl_bgmc_process_factory",
         "not new"
       ]
+    },
+    {
+      "id": "cds-entity-index-2611",
+      "title": "Indexes defined directly on CDS table entities",
+      "summary": "A CDS table entity can now carry its own DEFINE INDEX statement. Three kinds are offered: unique (enforces uniqueness), text (fuzzy and similarity search on character columns) and standard (read performance). ADT for Eclipse gained a matching creation wizard.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "cds",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "cds table entity",
+        "define index",
+        "unique index",
+        "text index",
+        "fuzzy search",
+        "2611"
+      ]
+    },
+    {
+      "id": "cds-external-entity-default-initial-2611",
+      "title": "External entity defaults accept INITIAL and enum constants",
+      "summary": "Building on the 2608 DEFAULT keyword for external entity elements, 9.21 also allows INITIAL as the default and lets an element typed with an enumeration default to one of its enum constants.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "cds",
+      "sourceUrl": "https://github.com/SAP-samples/abap-cheat-sheets/blob/main/33_ABAP_Release_News.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": [
+        "external entity",
+        "default value",
+        "initial",
+        "enumerated type",
+        "9.21",
+        "2611"
+      ]
+    },
+    {
+      "id": "boolean-value-expressions-2611",
+      "title": "Logical expressions usable as Boolean values",
+      "summary": "In 9.21 a logical expression can be used directly where a value is expected, producing a truth value. True maps to the natural true representation of the target type and false to its initial value, which removes most xsdbool( ) wrapping.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "language",
+      "sourceUrl": "https://github.com/SAP-samples/abap-cheat-sheets/blob/main/33_ABAP_Release_News.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": [
+        "boolean expression",
+        "logical expression",
+        "xsdbool",
+        "abap_bool",
+        "9.21",
+        "2611"
+      ]
+    },
+    {
+      "id": "is-compatible-with-case-data-type-2611",
+      "title": "IS COMPATIBLE WITH and CASE DATA TYPE OF",
+      "summary": "Two new runtime type tests arrive in 9.21: the relational expression IS COMPATIBLE WITH and the control structure CASE DATA TYPE OF, both checking whether a data object's runtime type is compatible with a named type. Useful in generic code that previously needed RTTI calls.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "language",
+      "sourceUrl": "https://github.com/SAP-samples/abap-cheat-sheets/blob/main/33_ABAP_Release_News.md",
+      "sourceKind": "sap-github",
+      "confidence": "confirmed",
+      "keywords": [
+        "is compatible with",
+        "case data type of",
+        "rtti",
+        "generic programming",
+        "9.21",
+        "2611"
+      ]
+    },
+    {
+      "id": "adt-vscode-views-2611",
+      "title": "ADT for VS Code 1.2 views needed for 2611",
+      "summary": "2611 requires ADT for VS Code 1.2.0 (Eclipse 3.62.0). The VS Code release adds a transport organizer, ABAP timeline, SQL notebooks, ATC exemption creation, an ABAP feeds view, Swagger for OData services, service consumption models, technical table settings and more object types.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "tooling",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "adt for vs code",
+        "transport organizer",
+        "sql notebook",
+        "atc exemption",
+        "abap feeds",
+        "swagger",
+        "2611"
+      ]
+    },
+    {
+      "id": "adt-eclipse-cache-usage-explorer-2611",
+      "title": "ADT for Eclipse: static caches, CDS usage explorer, authorization default variants",
+      "summary": "The Eclipse tools can now create static caches, analyse where a CDS entity is used through a usage explorer, and create and maintain authorization default variants (R3TR SUCO).",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "tooling",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "adt for eclipse",
+        "static cache",
+        "usage explorer",
+        "suco",
+        "authorization default variant",
+        "2611"
+      ]
+    },
+    {
+      "id": "atc-exemption-navigation-2611",
+      "title": "Jump from an ATC exemption to the object",
+      "summary": "In the Approve ATC Exemptions app an approver can now navigate straight from an exemption to the development object it covers.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "atc",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "atc exemption",
+        "approve atc exemptions",
+        "navigation",
+        "2611"
+      ]
+    },
+    {
+      "id": "rfc-error-details-2611",
+      "title": "Detailed diagnostics for communication-target RFC calls",
+      "summary": "RFC calls made through a communication target can return detailed error information, read via a Get_Details method on the exception object or Get_Last_Error on the session object.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "language",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "reported",
+      "keywords": [
+        "rfc",
+        "communication target",
+        "error details",
+        "get_details",
+        "get_last_error",
+        "2611"
+      ]
+    },
+    {
+      "id": "bc-maintenance-search-field-2611",
+      "title": "Search field option for custom business configuration",
+      "summary": "When generating a business configuration maintenance object, an Add Search Field option gives the key fields text and fuzzy search without hand-written code.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "tooling",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "confirmed",
+      "keywords": [
+        "business configuration",
+        "maintenance object",
+        "search field",
+        "fuzzy search",
+        "2611"
+      ]
+    },
+    {
+      "id": "ai-sdk-data-extraction-2611",
+      "title": "ABAP AI SDK data extraction into RAP business objects",
+      "summary": "The ABAP AI SDK now offers extraction of data from images such as invoices and expense receipts, with the result stored in a RAP business object. Check SAP's What's New for generative AI in ABAP Cloud for the API names first.",
+      "release": "2611",
+      "abapRelease": "9.21",
+      "products": [
+        "btp"
+      ],
+      "kind": "tooling",
+      "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+      "sourceKind": "sap-blog",
+      "confidence": "reported",
+      "keywords": [
+        "abap ai sdk",
+        "document extraction",
+        "invoice",
+        "receipt",
+        "generative ai",
+        "rap",
+        "2611"
+      ]
     }
   ],
   "productRename": {
@@ -2178,16 +2388,16 @@
     "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-new-product-name/ba-p/14492854"
   },
   "nextRelease": {
-    "release": "2611",
-    "expected": "standard upgrade 2026-11-13/15 (UTC) per SAP; the 2026-10-16 pre-upgrade carried no new features",
-    "status": "not yet curated — rows are added after SAP publishes the 2611 release notes",
-    "themesAnnouncedAtTechEd2026": [
+    "release": "2702",
+    "expected": "February 2027 per SAP's major upgrade schedule",
+    "status": "not yet curated — rows are added after SAP publishes the release notes",
+    "teched2026ThemesNotInThe2611Notes": [
       "transactional outbox on the background processing framework",
-      "collaborative draft",
       "event-driven side effects",
       "analytical tables",
       "multi-node business object generation"
     ],
-    "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-sessions-at-sap-teched-2026/ba-p/14493999"
+    "note": "These TechEd 2026 themes did not appear in the 2611 release blog; treat them as roadmap until a release note names them.",
+    "sourceUrl": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181"
   }
 }

@@ -236,7 +236,7 @@ The full offline loop an agent can run before anything reaches a system:
 | `explain_abap_rule` | One rule in depth — rationale (often Clean ABAP), examples, docs URL. |
 | `format_abap` | Offline pretty-printer (keyword case + indentation). |
 | `get_abap_outline` | Classes/methods/visibility/interfaces/FORMs of a source — navigate big objects without reading them whole. Optional Mermaid classDiagram output for instant structure visuals. |
-| `explain_abap_release` | Bundled, dated (curated 2026-09-10) knowledge base of ABAP Cloud / CDS / RAP / EML / ATC release deltas across the 2502–2608 trains plus ABAP Platform 2025 — each row an original summary with a cited SAP source URL and a `confirmed` / `reported` confidence flag; filter by `sinceRelease`, `product`, `kind`. |
+| `explain_abap_release` | Bundled, dated (curated 2026-11-23) knowledge base of ABAP Cloud / CDS / RAP / EML / ATC release deltas across the 2502–2611 trains plus ABAP Platform 2025 — each row an original summary with a cited SAP source URL and a `confirmed` / `reported` confidence flag; filter by `sinceRelease`, `product`, `kind`. |
 | `search_sap_knowledge` | Free-text search over the same bundle plus Clean Core governance (Levels A–D, release contracts C0–C3, the real ATC vocabulary) and 7 SAP-AI decision cards (SAP-ABAP-1, Generative AI Hub, ABAP AI SDK, SAP's official ADT MCP server, …) — every hit carries its sources and confidence. |
 | `scaffold_abap_ai_sdk` | Generates a validated ABAP class calling the Generative AI Hub through the ABAP AI SDK (ISLM): 7 interaction shapes (string, messages, prompt-template, function-calling, structured-output, streaming, orchestration), round-tripped through abaplint against abap-mcp's own bundled `IF_AIC_*` stubs (`validated: "abaplint-syntax"`); returns the manual ISLM setup steps it cannot perform itself. |
 | `get_abap_agent_rules` | Emits the AGENTS.md / CLAUDE.md rules block for an ABAP repo: lint-before-commit, the readiness gate, released-API discipline, scaffold-first, the offline unit-test loop, and division of labour with an online ADT MCP server. |
@@ -246,7 +246,7 @@ The full offline loop an agent can run before anything reaches a system:
 ## Knowledge base & resources
 
 A dated, cited SAP knowledge bundle ships with the package (curated 2026-09-10): 100 ABAP Cloud /
-RAP release-delta rows (2502–2608 trains + ABAP Platform 2025, plus pre-2502 chronology
+RAP release-delta rows (2502–2611 trains + ABAP Platform 2025, plus pre-2502 chronology
 corrections so an agent can't present an established feature as a 2025-26 novelty), 55 Clean Core
 entries (Levels A–D, release contracts C0–C3, the real ATC vocabulary), and 7 SAP-AI decision
 cards (SAP-ABAP-1, Generative AI Hub orchestration, the ABAP AI SDK, Joule for Developers, SAP's

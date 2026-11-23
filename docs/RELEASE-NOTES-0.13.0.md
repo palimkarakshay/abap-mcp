@@ -38,11 +38,24 @@ that.
   clean core integration white paper (TM108), and the product rename of SAP BTP ABAP environment to
   SAP Business AI Platform, ABAP environment (BAIP). `search_sap_knowledge("business ai platform")`
   now finds the BTP rows; the `btp` edition key is unchanged.
-- **Release deltas**: the file records that 2611 lands 2026-11-13/15 and which themes SAP announced;
-  rows for 2611 are added once SAP publishes the release notes. Knowledge curated date: 2026-11-02.
+- **Release deltas for 2611 (ABAP 9.21, GA 2026-11-14)**: ten new rows. CDS table entity indexes,
+  INITIAL and enum defaults on external entities, Boolean value expressions, `IS COMPATIBLE WITH` /
+  `CASE DATA TYPE OF`, the ADT for VS Code 1.2 views 2611 requires, Eclipse static caches and the CDS
+  usage explorer, ATC exemption navigation, RFC error details, the business configuration search
+  field, and ABAP AI SDK data extraction. `explain_abap_release` accepts `sinceRelease: "2611"`.
+  The TechEd themes the 2611 notes did not name (transactional outbox, event-driven side effects,
+  analytical tables, multi-node BO generation) are recorded as roadmap, not as deltas.
+  Knowledge curated date: 2026-11-23.
 - **README / COOKBOOK / ROADMAP**: "Why this exists" rewritten around the companion role; the pairing
   recipe uses the shipped tool names and the allow-list levels; the September roadmap carries a
   dated correction instead of a rewrite.
+
+## Fixed
+
+- `check_rap_behavior`: RAP076 accepts `use collaborative draft` on a projection.
+- `run_abap_unit`: objects that will not transpile are set aside (new `excludedObjects` result field,
+  non-empty means exit 1) instead of failing the whole batch, and their dependents are set aside too.
+- `check_cloud_readiness`: the `releasedApiFindings` row shape is declared in the output schema.
 
 ## Added
 
@@ -54,5 +67,6 @@ that.
 
 SAP TechEd 2026 session slides AD100, ST124 and TM108 (summarised, not bundled), the SAP Community
 posts "ABAP Development Tools MCP server: major update available" and "ABAP sessions at SAP TechEd
-2026", and SAP's security and roadmap pages. Every knowledge row remains an original summary over a
+2026", "SAP Business AI Platform, ABAP environment - Release 2611", the
+SAP-samples ABAP release news cheat sheet (9.21), and SAP's security and roadmap pages. Every knowledge row remains an original summary over a
 cited source.

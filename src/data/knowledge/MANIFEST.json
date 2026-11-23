@@ -1,11 +1,11 @@
 {
   "manifestVersion": "1",
-  "curatedDate": "2026-11-02",
-  "scopeNote": "bundled knowledge curated 2026-11-02 (TechEd 2026 refresh); the target system's release notes are authoritative",
+  "curatedDate": "2026-11-23",
+  "scopeNote": "bundled knowledge curated 2026-11-23 (TechEd 2026 refresh + 2611); the target system's release notes are authoritative",
   "provenancePolicy": "Every knowledge row is an original abap-mcp summary written over a cited source. No help.sap.com prose, community.sap.com blog text or SAP Note text is reproduced. Apache-2.0 SAP GitHub data (SAP/abap-atc-cr-cv-s4hc) and CC-BY-4.0 SAP documentation sources (SAP-docs/sap-artificial-intelligence) are cited by URL and summarized, not copied.",
   "files": {
     "abap-release-deltas.json": {
-      "curatedDate": "2026-11-02",
+      "curatedDate": "2026-11-23",
       "license": "abap-mcp original summaries (MIT) over cited sources",
       "recordKey": "deltas",
       "sources": [
@@ -123,6 +123,16 @@
           "url": "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-sessions-at-sap-teched-2026/ba-p/14493999",
           "licence": "SAP community blog — cited, not reproduced",
           "retrievedAt": "2026-10-29"
+        },
+        {
+          "url": "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-business-ai-platform-abap-environment-release-2611/ba-p/14523181",
+          "licence": "SAP community blog — cited, not reproduced",
+          "retrievedAt": "2026-11-23"
+        },
+        {
+          "url": "https://github.com/SAP-samples/abap-cheat-sheets/blob/main/33_ABAP_Release_News.md",
+          "licence": "Apache-2.0 SAP-samples repository — cited and summarized, not copied",
+          "retrievedAt": "2026-11-23"
         }
       ]
     },

@@ -67,7 +67,7 @@ export const explainAbapReleaseTool = defineTool({
   title: "Explain ABAP Cloud / RAP release deltas",
   description:
     "Look up what changed in ABAP Cloud, CDS, ABAP SQL, RAP, EML, ABAP Unit, ATC and the development tools across the " +
-    "2502 to 2608 release trains plus ABAP Platform 2025 (SAP_BASIS 816), from a dated knowledge base bundled with this " +
+    "2502 to 2611 release trains plus ABAP Platform 2025 (SAP_BASIS 816), from a dated knowledge base bundled with this " +
     "package. Each row carries an original summary, an optional syntax sketch, the release and ABAP release, the products " +
     "it was verified for, the cited SAP source URL, and a confidence flag (\"confirmed\" = fact-checked, \"reported\" = " +
     "single-source). " +
@@ -90,7 +90,7 @@ export const explainAbapReleaseTool = defineTool({
     sinceRelease: releaseEnum
       .optional()
       .describe(
-        'Return only rows at this release or newer, chronologically: pre-2502, 2502, 2505, 2508, platform-2025, 2511, 2602, 2605, 2608. Use the customer\'s current level, e.g. "2508", to see what upgrading buys them.',
+        'Return only rows at this release or newer, chronologically: pre-2502, 2502, 2505, 2508, platform-2025, 2511, 2602, 2605, 2608, 2611. Use the customer\'s current level, e.g. "2508", to see what upgrading buys them.',
       ),
     product: productEnum
       .optional()

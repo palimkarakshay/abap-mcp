@@ -31,6 +31,7 @@ export const KNOWLEDGE_RELEASES = [
   "2602",
   "2605",
   "2608",
+  "2611",
 ] as const;
 export type KnowledgeRelease = (typeof KNOWLEDGE_RELEASES)[number];
 

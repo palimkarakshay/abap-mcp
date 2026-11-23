@@ -77,14 +77,14 @@ describe("bundled knowledge base — release deltas", () => {
 
   it("ships a usefully sized, uniquely keyed set of rows", () => {
     expect(deltas.length).toBeGreaterThanOrEqual(60);
-    expect(deltas.length).toBeLessThanOrEqual(100);
+    expect(deltas.length).toBeLessThanOrEqual(120);
     const ids = deltas.map((d) => d.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("covers every release train in the 2502-2608 window plus ABAP Platform 2025", () => {
+  it("covers every release train in the 2502-2611 window plus ABAP Platform 2025", () => {
     const seen = new Set(deltas.map((d) => d.release));
-    for (const release of ["2502", "2508", "2511", "2602", "2605", "2608", "platform-2025"]) {
+    for (const release of ["2502", "2508", "2511", "2602", "2605", "2608", "2611", "platform-2025"]) {
       expect(seen, `no row for release ${release}`).toContain(release);
     }
   });
@@ -356,7 +356,7 @@ describe("explainAbapRelease", () => {
     const result = explainAbapRelease({ sinceRelease: "2605" });
     expect(result.deltas.length).toBeGreaterThan(0);
     for (const delta of result.deltas) {
-      expect(["2605", "2608"]).toContain(delta.release);
+      expect(["2605", "2608", "2611"]).toContain(delta.release);
     }
   });
 
