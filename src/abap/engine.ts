@@ -31,6 +31,13 @@ export interface Finding {
 }
 
 export const MAX_FILES = 32;
+/**
+ * Ceiling for the CLI, which reads files from disk rather than receiving them in one MCP payload.
+ * MAX_FILES bounds an MCP call. The CLI must not split a sweep into batches of it, because every
+ * cross-file check (CDS sources, BDEF implementation classes, SRVD exposures) then fails at the
+ * batch edges. One registry per sweep keeps them working.
+ */
+export const CLI_MAX_FILES = 5000;
 export const MAX_FILE_CHARS = 100_000;
 export const MAX_FINDINGS = 500;
 
@@ -83,9 +90,12 @@ export function inferFilename(source: string, given?: string): string {
   return "zsnippet.prog.abap";
 }
 
-export function boundFiles(files: AbapSource[]): { filename: string; source: string }[] {
+export function boundFiles(
+  files: AbapSource[],
+  maxFiles: number = MAX_FILES,
+): { filename: string; source: string }[] {
   if (files.length === 0) throw new Error("Provide at least one source file.");
-  if (files.length > MAX_FILES) throw new Error(`At most ${MAX_FILES} files per call.`);
+  if (files.length > maxFiles) throw new Error(`At most ${maxFiles} files per call.`);
   const used = new Set<string>();
   return files.map((f) => {
     if (f.source.length > MAX_FILE_CHARS) {
@@ -131,6 +141,10 @@ export interface RunOptions {
    * for "syntax-only", which has no opinionated rules to focus.
    */
   focus?: FocusTag | undefined;
+  /** Per-call file cap. Defaults to MAX_FILES (the MCP bound); the CLI passes CLI_MAX_FILES. */
+  maxFiles?: number | undefined;
+  /** Finding cap. Defaults to MAX_FINDINGS (the MCP bound); the CLI passes Infinity. */
+  maxFindings?: number | undefined;
   /**
    * "style"       — abaplint's default ruleset minus whole-program semantic
    *                 checks, so isolated snippets don't drown in noise about
@@ -184,7 +198,7 @@ export interface RunResult {
 }
 
 export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
-  const bounded = boundFiles(files);
+  const bounded = boundFiles(files, opts.maxFiles);
   const registry = new abaplint.Registry(buildConfig(opts));
   const lines = new Map<string, string[]>();
   for (const f of bounded) {
@@ -193,7 +207,8 @@ export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
   }
   registry.parse();
   const issues = registry.findIssues();
-  const findings = issues.slice(0, MAX_FINDINGS).map((issue) => {
+  const maxFindings = opts.maxFindings ?? MAX_FINDINGS;
+  const findings = issues.slice(0, maxFindings).map((issue) => {
     const start = issue.getStart();
     const fileLines = lines.get(issue.getFilename());
     const excerpt = (fileLines?.[start.getRow() - 1] ?? "").trim().slice(0, 100);
@@ -208,7 +223,7 @@ export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
       docsUrl: `https://rules.abaplint.org/${issue.getKey()}/`,
     };
   });
-  return { findings, truncated: issues.length > MAX_FINDINGS, fileCount: bounded.length };
+  return { findings, truncated: issues.length > maxFindings, fileCount: bounded.length };
 }
 
 /** A statically-resolved reference to a repository object found in the source. */
@@ -247,8 +262,9 @@ const SQL_STATEMENTS = new Set([
 export function extractObjectReferences(
   files: AbapSource[],
   baselineVersion: AbapVersion = "v758",
+  maxFiles: number = MAX_FILES,
 ): ObjectReference[] {
-  const bounded = boundFiles(files);
+  const bounded = boundFiles(files, maxFiles);
   const registry = new abaplint.Registry(buildConfig({ version: baselineVersion, preset: "syntax-only" }));
   for (const f of bounded) {
     registry.addFile(new abaplint.MemoryFile(f.filename, f.source));

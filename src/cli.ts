@@ -17,7 +17,9 @@ async function main(): Promise<void> {
     err: (s) => console.error(s),
   });
   if (code !== null) {
-    process.exit(code);
+    // exitCode, not process.exit(): exit() drops piped stdout past ~64 KB (large --json reports).
+    process.exitCode = code;
+    return;
   }
   const server = buildServer();
   await server.connect(new StdioServerTransport());

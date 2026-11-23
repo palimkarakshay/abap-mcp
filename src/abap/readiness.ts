@@ -18,7 +18,7 @@ import atcVocabularyData from "../data/atc-vocabulary.json" with { type: "json" 
 import recipeData from "../data/rewrite-recipes.json" with { type: "json" };
 
 import type { AbapSource, AbapVersion, Finding } from "./engine.js";
-import { extractObjectReferences, runAbaplint } from "./engine.js";
+import { extractObjectReferences, MAX_FILES, runAbaplint } from "./engine.js";
 import type { ReleasedEdition, SuccessorSource } from "./released.js";
 import { DEFAULT_EDITION, lookupReleased, RELEASED_API_SNAPSHOTS, suggestSuccessor } from "./released.js";
 
@@ -204,9 +204,12 @@ export function checkCloudReadiness(
   files: AbapSource[],
   baselineVersion: AbapVersion = "v758",
   edition: ReleasedEdition = DEFAULT_EDITION,
+  maxFiles: number = MAX_FILES,
 ): ReadinessReport {
-  const cloud = runAbaplint(files, { version: "Cloud", preset: "syntax-only" });
-  const baseline = runAbaplint(files, { version: baselineVersion, preset: "syntax-only" });
+  // Above the MCP bound (a CLI sweep) the blocker count must be complete, so no finding cap.
+  const maxFindings = maxFiles > MAX_FILES ? Infinity : undefined;
+  const cloud = runAbaplint(files, { version: "Cloud", preset: "syntax-only", maxFiles, maxFindings });
+  const baseline = runAbaplint(files, { version: baselineVersion, preset: "syntax-only", maxFiles, maxFindings });
 
   const baselineKeys = new Set(baseline.findings.map((f) => `${f.file}:${f.line}:${f.rule}`));
   const blockers: Finding[] = [];
@@ -241,7 +244,7 @@ export function checkCloudReadiness(
     fileCount: files.length,
     categories: [...byCategory.values()].sort((a, b) => b.count - a.count),
     brokenAtBaseline: baseline.findings,
-    releasedApiFindings: computeReleasedApiFindings(files, baselineVersion, edition),
+    releasedApiFindings: computeReleasedApiFindings(files, baselineVersion, edition, maxFiles),
     releasedApiSnapshotDate: RELEASED_API_SNAPSHOTS[edition].snapshotDate,
     edition,
     baselineVersion,
@@ -266,9 +269,10 @@ function computeReleasedApiFindings(
   files: AbapSource[],
   baselineVersion: AbapVersion,
   edition: ReleasedEdition,
+  maxFiles: number = MAX_FILES,
 ): ReleasedApiFinding[] {
   const out: ReleasedApiFinding[] = [];
-  for (const ref of extractObjectReferences(files, baselineVersion)) {
+  for (const ref of extractObjectReferences(files, baselineVersion, maxFiles)) {
     let hit = lookupReleased(ref.name, ref.objectType, edition);
     // An ABAP-SQL FROM clause names either a DDIC table or a CDS entity, but
     // the extractor labels both TABL — fall back to the CDS record so a
