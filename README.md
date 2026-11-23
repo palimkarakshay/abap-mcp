@@ -43,6 +43,8 @@ BDEF check or release knowledge of its own. AI coding agents spend most of their
 agent runs on the text **before** every write and the knowledge it asks **instead of** guessing.
 
 - *"Does this ABAP parse? Is it clean? How does it perform?"* → `lint_abap` (+ focus packs)
+- *"Will this activate?"* → `lint_abap` also runs `sql/FAE001`, which abaplint lacks: a `FOR ALL ENTRIES` column
+  compared with an itab field of a different type or length (an activation error on SAP), RAP handlers included
 - *"Fix this block automatically — casing, obsolete syntax."* → `fix_abap` (deterministic, parser-guaranteed)
 - *"How far is this classic report from ABAP Cloud? Grade it."* → `check_cloud_readiness` (A–D)
 - *"Plan the migration — what do we tackle first?"* → `plan_cloud_migration` (phased backlog)

@@ -10,6 +10,7 @@
  *    Callers may omit them; we infer from the source's leading statement.
  */
 import * as abaplint from "@abaplint/core";
+import { checkForAllEntriesTypes, FAE_DOCS, FAE_RULE } from "./fae.js";
 
 import { listRules } from "./rules.js";
 
@@ -234,7 +235,22 @@ export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
   registry.parse();
   const issues = registry.findIssues().filter((issue) => !isInputArtifact(issue));
   const maxFindings = opts.maxFindings ?? MAX_FINDINGS;
-  const findings = issues.slice(0, maxFindings).map((issue) => {
+  // abap-mcp's own activation-error check (abaplint has no FOR ALL ENTRIES type rule).
+  const fae =
+    opts.rules?.[FAE_RULE] === false
+      ? []
+      : checkForAllEntriesTypes(registry, bounded).map((f) => ({
+          rule: FAE_RULE,
+          message: f.message,
+          severity: "Error",
+          file: f.file,
+          line: f.line,
+          column: f.column,
+          excerpt: (lines.get(f.file)?.[f.line - 1] ?? "").trim().slice(0, 100),
+          docsUrl: FAE_DOCS,
+        }));
+  const total = issues.length + fae.length;
+  const abaplintFindings = issues.slice(0, Math.max(0, maxFindings - fae.length)).map((issue) => {
     const start = issue.getStart();
     const fileLines = lines.get(issue.getFilename());
     const excerpt = (fileLines?.[start.getRow() - 1] ?? "").trim().slice(0, 100);
@@ -249,7 +265,8 @@ export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
       docsUrl: `https://rules.abaplint.org/${issue.getKey()}/`,
     };
   });
-  return { findings, truncated: issues.length > maxFindings, fileCount: bounded.length };
+  const findings = [...fae.slice(0, maxFindings), ...abaplintFindings];
+  return { findings, truncated: total > maxFindings, fileCount: bounded.length };
 }
 
 /** A statically-resolved reference to a repository object found in the source. */
