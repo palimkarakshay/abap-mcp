@@ -57,7 +57,7 @@ export const ABAP_VERSIONS = [
 export type AbapVersion = (typeof ABAP_VERSIONS)[number];
 
 const FILENAME_RE =
-  /^[a-zA-Z0-9_#-]+\.(clas\.abap|clas\.locals_imp\.abap|clas\.locals_def\.abap|clas\.testclasses\.abap|prog\.abap|intf\.abap|fugr\.abap|ddls\.asddls|bdef\.asbdef|srvd\.srvdsrv|ddlx\.asddlx)$/;
+  /^[a-zA-Z0-9_#-]+\.(clas\.abap|clas\.locals_imp\.abap|clas\.locals_def\.abap|clas\.testclasses\.abap|prog\.abap|intf\.abap|fugr\.abap|ddls\.asddls|bdef\.asbdef|srvd\.srvdsrv|ddlx\.asddlxs?|tabl\.xml|dtel\.xml|doma\.xml|ttyp\.xml)$/;
 
 /**
  * Infer an abapGit-conventional filename from the source's first meaningful
@@ -197,6 +197,32 @@ export interface RunResult {
   fileCount: number;
 }
 
+/**
+ * abaplint findings that describe what abap-mcp's input format cannot carry, not the code.
+ * abap-mcp takes source text (MCP sends text, the CLI reads source files), so an abapGit
+ * metadata file such as zcl_x.clas.xml is usually absent, and SAP's own classes are never in
+ * the registry. Both rules then report an absence instead of a defect:
+ *  - description_empty: "…class XML file not found" (the description lives in that XML).
+ *  - superclass_final: "Super class "cl_…" not found" for a superclass outside Z/Y, i.e. an
+ *    SAP class abaplint treats as void and cannot inspect for FINAL.
+ *  - implement_methods: "Implemented interface "IF_…" not found" for an SAP interface, same reason.
+ * A real empty description (XML present) or a missing customer superclass still reports.
+ */
+function isInputArtifact(issue: abaplint.Issue): boolean {
+  const key = issue.getKey();
+  const msg = issue.getMessage();
+  if (key === "description_empty" && /XML file not found/i.test(msg)) return true;
+  if (key === "superclass_final") {
+    const m = /^Super class "([^"]+)" not found/i.exec(msg);
+    if (m && !/^[zy]/i.test(m[1]!)) return true;
+  }
+  if (key === "implement_methods") {
+    const m = /^Implemented interface "([^"]+)" not found/i.exec(msg);
+    if (m && !/^[zy]/i.test(m[1]!)) return true;
+  }
+  return false;
+}
+
 export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
   const bounded = boundFiles(files, opts.maxFiles);
   const registry = new abaplint.Registry(buildConfig(opts));
@@ -206,7 +232,7 @@ export function runAbaplint(files: AbapSource[], opts: RunOptions): RunResult {
     lines.set(f.filename, f.source.split("\n"));
   }
   registry.parse();
-  const issues = registry.findIssues();
+  const issues = registry.findIssues().filter((issue) => !isInputArtifact(issue));
   const maxFindings = opts.maxFindings ?? MAX_FINDINGS;
   const findings = issues.slice(0, maxFindings).map((issue) => {
     const start = issue.getStart();

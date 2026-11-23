@@ -375,7 +375,7 @@ against the rule set at a stamped `rulesVersion` with zero error/warning finding
 does not claim abaplint parsed it, that SAP's parser would accept it, or that the object would
 activate; `RAP_SCOPE_NOTE` says so on every report, the way `KNOWLEDGE_SCOPE_NOTE` dates the
 knowledge base. The label is never the optimistic default: a file with findings keeps `"template"`
-and the findings surface. `.ddlx.asddlx` stays `"template"` — nothing checks metadata extensions,
+and the findings surface. `.ddlx.asddlxs` stays `"template"` — nothing checks metadata extensions,
 and inventing a claim there would repeat exactly the mistake §5 was written to avoid.
 
 **Two-tier parsing, non-negotiable.** The corpus is a *sample* of BDL, not the language: six legal

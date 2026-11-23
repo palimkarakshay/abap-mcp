@@ -32,7 +32,7 @@ import { scaffoldRapBo } from "./abap/scaffold.js";
 import { PACKAGE_VERSION } from "./version.js";
 
 const ABAP_FILE_RE =
-  /\.(clas\.abap|clas\.locals_imp\.abap|clas\.locals_def\.abap|clas\.testclasses\.abap|prog\.abap|intf\.abap|fugr\.abap|ddls\.asddls|bdef\.asbdef|srvd\.srvdsrv|ddlx\.asddlx)$/;
+  /\.(clas\.abap|clas\.locals_imp\.abap|clas\.locals_def\.abap|clas\.testclasses\.abap|prog\.abap|intf\.abap|fugr\.abap|ddls\.asddls|bdef\.asbdef|srvd\.srvdsrv|ddlx\.asddlxs?|tabl\.xml|dtel\.xml|doma\.xml|ttyp\.xml)$/;
 
 export interface CliIo {
   out: (s: string) => void;
@@ -73,7 +73,13 @@ export function collectFiles(paths: string[], io: CliIo): AbapSource[] {
       }
       firstPathOf.set(name, p);
       found.push({ filename: name, source });
-    } else if ([".abap", ".asddls", ".asbdef"].includes(extname(name))) {
+    } else if (name.endsWith(".tabl.asddls")) {
+      // A table's DDL source (what ADT shows). abaplint resolves tables only from the abapGit
+      // .tabl.xml, so the DDL is redundant when that sits next to it, and a gap when it does not.
+      if (!existsSync(p.replace(/\.tabl\.asddls$/i, ".tabl.xml"))) {
+        io.err(`skip ${p}: table DDL source, abaplint reads tables from the abapGit ${name.replace(/\.tabl\.asddls$/, ".tabl.xml")} (missing, so references to this table will be reported as unknown)`);
+      }
+    } else if ([".abap", ".asddls", ".asbdef", ".asddlxs", ".srvdsrv"].includes(extname(name))) {
       io.err(`skip ${p}: not an abapGit-style filename (e.g. zcl_x.clas.abap)`);
     }
   };

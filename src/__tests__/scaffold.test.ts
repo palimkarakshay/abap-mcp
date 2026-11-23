@@ -32,7 +32,7 @@ describe("scaffoldRapBo", () => {
       "zbp_travel.clas.locals_imp.abap",
       "zc_travel.ddls.asddls",
       "zc_travel.bdef.asbdef",
-      "zc_travel.ddlx.asddlx",
+      "zc_travel.ddlx.asddlxs",
       "zui_travel_v4.srvd.srvdsrv",
     ]);
   });
@@ -67,7 +67,7 @@ describe("scaffoldRapBo", () => {
       expect(byName["zr_travel.bdef.asbdef"]).toBe("rap-checker");
       expect(byName["zc_travel.bdef.asbdef"]).toBe("rap-checker");
       expect(byName["zui_travel_v4.srvd.srvdsrv"]).toBe("rap-checker");
-      expect(byName["zc_travel.ddlx.asddlx"]).toBe("template");
+      expect(byName["zc_travel.ddlx.asddlxs"]).toBe("template");
       expect(byName["zr_travel.ddls.asddls"]).toBe("abaplint");
       expect(r.nextSteps.at(-1)).toContain("abap-mcp's own RAP parser and rule set");
       expect(r.nextSteps.at(-1)).toContain("ADT activation is still the final arbiter");

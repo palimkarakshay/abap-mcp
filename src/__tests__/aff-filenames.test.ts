@@ -20,7 +20,12 @@ describe("AFF / abapGit file names from SAP's ADT MCP server are accepted as-is"
     "zi_travel.ddls.asddls",
     "zr_travel.bdef.asbdef",
     "zui_travel_v4.srvd.srvdsrv",
+    "zc_travel.ddlx.asddlxs",
     "zc_travel.ddlx.asddlx",
+    "zax_demo.tabl.xml",
+    "zax_demo_de.dtel.xml",
+    "zax_demo_do.doma.xml",
+    "zax_demo_tt.ttyp.xml",
   ];
   for (const name of names) {
     it(`keeps ${name}`, () => {
